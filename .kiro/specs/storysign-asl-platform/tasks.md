@@ -8,7 +8,7 @@
   - Configure development tools and hot reload for both frontend and backend
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 2. Implement basic FastAPI backend with health check endpoint
+- [x] 2. Implement basic FastAPI backend with health check endpoint
 
   - Create main.py with FastAPI application instance
   - Implement GET / endpoint returning JSON health status with system information
