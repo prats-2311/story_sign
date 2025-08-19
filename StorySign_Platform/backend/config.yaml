@@ -1,0 +1,26 @@
+# StorySign ASL Platform Configuration
+# This file contains configuration settings for the backend application
+
+# Video capture and processing settings
+video:
+  width: 640 # Video frame width in pixels (320-1920)
+  height: 480 # Video frame height in pixels (240-1080)
+  fps: 30 # Target frames per second (10-60)
+  format: "MJPG" # Video format codec (MJPG, YUYV, H264)
+  quality: 85 # JPEG compression quality (50-100)
+
+# MediaPipe Holistic model settings
+mediapipe:
+  min_detection_confidence: 0.5 # Minimum confidence for person detection (0.0-1.0)
+  min_tracking_confidence: 0.5 # Minimum confidence for landmark tracking (0.0-1.0)
+  model_complexity: 1 # Model complexity: 0=lite, 1=full, 2=heavy
+  enable_segmentation: false # Enable pose segmentation mask
+  refine_face_landmarks: true # Enable refined face landmark detection
+
+# Server configuration settings
+server:
+  host: "0.0.0.0" # Server host address
+  port: 8000 # Server port number (1024-65535)
+  reload: true # Enable auto-reload in development
+  log_level: "info" # Logging level (debug, info, warning, error, critical)
+  max_connections: 10 # Maximum WebSocket connections (1-100)

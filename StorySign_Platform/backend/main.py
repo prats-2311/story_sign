@@ -14,9 +14,27 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 
-# Configure logging
+from config import get_config, AppConfig
+
+# Load application configuration
+try:
+    app_config: AppConfig = get_config()
+    logger = logging.getLogger(__name__)
+    logger.info("Configuration loaded successfully")
+except Exception as e:
+    # Configure basic logging if config loading fails
+    logging.basicConfig(
+        level=logging.ERROR,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    logger = logging.getLogger(__name__)
+    logger.error(f"Failed to load configuration: {e}")
+    raise
+
+# Configure logging based on configuration
+log_level = getattr(logging, app_config.server.log_level.upper())
 logging.basicConfig(
-    level=logging.INFO,
+    level=log_level,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
@@ -78,6 +96,22 @@ async def health_check() -> Dict[str, Any]:
                 "mediapipe": "ready",
                 "websocket": "active", 
                 "active_connections": 0
+            },
+            "configuration": {
+                "video": {
+                    "resolution": f"{app_config.video.width}x{app_config.video.height}",
+                    "fps": app_config.video.fps,
+                    "format": app_config.video.format
+                },
+                "mediapipe": {
+                    "model_complexity": app_config.mediapipe.model_complexity,
+                    "detection_confidence": app_config.mediapipe.min_detection_confidence,
+                    "tracking_confidence": app_config.mediapipe.min_tracking_confidence
+                },
+                "server": {
+                    "max_connections": app_config.server.max_connections,
+                    "log_level": app_config.server.log_level
+                }
             }
         }
         
@@ -91,11 +125,47 @@ async def health_check() -> Dict[str, Any]:
             detail="Health check failed"
         )
 
+@app.get("/config")
+async def get_configuration() -> Dict[str, Any]:
+    """
+    Get current application configuration
+    
+    Returns:
+        Dict containing current configuration settings
+    """
+    try:
+        logger.info("Configuration endpoint accessed")
+        
+        config_data = {
+            "video": app_config.video.model_dump(),
+            "mediapipe": app_config.mediapipe.model_dump(),
+            "server": {
+                "host": app_config.server.host,
+                "port": app_config.server.port,
+                "log_level": app_config.server.log_level,
+                "max_connections": app_config.server.max_connections
+                # Exclude reload setting for security
+            }
+        }
+        
+        logger.info("Configuration retrieved successfully")
+        return config_data
+        
+    except Exception as e:
+        logger.error(f"Configuration retrieval failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Configuration retrieval failed"
+        )
+
 # Application startup event
 @app.on_event("startup")
 async def startup_event():
     """Application startup event handler"""
     logger.info("StorySign Backend starting up...")
+    logger.info(f"Server configuration: {app_config.server.host}:{app_config.server.port}")
+    logger.info(f"Video configuration: {app_config.video.width}x{app_config.video.height} @ {app_config.video.fps}fps")
+    logger.info(f"MediaPipe configuration: complexity={app_config.mediapipe.model_complexity}, detection={app_config.mediapipe.min_detection_confidence}")
     logger.info("FastAPI application initialized successfully")
 
 # Application shutdown event  
@@ -106,10 +176,11 @@ async def shutdown_event():
 
 if __name__ == "__main__":
     # This allows running the app directly with python main.py
+    # Use configuration values for server settings
     uvicorn.run(
         "main:app",
-        host="0.0.0.0", 
-        port=8000,
-        reload=True,
-        log_level="info"
+        host=app_config.server.host, 
+        port=app_config.server.port,
+        reload=app_config.server.reload,
+        log_level=app_config.server.log_level
     )

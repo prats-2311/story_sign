@@ -4,7 +4,8 @@ websockets==12.0
 opencv-python==4.8.1.78
 mediapipe==0.10.7
 python-multipart==0.0.6
-pydantic==2.5.0
+pydantic>=2.11.0
 numpy==1.24.3
 pillow==10.1.0
 python-json-logger==2.0.7
+pyyaml==6.0.1
