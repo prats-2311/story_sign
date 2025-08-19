@@ -159,3 +159,96 @@
   color: #666;
   font-style: italic;
 }
+
+/* Webcam capture styles */
+.video-controls {
+  margin-bottom: 15px;
+}
+
+.webcam-toggle-btn {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.webcam-toggle-btn:hover {
+  background-color: #45a049;
+}
+
+.webcam-error {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 6px;
+}
+
+.error-text {
+  margin: 0;
+  color: #d32f2f;
+  font-size: 0.9rem;
+}
+
+.webcam-capture {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  background-color: #fafafa;
+}
+
+.webcam-status {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  gap: 10px;
+}
+
+.video-container {
+  position: relative;
+  background-color: #000;
+  border-radius: 6px;
+  overflow: hidden;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-placeholder {
+  background-color: #f0f0f0;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.video-placeholder.error {
+  background-color: #ffebee;
+  border-color: #ffcdd2;
+}
+
+.video-placeholder.error p {
+  color: #d32f2f;
+}
+
+.error-message {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 6px;
+}
+
+.error-message p {
+  margin: 0;
+  color: #d32f2f;
+  font-size: 0.9rem;
+}

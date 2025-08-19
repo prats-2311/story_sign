@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import "./App.css";
+import WebcamCapture from "./WebcamCapture";
 
 function App() {
   const [backendMessage, setBackendMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("not_tested");
+  const [webcamActive, setWebcamActive] = useState(false);
+  const [webcamError, setWebcamError] = useState("");
 
   const testBackendConnection = async () => {
     setIsLoading(true);
@@ -62,6 +65,26 @@ function App() {
     }
   };
 
+  const handleFrameCapture = (frameData) => {
+    // This will be used in future tasks for sending frames to backend
+    console.log("Frame captured:", {
+      timestamp: frameData.timestamp,
+      frameNumber: frameData.frameNumber,
+      size: `${frameData.width}x${frameData.height}`,
+    });
+  };
+
+  const handleWebcamError = (error) => {
+    setWebcamError(error);
+  };
+
+  const toggleWebcam = () => {
+    setWebcamActive(!webcamActive);
+    if (webcamActive) {
+      setWebcamError("");
+    }
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -105,9 +128,21 @@ function App() {
 
           <div className="video-area">
             <h3>Video Feed</h3>
-            <div className="video-placeholder">
-              <p>Video component will be implemented in future tasks</p>
+            <div className="video-controls">
+              <button className="webcam-toggle-btn" onClick={toggleWebcam}>
+                {webcamActive ? "Stop Webcam" : "Start Webcam"}
+              </button>
             </div>
+            {webcamError && (
+              <div className="webcam-error">
+                <p className="error-text">{webcamError}</p>
+              </div>
+            )}
+            <WebcamCapture
+              isActive={webcamActive}
+              onFrameCapture={handleFrameCapture}
+              onError={handleWebcamError}
+            />
           </div>
         </div>
       </main>
