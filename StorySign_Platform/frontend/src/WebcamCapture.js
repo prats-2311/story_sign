@@ -64,21 +64,50 @@ const WebcamCapture = ({ onFrameCapture, onError, isActive = false }) => {
       }
     } catch (error) {
       let errorMsg = "Failed to access webcam";
+      let errorCode = error.name;
 
       if (error.name === "NotAllowedError") {
         errorMsg =
-          "Webcam access denied. Please allow camera permissions and try again.";
+          "Camera access denied. Please allow camera permissions in your browser settings and refresh the page.";
       } else if (error.name === "NotFoundError") {
         errorMsg =
-          "No webcam device found. Please connect a camera and try again.";
+          "No camera device found. Please connect a camera and try again.";
       } else if (error.name === "NotReadableError") {
-        errorMsg = "Webcam is already in use by another application.";
+        errorMsg =
+          "Camera is already in use by another application. Please close other apps using the camera.";
       } else if (error.name === "OverconstrainedError") {
-        errorMsg = "Webcam does not support the requested video constraints.";
+        errorMsg =
+          "Camera does not support the requested video settings. Trying with default settings...";
+
+        // Try again with more relaxed constraints
+        try {
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+
+          streamRef.current = fallbackStream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = fallbackStream;
+            videoRef.current.onloadedmetadata = () => {
+              videoRef.current.play();
+              setWebcamStatus("active");
+            };
+          }
+          return; // Success with fallback
+        } catch (fallbackError) {
+          errorMsg = `Camera constraints not supported: ${fallbackError.message}`;
+        }
+      } else if (error.name === "AbortError") {
+        errorMsg = "Camera access was interrupted. Please try again.";
+      } else if (error.name === "SecurityError") {
+        errorMsg =
+          "Camera access blocked by security policy. Please check browser settings.";
       } else {
-        errorMsg = `Webcam error: ${error.message}`;
+        errorMsg = `Camera error (${errorCode}): ${error.message}`;
       }
 
+      console.error("Webcam initialization error:", error);
       setErrorMessage(errorMsg);
       setWebcamStatus("error");
       onError?.(errorMsg);
@@ -201,13 +230,15 @@ const WebcamCapture = ({ onFrameCapture, onError, isActive = false }) => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
-    // Adaptive resolution based on processing capability
+    // Optimized resolution for low latency
     const metrics = performanceMetricsRef.current;
-    const baseWidth = 320;
-    const baseHeight = 240;
 
-    // Reduce resolution if processing capability is low
-    const resolutionScale = Math.max(0.5, metrics.processingCapability);
+    // Use smaller base resolution for faster processing
+    const baseWidth = 240; // Reduced from 320
+    const baseHeight = 180; // Reduced from 240
+
+    // More aggressive resolution scaling for performance
+    const resolutionScale = Math.max(0.3, metrics.processingCapability * 0.8);
     const maxWidth = Math.floor(baseWidth * resolutionScale);
     const maxHeight = Math.floor(baseHeight * resolutionScale);
 
@@ -230,8 +261,8 @@ const WebcamCapture = ({ onFrameCapture, onError, isActive = false }) => {
     ctx.drawImage(video, 0, 0, canvasWidth, canvasHeight);
 
     try {
-      // Adaptive JPEG quality based on processing capability
-      const quality = Math.max(0.3, 0.5 * metrics.processingCapability);
+      // Lower quality for faster encoding/transmission
+      const quality = Math.max(0.2, 0.4 * metrics.processingCapability);
       const base64Data = canvas.toDataURL("image/jpeg", quality);
 
       // Update performance metrics

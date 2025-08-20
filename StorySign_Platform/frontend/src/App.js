@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import "./App.css";
 import WebcamCapture from "./WebcamCapture";
 import VideoStreamingClient from "./VideoStreamingClient";
+import ProcessedVideoDisplay from "./ProcessedVideoDisplay";
 
 function App() {
   const [backendMessage, setBackendMessage] = useState("");
@@ -11,12 +12,17 @@ function App() {
   const [webcamError, setWebcamError] = useState("");
   const [streamingActive, setStreamingActive] = useState(false);
   const [processedFrameData, setProcessedFrameData] = useState(null);
+  const [streamingError, setStreamingError] = useState("");
+  const [streamingConnectionStatus, setStreamingConnectionStatus] =
+    useState("disconnected");
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
 
   const videoStreamingRef = useRef(null);
 
   const testBackendConnection = async () => {
     setIsLoading(true);
     setConnectionStatus("testing");
+    setShowTroubleshooting(false);
 
     try {
       const response = await fetch("http://localhost:8000/", {
@@ -24,21 +30,41 @@ function App() {
         headers: {
           "Content-Type": "application/json",
         },
+        timeout: 10000, // 10 second timeout
       });
 
       if (response.ok) {
         const data = await response.json();
         setBackendMessage(data.message || "Backend connected successfully!");
         setConnectionStatus("connected");
+        setShowTroubleshooting(false);
       } else {
-        setBackendMessage(
-          `Backend error: ${response.status} ${response.statusText}`
-        );
+        let errorMessage = `Backend error: ${response.status} ${response.statusText}`;
+        if (response.status === 404) {
+          errorMessage =
+            "Backend API endpoint not found. Please ensure the backend server is running correctly.";
+        } else if (response.status >= 500) {
+          errorMessage =
+            "Backend server error. Please check the backend logs for more information.";
+        }
+        setBackendMessage(errorMessage);
         setConnectionStatus("error");
+        setShowTroubleshooting(true);
       }
     } catch (error) {
-      setBackendMessage(`Connection failed: ${error.message}`);
+      let errorMessage = "Connection failed: ";
+      if (error.name === "TypeError" && error.message.includes("fetch")) {
+        errorMessage +=
+          "Cannot reach backend server. Please ensure the backend is running on http://localhost:8000";
+      } else if (error.name === "AbortError") {
+        errorMessage +=
+          "Connection timeout. The backend server may be overloaded or not responding.";
+      } else {
+        errorMessage += error.message;
+      }
+      setBackendMessage(errorMessage);
       setConnectionStatus("error");
+      setShowTroubleshooting(true);
     } finally {
       setIsLoading(false);
     }
@@ -87,10 +113,18 @@ function App() {
 
   const handleStreamingConnectionChange = (status) => {
     console.log("Streaming connection status:", status);
+    setStreamingConnectionStatus(status);
+
+    // Clear streaming error when connection is restored
+    if (status === "connected") {
+      setStreamingError("");
+    }
   };
 
   const handleProcessedFrame = (message) => {
     setProcessedFrameData(message);
+    // Clear any previous streaming errors on successful frame processing
+    setStreamingError("");
     console.log("Processed frame received:", {
       frameNumber: message.metadata?.frame_number,
       processingTime: message.metadata?.processing_time_ms,
@@ -100,12 +134,21 @@ function App() {
 
   const handleStreamingError = (error) => {
     console.error("Streaming error:", error);
-    setBackendMessage(`Streaming error: ${error}`);
-    setConnectionStatus("error");
+    setStreamingError(error);
+
+    // Don't override backend connection status if it's already connected
+    if (connectionStatus !== "connected") {
+      setBackendMessage(`Streaming error: ${error}`);
+      setConnectionStatus("error");
+    }
   };
 
   const handleWebcamError = (error) => {
     setWebcamError(error);
+    // Auto-stop streaming if webcam fails
+    if (streamingActive) {
+      setStreamingActive(false);
+    }
   };
 
   const toggleWebcam = () => {
@@ -122,7 +165,38 @@ function App() {
       setBackendMessage("Please start webcam first before enabling streaming");
       return;
     }
+
+    if (connectionStatus !== "connected") {
+      setBackendMessage(
+        "Please test backend connection first before enabling streaming"
+      );
+      return;
+    }
+
+    // Clear previous streaming errors when starting
+    if (!streamingActive) {
+      setStreamingError("");
+    }
+
     setStreamingActive(!streamingActive);
+  };
+
+  const retryWebcam = () => {
+    setWebcamError("");
+    setWebcamActive(false);
+    // Small delay to ensure cleanup, then restart
+    setTimeout(() => {
+      setWebcamActive(true);
+    }, 500);
+  };
+
+  const retryStreaming = () => {
+    setStreamingError("");
+    setStreamingActive(false);
+    // Small delay to ensure cleanup, then restart
+    setTimeout(() => {
+      setStreamingActive(true);
+    }, 500);
   };
 
   return (
@@ -164,6 +238,32 @@ function App() {
                 </p>
               )}
             </div>
+
+            {showTroubleshooting && connectionStatus === "error" && (
+              <div className="troubleshooting-panel">
+                <h4>Troubleshooting Steps:</h4>
+                <ul>
+                  <li>
+                    Ensure the backend server is running:{" "}
+                    <code>python main.py</code>
+                  </li>
+                  <li>
+                    Check that the backend is accessible at{" "}
+                    <code>http://localhost:8000</code>
+                  </li>
+                  <li>Verify no firewall is blocking the connection</li>
+                  <li>Check the backend console for error messages</li>
+                  <li>Try restarting the backend server</li>
+                </ul>
+                <button
+                  className="retry-btn"
+                  onClick={testBackendConnection}
+                  disabled={isLoading}
+                >
+                  Retry Connection
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="video-area">
@@ -183,6 +283,20 @@ function App() {
             {webcamError && (
               <div className="webcam-error">
                 <p className="error-text">{webcamError}</p>
+                <div className="error-actions">
+                  <button className="retry-btn" onClick={retryWebcam}>
+                    Retry Webcam
+                  </button>
+                  <div className="error-help">
+                    <p>Common solutions:</p>
+                    <ul>
+                      <li>Check camera permissions in browser settings</li>
+                      <li>Close other applications using the camera</li>
+                      <li>Try refreshing the page</li>
+                      <li>Ensure camera is properly connected</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             )}
             <WebcamCapture
@@ -194,6 +308,34 @@ function App() {
 
           <div className="streaming-area">
             <h3>Processed Video Stream</h3>
+
+            {streamingError && (
+              <div className="streaming-error">
+                <p className="error-text">Streaming Error: {streamingError}</p>
+                <div className="error-actions">
+                  <button className="retry-btn" onClick={retryStreaming}>
+                    Retry Streaming
+                  </button>
+                  <div className="error-help">
+                    <p>Troubleshooting steps:</p>
+                    <ul>
+                      <li>
+                        Check that the backend server is running and responsive
+                      </li>
+                      <li>
+                        Verify WebSocket connection at
+                        ws://localhost:8000/ws/video
+                      </li>
+                      <li>Ensure webcam is active and working properly</li>
+                      <li>
+                        Check browser console for additional error details
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <VideoStreamingClient
               ref={videoStreamingRef}
               isActive={streamingActive}
@@ -201,33 +343,18 @@ function App() {
               onProcessedFrame={handleProcessedFrame}
               onError={handleStreamingError}
             />
-            {streamingActive && processedFrameData?.frame_data ? (
-              <img
-                src={processedFrameData.frame_data}
-                alt="Processed Stream with MediaPipe Skeleton"
-                style={{ width: "100%", maxWidth: "640px" }}
-              />
-            ) : (
-              <div className="video-placeholder">
-                <p>Processed stream will appear here</p>
-              </div>
-            )}
-            {processedFrameData && (
-              <div className="processed-frame-info">
-                <h4>Latest Processed Frame</h4>
-                <p>Frame #{processedFrameData.metadata?.frame_number}</p>
-                <p>
-                  Processing Time:{" "}
-                  {processedFrameData.metadata?.processing_time_ms}ms
-                </p>
-                <p>
-                  Landmarks:{" "}
-                  {JSON.stringify(
-                    processedFrameData.metadata?.landmarks_detected
-                  )}
-                </p>
-              </div>
-            )}
+
+            <ProcessedVideoDisplay
+              processedFrameData={processedFrameData}
+              connectionStatus={streamingConnectionStatus}
+              streamingStats={{
+                framesSent: videoStreamingRef.current?.framesSent || 0,
+                framesReceived: videoStreamingRef.current?.framesReceived || 0,
+                droppedFrames: 0, // This would come from WebcamCapture performance stats
+              }}
+              onRetryConnection={retryStreaming}
+              isActive={streamingActive}
+            />
           </div>
         </div>
       </main>

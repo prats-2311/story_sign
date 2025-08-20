@@ -95,13 +95,13 @@ class MediaPipeProcessor:
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_drawing_styles = mp.solutions.drawing_styles
         
-        # Initialize holistic model
+        # Initialize holistic model with optimized settings for low latency
         self.holistic = self.mp_holistic.Holistic(
-            min_detection_confidence=self.config.min_detection_confidence,
-            min_tracking_confidence=self.config.min_tracking_confidence,
-            model_complexity=self.config.model_complexity,
-            enable_segmentation=self.config.enable_segmentation,
-            refine_face_landmarks=self.config.refine_face_landmarks
+            min_detection_confidence=max(0.3, self.config.min_detection_confidence - 0.2),  # Lower for speed
+            min_tracking_confidence=max(0.3, self.config.min_tracking_confidence - 0.2),   # Lower for speed
+            model_complexity=min(1, self.config.model_complexity),  # Use faster model (0 or 1)
+            enable_segmentation=False,  # Disable segmentation for speed
+            refine_face_landmarks=False  # Disable face refinement for speed
         )
         
         if MEDIAPIPE_AVAILABLE:
@@ -111,7 +111,7 @@ class MediaPipeProcessor:
         
     def process_frame(self, frame: np.ndarray) -> Tuple[np.ndarray, Dict[str, bool]]:
         """
-        Process frame through MediaPipe Holistic model with enhanced error handling
+        Process frame through MediaPipe Holistic model optimized for low latency
         
         Args:
             frame: Input frame as numpy array (BGR format)
@@ -119,55 +119,161 @@ class MediaPipeProcessor:
         Returns:
             Tuple of (processed_frame, landmarks_detected_dict)
         """
-        try:
-            # Validate input frame
-            if frame is None or frame.size == 0:
-                self.logger.warning("Invalid input frame received")
-                return self._create_fallback_frame(frame), {"hands": False, "face": False, "pose": False}
-            
-            # Convert BGR to RGB for MediaPipe
+        processing_attempts = 0
+        max_attempts = 2  # Reduced from 3 for faster failure recovery
+        
+        while processing_attempts < max_attempts:
             try:
-                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            except cv2.error as e:
-                self.logger.error(f"Color conversion failed: {e}")
-                return frame, {"hands": False, "face": False, "pose": False}
-            
-            # Process frame through MediaPipe with timeout protection
-            try:
-                results = self.holistic.process(rgb_frame)
+                processing_attempts += 1
+                
+                # Validate input frame
+                if frame is None or frame.size == 0:
+                    self.logger.warning("Invalid input frame received")
+                    return self._create_fallback_frame(frame), {"hands": False, "face": False, "pose": False}
+                
+                # Check if MediaPipe is available
+                if not MEDIAPIPE_AVAILABLE:
+                    self.logger.debug("MediaPipe not available, returning original frame")
+                    return frame, {"hands": False, "face": False, "pose": False}
+                
+                # Convert BGR to RGB for MediaPipe with error handling
+                try:
+                    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                except cv2.error as e:
+                    self.logger.error(f"Color conversion failed (attempt {processing_attempts}): {e}")
+                    if processing_attempts >= max_attempts:
+                        return frame, {"hands": False, "face": False, "pose": False}
+                    continue
+                
+                # Process frame through MediaPipe with optimized settings
+                try:
+                    # Skip memory check for speed (comment out for production if needed)
+                    # if hasattr(self, '_check_memory_usage'):
+                    #     if not self._check_memory_usage():
+                    #         self.logger.warning("Memory usage too high, skipping MediaPipe processing")
+                    #         return frame, {"hands": False, "face": False, "pose": False}
+                    
+                    # Process with MediaPipe (optimized for speed)
+                    results = self.holistic.process(rgb_frame)
+                    
+                    # Validate results
+                    if results is None:
+                        self.logger.warning(f"MediaPipe returned None results (attempt {processing_attempts})")
+                        if processing_attempts >= max_attempts:
+                            return frame, {"hands": False, "face": False, "pose": False}
+                        continue
+                        
+                except Exception as e:
+                    self.logger.error(f"MediaPipe processing failed (attempt {processing_attempts}): {e}")
+                    if processing_attempts >= max_attempts:
+                        # Final fallback - return original frame
+                        return frame, {"hands": False, "face": False, "pose": False}
+                    continue
+                
+                # Convert back to BGR for OpenCV drawing
+                try:
+                    processed_frame = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2BGR)
+                except cv2.error as e:
+                    self.logger.error(f"Color conversion back to BGR failed (attempt {processing_attempts}): {e}")
+                    if processing_attempts >= max_attempts:
+                        return frame, {"hands": False, "face": False, "pose": False}
+                    continue
+                
+                # Track which landmarks were detected with enhanced null safety
+                landmarks_detected = self._extract_landmarks_safely(results)
+                
+                # Draw landmarks on the frame with error handling
+                try:
+                    processed_frame = self._draw_landmarks(processed_frame, results)
+                except Exception as e:
+                    self.logger.warning(f"Landmark drawing failed (attempt {processing_attempts}), using frame without overlays: {e}")
+                    # Continue with processed frame even if drawing fails
+                
+                # Success - return processed frame
+                if processing_attempts > 1:
+                    self.logger.info(f"MediaPipe processing succeeded on attempt {processing_attempts}")
+                
+                return processed_frame, landmarks_detected
+                
             except Exception as e:
-                self.logger.error(f"MediaPipe processing failed: {e}")
-                # Continue operation without MediaPipe processing (graceful degradation)
-                return frame, {"hands": False, "face": False, "pose": False}
+                self.logger.error(f"Critical error in MediaPipe frame processing (attempt {processing_attempts}): {e}", exc_info=True)
+                if processing_attempts >= max_attempts:
+                    # Final fallback - return original frame or create safe fallback
+                    return self._create_fallback_frame(frame), {"hands": False, "face": False, "pose": False}
+        
+        # Should not reach here, but safety fallback
+        self.logger.error("All MediaPipe processing attempts failed, using fallback frame")
+        return self._create_fallback_frame(frame), {"hands": False, "face": False, "pose": False}
+    
+    def _extract_landmarks_safely(self, results) -> Dict[str, bool]:
+        """
+        Safely extract landmark detection status from MediaPipe results
+        
+        Args:
+            results: MediaPipe holistic results
             
-            # Convert back to BGR for OpenCV drawing
-            try:
-                processed_frame = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2BGR)
-            except cv2.error as e:
-                self.logger.error(f"Color conversion back to BGR failed: {e}")
-                return frame, {"hands": False, "face": False, "pose": False}
-            
-            # Track which landmarks were detected with null safety
+        Returns:
+            Dictionary indicating which landmark types were detected
+        """
+        try:
             landmarks_detected = {
-                "hands": bool(getattr(results, 'left_hand_landmarks', None) or 
-                            getattr(results, 'right_hand_landmarks', None)),
-                "face": bool(getattr(results, 'face_landmarks', None)),
-                "pose": bool(getattr(results, 'pose_landmarks', None))
+                "hands": False,
+                "face": False,
+                "pose": False
             }
             
-            # Draw landmarks on the frame with error handling
+            # Check hands landmarks with enhanced safety
             try:
-                processed_frame = self._draw_landmarks(processed_frame, results)
+                left_hand = getattr(results, 'left_hand_landmarks', None)
+                right_hand = getattr(results, 'right_hand_landmarks', None)
+                landmarks_detected["hands"] = bool(left_hand or right_hand)
             except Exception as e:
-                self.logger.warning(f"Landmark drawing failed, using frame without overlays: {e}")
-                # Continue with processed frame even if drawing fails
+                self.logger.debug(f"Error checking hand landmarks: {e}")
             
-            return processed_frame, landmarks_detected
+            # Check face landmarks with enhanced safety
+            try:
+                face_landmarks = getattr(results, 'face_landmarks', None)
+                landmarks_detected["face"] = bool(face_landmarks)
+            except Exception as e:
+                self.logger.debug(f"Error checking face landmarks: {e}")
+            
+            # Check pose landmarks with enhanced safety
+            try:
+                pose_landmarks = getattr(results, 'pose_landmarks', None)
+                landmarks_detected["pose"] = bool(pose_landmarks)
+            except Exception as e:
+                self.logger.debug(f"Error checking pose landmarks: {e}")
+            
+            return landmarks_detected
             
         except Exception as e:
-            self.logger.error(f"Critical error in MediaPipe frame processing: {e}", exc_info=True)
-            # Graceful degradation - return original frame
-            return self._create_fallback_frame(frame), {"hands": False, "face": False, "pose": False}
+            self.logger.error(f"Error extracting landmarks safely: {e}")
+            return {"hands": False, "face": False, "pose": False}
+    
+    def _check_memory_usage(self) -> bool:
+        """
+        Check if memory usage is within acceptable limits for processing
+        
+        Returns:
+            True if memory usage is acceptable, False if too high
+        """
+        try:
+            import psutil
+            process = psutil.Process()
+            memory_mb = process.memory_info().rss / 1024 / 1024
+            
+            # Limit to 1GB per process
+            memory_limit_mb = 1024
+            
+            if memory_mb > memory_limit_mb:
+                self.logger.warning(f"Memory usage too high: {memory_mb:.1f}MB (limit: {memory_limit_mb}MB)")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            self.logger.debug(f"Memory check failed: {e}")
+            return True  # Allow processing if check fails
     
     def _create_fallback_frame(self, original_frame: np.ndarray) -> np.ndarray:
         """
@@ -346,7 +452,7 @@ class FrameProcessor:
     
     def encode_frame_to_base64(self, frame: np.ndarray, include_metadata: bool = False) -> Optional[Dict[str, Any]]:
         """
-        Encode OpenCV frame to base64 JPEG data with optional metadata
+        Encode OpenCV frame to base64 JPEG data optimized for low latency
         
         Args:
             frame: OpenCV frame as numpy array (BGR format)
@@ -358,8 +464,13 @@ class FrameProcessor:
         start_time = time.time()
         
         try:
-            # Encode frame as JPEG with quality settings
-            encode_params = [cv2.IMWRITE_JPEG_QUALITY, self.video_config.quality]
+            # Optimized JPEG encoding for speed over quality
+            quality = min(60, self.video_config.quality)  # Cap quality for speed
+            encode_params = [
+                cv2.IMWRITE_JPEG_QUALITY, quality,
+                cv2.IMWRITE_JPEG_OPTIMIZE, 0,  # Disable optimization for speed
+                cv2.IMWRITE_JPEG_PROGRESSIVE, 0  # Disable progressive for speed
+            ]
             success, buffer = cv2.imencode('.jpg', frame, encode_params)
             
             if not success:
@@ -433,13 +544,15 @@ class FrameProcessor:
             processing_time_ms = (time.time() - start_time) * 1000
             return frame, {"hands": False, "face": False, "pose": False}, processing_time_ms
     
-    def process_base64_frame(self, base64_data: str, frame_number: int = 0) -> Dict[str, Any]:
+    def process_base64_frame(self, base64_data: str, frame_number: int = 0, skip_processing: bool = False) -> Dict[str, Any]:
         """
         Complete pipeline: decode base64 frame, process with MediaPipe, encode result
+        Optimized for low latency with optional processing skip
         
         Args:
             base64_data: Base64 encoded JPEG image data
             frame_number: Frame sequence number for tracking
+            skip_processing: If True, skip MediaPipe processing for speed
             
         Returns:
             Dictionary with processed frame data and metadata (never None for graceful degradation)
@@ -452,6 +565,31 @@ class FrameProcessor:
             if frame is None:
                 self.logger.warning("Frame decoding failed, returning error response")
                 return self._create_error_response("Frame decoding failed", frame_number)
+            
+            # Optional processing skip for ultra-low latency mode
+            if skip_processing:
+                # Skip MediaPipe processing, just return the frame
+                encoding_result = self.encode_frame_to_base64(frame, include_metadata=False)
+                if encoding_result is None or not encoding_result.get("encoding_success", False):
+                    return self._create_error_response("Frame encoding failed", frame_number)
+                
+                total_pipeline_time_ms = (time.time() - pipeline_start_time) * 1000
+                return {
+                    "success": True,
+                    "frame_data": encoding_result["frame_data"],
+                    "landmarks_detected": {"hands": False, "face": False, "pose": False},
+                    "processing_metadata": {
+                        "frame_number": frame_number,
+                        "mediapipe_processing_time_ms": 0.0,
+                        "total_pipeline_time_ms": round(total_pipeline_time_ms, 2),
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "processing_skipped": True
+                    },
+                    "quality_metrics": {
+                        "landmarks_confidence": 0.0,
+                        "processing_efficiency": 1.0  # Max efficiency when skipping
+                    }
+                }
             
             # Process with MediaPipe (with graceful degradation)
             processed_frame, landmarks_detected, processing_time_ms = self.process_frame_with_mediapipe(frame)

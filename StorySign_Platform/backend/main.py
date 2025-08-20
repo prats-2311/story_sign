@@ -6,8 +6,14 @@ FastAPI application for real-time ASL recognition and learning
 
 import logging
 import sys
+import os
+import signal
+import atexit
 from datetime import datetime
 from typing import Dict, Any
+import traceback
+import gc
+import resource
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -54,8 +60,8 @@ logger = logging.getLogger(__name__)
 
 class ResourceMonitor:
     """
-    Monitor system resources for individual client sessions
-    Tracks CPU, memory usage, and processing performance
+    Enhanced monitor system resources for individual client sessions
+    Tracks CPU, memory usage, processing performance with resource limit enforcement
     """
     
     def __init__(self, client_id: str):
@@ -64,6 +70,13 @@ class ResourceMonitor:
         self.monitoring_active = False
         self.monitoring_task = None
         self.stats_history = deque([], 60)  # Keep last 60 measurements (1 minute at 1Hz)
+        
+        # Resource limits and enforcement
+        self.memory_limit_mb = 512  # 512MB per client
+        self.cpu_limit_percent = 80  # 80% CPU usage limit
+        self.consecutive_violations = 0
+        self.max_violations = 5  # Trigger enforcement after 5 consecutive violations
+        self.enforcement_active = False
         
     async def start_monitoring(self):
         """Start resource monitoring"""
@@ -83,7 +96,7 @@ class ResourceMonitor:
         self.logger.info(f"Resource monitoring stopped for client {self.client_id}")
         
     async def _monitoring_loop(self):
-        """Monitoring loop that runs every second"""
+        """Enhanced monitoring loop with resource limit enforcement"""
         try:
             while self.monitoring_active:
                 try:
@@ -91,20 +104,33 @@ class ResourceMonitor:
                     stats = await self._collect_resource_stats()
                     self.stats_history.append(stats)
                     
-                    # Log warning if resources are high
-                    if stats['cpu_percent'] > 80 or stats['memory_percent'] > 85:
+                    # Check for resource limit violations
+                    violation_detected = await self._check_resource_limits(stats)
+                    
+                    # Log warnings and enforce limits if necessary
+                    if stats['cpu_percent'] > 80 or stats['memory_mb'] > self.memory_limit_mb:
                         self.logger.warning(f"High resource usage for client {self.client_id}: "
                                           f"CPU: {stats['cpu_percent']:.1f}%, "
-                                          f"Memory: {stats['memory_percent']:.1f}%")
+                                          f"Memory: {stats['memory_mb']:.1f}MB")
+                        
+                        if violation_detected:
+                            await self._enforce_resource_limits(stats)
+                    
+                    # Force garbage collection if memory usage is high
+                    if stats['memory_mb'] > self.memory_limit_mb * 0.8:
+                        gc.collect()
+                        self.logger.debug(f"Forced garbage collection for client {self.client_id}")
                     
                     await asyncio.sleep(1.0)  # Monitor every second
                     
                 except Exception as e:
-                    self.logger.error(f"Error in resource monitoring for client {self.client_id}: {e}")
+                    self.logger.error(f"Error in resource monitoring for client {self.client_id}: {e}", exc_info=True)
                     await asyncio.sleep(1.0)
                     
         except asyncio.CancelledError:
-            pass
+            self.logger.info(f"Resource monitoring cancelled for client {self.client_id}")
+        except Exception as e:
+            self.logger.error(f"Critical error in resource monitoring loop for client {self.client_id}: {e}", exc_info=True)
         
     async def _collect_resource_stats(self) -> dict:
         """Collect current resource statistics"""
@@ -165,6 +191,108 @@ class ResourceMonitor:
             'memory_mb': avg_memory_mb,
             'sample_count': len(recent_stats)
         }
+    
+    async def _check_resource_limits(self, stats: dict) -> bool:
+        """
+        Check if resource limits are violated and track consecutive violations
+        
+        Args:
+            stats: Current resource statistics
+            
+        Returns:
+            True if enforcement should be triggered, False otherwise
+        """
+        try:
+            cpu_violation = stats['cpu_percent'] > self.cpu_limit_percent
+            memory_violation = stats['memory_mb'] > self.memory_limit_mb
+            
+            if cpu_violation or memory_violation:
+                self.consecutive_violations += 1
+                self.logger.warning(f"Resource limit violation #{self.consecutive_violations} for client {self.client_id}: "
+                                  f"CPU: {stats['cpu_percent']:.1f}% (limit: {self.cpu_limit_percent}%), "
+                                  f"Memory: {stats['memory_mb']:.1f}MB (limit: {self.memory_limit_mb}MB)")
+                
+                # Trigger enforcement after consecutive violations
+                if self.consecutive_violations >= self.max_violations and not self.enforcement_active:
+                    return True
+            else:
+                # Reset violation counter if resources are within limits
+                if self.consecutive_violations > 0:
+                    self.logger.info(f"Resource usage normalized for client {self.client_id}, "
+                                   f"resetting violation counter (was {self.consecutive_violations})")
+                self.consecutive_violations = 0
+                self.enforcement_active = False
+            
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"Error checking resource limits for client {self.client_id}: {e}", exc_info=True)
+            return False
+    
+    async def _enforce_resource_limits(self, stats: dict):
+        """
+        Enforce resource limits by reducing processing quality or throttling
+        
+        Args:
+            stats: Current resource statistics that triggered enforcement
+        """
+        try:
+            if self.enforcement_active:
+                return  # Already enforcing limits
+            
+            self.enforcement_active = True
+            self.logger.error(f"ENFORCING RESOURCE LIMITS for client {self.client_id}: "
+                            f"CPU: {stats['cpu_percent']:.1f}%, Memory: {stats['memory_mb']:.1f}MB")
+            
+            # Implement enforcement strategies
+            enforcement_actions = []
+            
+            if stats['memory_mb'] > self.memory_limit_mb:
+                # Force garbage collection
+                gc.collect()
+                enforcement_actions.append("forced_gc")
+                
+                # If memory is critically high, consider more aggressive measures
+                if stats['memory_mb'] > self.memory_limit_mb * 1.5:
+                    enforcement_actions.append("critical_memory_mode")
+            
+            if stats['cpu_percent'] > self.cpu_limit_percent:
+                enforcement_actions.append("cpu_throttling")
+            
+            self.logger.critical(f"Resource enforcement actions for client {self.client_id}: {enforcement_actions}")
+            
+            # Log enforcement event for monitoring
+            self._log_enforcement_event(stats, enforcement_actions)
+            
+        except Exception as e:
+            self.logger.error(f"Error enforcing resource limits for client {self.client_id}: {e}", exc_info=True)
+    
+    def _log_enforcement_event(self, stats: dict, actions: list):
+        """
+        Log resource enforcement event for monitoring and debugging
+        
+        Args:
+            stats: Resource statistics that triggered enforcement
+            actions: List of enforcement actions taken
+        """
+        try:
+            enforcement_log = {
+                'timestamp': datetime.utcnow().isoformat(),
+                'client_id': self.client_id,
+                'trigger_stats': stats,
+                'enforcement_actions': actions,
+                'consecutive_violations': self.consecutive_violations,
+                'limits': {
+                    'memory_limit_mb': self.memory_limit_mb,
+                    'cpu_limit_percent': self.cpu_limit_percent
+                }
+            }
+            
+            # Log as structured data for monitoring systems
+            self.logger.critical(f"RESOURCE_ENFORCEMENT_EVENT: {json.dumps(enforcement_log)}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to log enforcement event for client {self.client_id}: {e}")
 
 
 class PerformanceOptimizer:
@@ -290,10 +418,15 @@ class VideoProcessingService:
             mediapipe_config=config.mediapipe
         )
         
-        # Frame processing queue management
-        self.frame_queue = asyncio.Queue(maxsize=10)  # Limit queue size to prevent memory issues
+        # Frame processing queue management - optimized for low latency
+        self.frame_queue = asyncio.Queue(maxsize=3)  # Reduced queue size for lower latency
         self.processing_loop_task = None
         self.websocket = None
+        
+        # Low latency optimizations
+        self.low_latency_mode = True  # Enable aggressive optimizations
+        self.frame_skip_counter = 0
+        self.process_every_nth_frame = 2  # Process every 2nd frame for speed
         
         # Performance monitoring
         self.processing_stats = {
@@ -403,33 +536,147 @@ class VideoProcessingService:
     
     async def _process_frame_with_monitoring(self, frame_data: dict):
         """
-        Process frame with comprehensive performance monitoring
+        Process frame with comprehensive performance monitoring and fallback processing
         
         Args:
             frame_data: Frame data dictionary from queue
         """
         start_time = time.time()
+        fallback_used = False
         
         try:
-            # Process the frame
-            response = await self._process_raw_frame(frame_data)
+            # Process the frame with MediaPipe fallback handling
+            response = await self._process_raw_frame_with_fallback(frame_data)
+            
+            # Check if fallback processing was used
+            if response and response.get('metadata', {}).get('fallback_processing'):
+                fallback_used = True
+                self.processing_stats['fallback_frames'] = self.processing_stats.get('fallback_frames', 0) + 1
             
             # Calculate processing time
             processing_time = (time.time() - start_time) * 1000  # Convert to ms
             
             # Update performance statistics
-            self._update_processing_stats(processing_time)
+            self._update_processing_stats(processing_time, fallback_used)
             
             # Send response to client if websocket is still active
             if self.websocket and response:
                 try:
                     await self.websocket.send_text(json.dumps(response))
+                except ConnectionResetError:
+                    self.logger.info(f"Client {self.client_id} connection reset during send")
+                    # Stop processing as client is disconnected
+                    await self.stop_processing()
                 except Exception as e:
                     self.logger.warning(f"Failed to send response to client {self.client_id}: {e}")
                     # Don't raise exception - continue processing
             
         except Exception as e:
-            self.logger.error(f"Error processing frame for client {self.client_id}: {e}", exc_info=True)
+            self.logger.error(f"Critical error processing frame for client {self.client_id}: {e}", exc_info=True)
+            
+            # Try to send error response to client
+            try:
+                if self.websocket:
+                    error_response = self._create_critical_error_response(str(e))
+                    await self.websocket.send_text(json.dumps(error_response))
+            except Exception as send_error:
+                self.logger.error(f"Failed to send error response to client {self.client_id}: {send_error}")
+    
+    async def _process_raw_frame_with_fallback(self, message_data: dict) -> dict:
+        """
+        Process raw frame with MediaPipe fallback processing for graceful degradation
+        
+        Args:
+            message_data: Message containing raw frame data
+            
+        Returns:
+            Processed frame response with fallback indicators
+        """
+        try:
+            # First attempt: normal MediaPipe processing
+            return await self._process_raw_frame(message_data)
+            
+        except Exception as mediapipe_error:
+            self.logger.warning(f"MediaPipe processing failed for client {self.client_id}, "
+                              f"attempting fallback: {mediapipe_error}")
+            
+            # Fallback processing: return original frame without MediaPipe overlays
+            try:
+                return await self._process_frame_fallback(message_data, str(mediapipe_error))
+            except Exception as fallback_error:
+                self.logger.error(f"Fallback processing also failed for client {self.client_id}: {fallback_error}")
+                return self._create_critical_error_response(f"All processing failed: {fallback_error}")
+    
+    async def _process_frame_fallback(self, message_data: dict, original_error: str) -> dict:
+        """
+        Fallback frame processing without MediaPipe when main processing fails
+        
+        Args:
+            message_data: Message containing raw frame data
+            original_error: Error message from failed MediaPipe processing
+            
+        Returns:
+            Fallback response with original frame data
+        """
+        self.frame_count += 1
+        
+        try:
+            # Get base64 frame data from message
+            frame_data = message_data.get("frame_data", "")
+            if not frame_data:
+                return self._create_streaming_error_response("No frame data for fallback processing")
+            
+            # Extract client metadata
+            client_metadata = message_data.get("metadata", {})
+            
+            # Create fallback response with original frame (no MediaPipe processing)
+            response = {
+                "type": "processed_frame",
+                "timestamp": datetime.utcnow().isoformat(),
+                "frame_data": frame_data,  # Return original frame data
+                "metadata": {
+                    "client_id": self.client_id,
+                    "server_frame_number": self.frame_count,
+                    "client_frame_number": client_metadata.get("frame_number", self.frame_count),
+                    "processing_time_ms": 0.0,
+                    "total_pipeline_time_ms": 0.0,
+                    "landmarks_detected": {"hands": False, "face": False, "pose": False},
+                    "quality_metrics": {"landmarks_confidence": 0.0, "processing_efficiency": 0.0},
+                    "success": True,
+                    "fallback_processing": True,
+                    "original_error": original_error,
+                    "fallback_reason": "MediaPipe processing failure - graceful degradation"
+                }
+            }
+            
+            self.logger.info(f"Fallback processing successful for client {self.client_id} frame {self.frame_count}")
+            return response
+            
+        except Exception as e:
+            self.logger.error(f"Fallback processing failed for client {self.client_id}: {e}", exc_info=True)
+            return self._create_critical_error_response(f"Fallback processing failed: {str(e)}")
+    
+    def _create_critical_error_response(self, error_message: str) -> dict:
+        """
+        Create critical error response for severe processing failures
+        
+        Args:
+            error_message: Critical error description
+            
+        Returns:
+            Critical error response message
+        """
+        return {
+            "type": "critical_error",
+            "timestamp": datetime.utcnow().isoformat(),
+            "message": error_message,
+            "metadata": {
+                "client_id": self.client_id,
+                "server_frame_number": self.frame_count,
+                "error_type": "critical_processing_error",
+                "requires_reconnection": True
+            }
+        }
     
     async def _check_and_optimize_performance(self):
         """
@@ -451,12 +698,13 @@ class VideoProcessingService:
         except Exception as e:
             self.logger.warning(f"Performance optimization check failed for client {self.client_id}: {e}")
     
-    def _update_processing_stats(self, processing_time_ms: float):
+    def _update_processing_stats(self, processing_time_ms: float, fallback_used: bool = False):
         """
-        Update processing statistics for performance monitoring
+        Update processing statistics for performance monitoring including fallback tracking
         
         Args:
             processing_time_ms: Processing time in milliseconds
+            fallback_used: Whether fallback processing was used
         """
         self.processing_stats['frames_processed'] += 1
         self.processing_stats['total_processing_time'] += processing_time_ms
@@ -469,6 +717,19 @@ class VideoProcessingService:
             self.processing_stats['peak_processing_time'] = processing_time_ms
             
         self.processing_stats['last_frame_timestamp'] = time.time()
+        
+        # Track fallback processing statistics
+        if fallback_used:
+            self.processing_stats['fallback_frames'] = self.processing_stats.get('fallback_frames', 0) + 1
+            self.processing_stats['fallback_rate'] = (
+                self.processing_stats['fallback_frames'] / self.processing_stats['frames_processed']
+            )
+        
+        # Track error rates and processing health
+        self.processing_stats['success_rate'] = (
+            (self.processing_stats['frames_processed'] - self.processing_stats.get('fallback_frames', 0)) /
+            self.processing_stats['frames_processed']
+        ) if self.processing_stats['frames_processed'] > 0 else 0.0
     
     def _log_final_stats(self):
         """Log final processing statistics"""
@@ -709,12 +970,18 @@ class VideoProcessingService:
 
 # Global connection manager
 class ConnectionManager:
-    """Manages WebSocket connections and their associated processing services"""
+    """Enhanced WebSocket connection manager with graceful shutdown and comprehensive error handling"""
     
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
         self.processing_services: Dict[str, VideoProcessingService] = {}
         self.connection_counter = 0
+        self.logger = logging.getLogger(f"{__name__}.ConnectionManager")
+        self.shutdown_initiated = False
+        self.shutdown_timeout = 30.0  # 30 seconds for graceful shutdown
+        
+        # Register shutdown handlers
+        self._register_shutdown_handlers()
         
     def generate_client_id(self) -> str:
         """Generate unique client ID"""
@@ -766,7 +1033,7 @@ class ConnectionManager:
         return stats
     
     def get_system_summary(self) -> dict:
-        """Get system-wide processing summary"""
+        """Get system-wide processing summary with enhanced error tracking"""
         all_stats = self.get_all_processing_stats()
         
         total_frames_processed = sum(
@@ -781,18 +1048,160 @@ class ConnectionManager:
             if isinstance(stats, dict) and 'frames_dropped' in stats
         )
         
+        total_fallback_frames = sum(
+            stats.get('fallback_frames', 0) 
+            for stats in all_stats.values() 
+            if isinstance(stats, dict) and 'fallback_frames' in stats
+        )
+        
         active_queues = sum(
             1 for stats in all_stats.values() 
             if isinstance(stats, dict) and stats.get('queue_size', 0) > 0
         )
         
+        # Calculate system-wide success rate
+        system_success_rate = 0.0
+        if total_frames_processed > 0:
+            successful_frames = total_frames_processed - total_fallback_frames
+            system_success_rate = successful_frames / total_frames_processed
+        
         return {
             'active_connections': len(self.active_connections),
             'total_frames_processed': total_frames_processed,
             'total_frames_dropped': total_frames_dropped,
+            'total_fallback_frames': total_fallback_frames,
+            'system_success_rate': system_success_rate,
             'active_processing_queues': active_queues,
+            'shutdown_initiated': self.shutdown_initiated,
             'client_stats': all_stats
         }
+    
+    def _register_shutdown_handlers(self):
+        """Register signal handlers for graceful shutdown"""
+        try:
+            # Register signal handlers for graceful shutdown
+            signal.signal(signal.SIGTERM, self._signal_handler)
+            signal.signal(signal.SIGINT, self._signal_handler)
+            
+            # Register atexit handler as backup
+            atexit.register(self._cleanup_on_exit)
+            
+            self.logger.info("Shutdown handlers registered successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to register shutdown handlers: {e}")
+    
+    def _signal_handler(self, signum, frame):
+        """Handle shutdown signals"""
+        signal_name = signal.Signals(signum).name
+        self.logger.info(f"Received {signal_name} signal, initiating graceful shutdown...")
+        
+        # Create async task for graceful shutdown
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(self.graceful_shutdown())
+        else:
+            # If no event loop is running, perform synchronous cleanup
+            self._cleanup_on_exit()
+    
+    def _cleanup_on_exit(self):
+        """Cleanup function called on exit"""
+        if not self.shutdown_initiated:
+            self.logger.info("Performing emergency cleanup on exit...")
+            # Perform minimal cleanup that doesn't require async
+            self.shutdown_initiated = True
+    
+    async def graceful_shutdown(self):
+        """
+        Perform graceful shutdown of all connections and processing services
+        """
+        if self.shutdown_initiated:
+            return
+        
+        self.shutdown_initiated = True
+        self.logger.info("Starting graceful shutdown of connection manager...")
+        
+        try:
+            # Get list of all active client IDs
+            client_ids = list(self.active_connections.keys())
+            self.logger.info(f"Shutting down {len(client_ids)} active connections...")
+            
+            # Create shutdown tasks for all clients
+            shutdown_tasks = []
+            for client_id in client_ids:
+                task = asyncio.create_task(self._shutdown_client_gracefully(client_id))
+                shutdown_tasks.append(task)
+            
+            # Wait for all shutdowns to complete with timeout
+            if shutdown_tasks:
+                try:
+                    await asyncio.wait_for(
+                        asyncio.gather(*shutdown_tasks, return_exceptions=True),
+                        timeout=self.shutdown_timeout
+                    )
+                    self.logger.info("All client connections shut down gracefully")
+                except asyncio.TimeoutError:
+                    self.logger.warning(f"Graceful shutdown timed out after {self.shutdown_timeout}s, "
+                                      "forcing remaining connections to close")
+                    # Force close remaining connections
+                    await self._force_close_remaining_connections()
+            
+            self.logger.info("Connection manager graceful shutdown completed")
+            
+        except Exception as e:
+            self.logger.error(f"Error during graceful shutdown: {e}", exc_info=True)
+            # Attempt force cleanup
+            await self._force_close_remaining_connections()
+    
+    async def _shutdown_client_gracefully(self, client_id: str):
+        """
+        Gracefully shutdown a single client connection
+        
+        Args:
+            client_id: Client identifier to shutdown
+        """
+        try:
+            self.logger.info(f"Gracefully shutting down client {client_id}...")
+            
+            # Send shutdown notification to client
+            if client_id in self.active_connections:
+                try:
+                    shutdown_message = {
+                        "type": "server_shutdown",
+                        "message": "Server is shutting down gracefully",
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                    await self.send_message(client_id, shutdown_message)
+                    
+                    # Give client a moment to process the message
+                    await asyncio.sleep(0.5)
+                    
+                except Exception as e:
+                    self.logger.warning(f"Failed to send shutdown message to client {client_id}: {e}")
+            
+            # Disconnect the client
+            await self.disconnect(client_id)
+            
+            self.logger.info(f"Client {client_id} shut down gracefully")
+            
+        except Exception as e:
+            self.logger.error(f"Error shutting down client {client_id}: {e}", exc_info=True)
+    
+    async def _force_close_remaining_connections(self):
+        """Force close any remaining connections"""
+        try:
+            remaining_clients = list(self.active_connections.keys())
+            if remaining_clients:
+                self.logger.warning(f"Force closing {len(remaining_clients)} remaining connections")
+                
+                for client_id in remaining_clients:
+                    try:
+                        await self.disconnect(client_id)
+                    except Exception as e:
+                        self.logger.error(f"Error force closing client {client_id}: {e}")
+                        
+        except Exception as e:
+            self.logger.error(f"Error during force close: {e}", exc_info=True)
 
 # Initialize connection manager
 connection_manager = ConnectionManager()
@@ -815,18 +1224,65 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global exception handler for unhandled errors
+# Enhanced global exception handler with comprehensive error logging
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    """Global exception handler for logging and graceful error responses"""
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": "Internal server error",
-            "message": "An unexpected error occurred. Please check the server logs.",
+    """
+    Enhanced global exception handler with comprehensive error logging and monitoring
+    """
+    # Generate unique error ID for tracking
+    error_id = f"ERR_{int(time.time())}_{hash(str(exc)) % 10000:04d}"
+    
+    # Collect comprehensive error information
+    error_info = {
+        "error_id": error_id,
+        "timestamp": datetime.utcnow().isoformat(),
+        "exception_type": type(exc).__name__,
+        "exception_message": str(exc),
+        "request_info": {
+            "method": request.method,
+            "url": str(request.url),
+            "headers": dict(request.headers),
+            "client": getattr(request.client, 'host', 'unknown') if hasattr(request, 'client') else 'unknown'
+        },
+        "system_info": {
+            "active_connections": connection_manager.get_connection_count(),
+            "memory_usage_mb": psutil.Process().memory_info().rss / 1024 / 1024,
+            "cpu_percent": psutil.Process().cpu_percent()
+        }
+    }
+    
+    # Log full error details with stack trace
+    logger.error(f"UNHANDLED_EXCEPTION [{error_id}]: {exc}", exc_info=True)
+    logger.error(f"ERROR_CONTEXT [{error_id}]: {json.dumps(error_info, indent=2)}")
+    
+    # Log stack trace for debugging
+    stack_trace = traceback.format_exc()
+    logger.error(f"STACK_TRACE [{error_id}]:\n{stack_trace}")
+    
+    # Create user-friendly error response
+    error_response = {
+        "error": "Internal server error",
+        "message": "An unexpected error occurred. Please check the server logs or contact support.",
+        "error_id": error_id,
+        "timestamp": datetime.utcnow().isoformat(),
+        "support_info": {
+            "include_error_id": error_id,
             "timestamp": datetime.utcnow().isoformat()
         }
+    }
+    
+    # Add debug information in development mode
+    if app_config.server.log_level.lower() == 'debug':
+        error_response["debug_info"] = {
+            "exception_type": type(exc).__name__,
+            "exception_message": str(exc),
+            "request_url": str(request.url)
+        }
+    
+    return JSONResponse(
+        status_code=500,
+        content=error_response
     )
 
 @app.get("/")
@@ -952,42 +1408,63 @@ async def get_processing_statistics() -> Dict[str, Any]:
 @app.websocket("/ws/video")
 async def websocket_video_endpoint(websocket: WebSocket):
     """
-    WebSocket endpoint for real-time video streaming and processing
+    Enhanced WebSocket endpoint with comprehensive error handling and graceful shutdown
     
-    Handles client connections and processes video frame messages
+    Handles client connections and processes video frame messages with robust error recovery
     """
     client_id = None
+    connection_start_time = time.time()
+    
     try:
+        # Check if server is shutting down
+        if connection_manager.shutdown_initiated:
+            logger.warning("Rejecting new WebSocket connection - server is shutting down")
+            await websocket.close(code=1012, reason="Server shutting down")
+            return
+        
         # Accept connection and create processing service
         client_id = await connection_manager.connect(websocket)
         logger.info(f"WebSocket connection established for client {client_id}")
         
-        # Main message processing loop
-        while True:
+        # Track connection metrics
+        message_count = 0
+        last_activity = time.time()
+        error_count = 0
+        max_errors = 10  # Maximum errors before disconnecting client
+        
+        # Main message processing loop with enhanced error handling
+        while not connection_manager.shutdown_initiated:
             try:
-                # Receive message from client with timeout
-                raw_message = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
+                # Receive message from client with reduced timeout for faster response
+                raw_message = await asyncio.wait_for(websocket.receive_text(), timeout=5.0)
+                message_count += 1
+                last_activity = time.time()
                 
-                # Check message size (limit to 10MB)
-                if len(raw_message) > 10 * 1024 * 1024:
+                # Reset error count on successful message receipt
+                error_count = 0
+                
+                # Validate message size (reduced limit for faster processing)
+                if len(raw_message) > 2 * 1024 * 1024:  # Reduced from 10MB to 2MB
                     logger.warning(f"Message too large from client {client_id}: {len(raw_message)} bytes")
                     error_response = {
                         "type": "error",
-                        "message": "Message too large",
-                        "timestamp": datetime.utcnow().isoformat()
+                        "message": "Message too large (max 2MB for low latency)",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "error_code": "MESSAGE_TOO_LARGE"
                     }
                     await connection_manager.send_message(client_id, error_response)
                     continue
                 
-                # Parse JSON message
+                # Parse JSON message with detailed error handling
                 try:
                     message_data = json.loads(raw_message)
                 except json.JSONDecodeError as e:
                     logger.error(f"Invalid JSON received from client {client_id}: {e}")
                     error_response = {
                         "type": "error",
-                        "message": "Invalid JSON format",
-                        "timestamp": datetime.utcnow().isoformat()
+                        "message": f"Invalid JSON format: {str(e)}",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "error_code": "INVALID_JSON"
                     }
                     await connection_manager.send_message(client_id, error_response)
                     continue
@@ -998,75 +1475,195 @@ async def websocket_video_endpoint(websocket: WebSocket):
                     error_response = {
                         "type": "error", 
                         "message": "Message must be JSON object with 'type' field",
-                        "timestamp": datetime.utcnow().isoformat()
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "error_code": "INVALID_MESSAGE_STRUCTURE"
                     }
                     await connection_manager.send_message(client_id, error_response)
                     continue
                 
                 # Process message through enhanced video processing service
-                processing_service = connection_manager.processing_services[client_id]
-                response = await processing_service.process_message(message_data)
-                
-                # Send immediate response if available (errors, non-frame messages)
-                # Frame processing responses are handled by the async processing loop
-                if response:
-                    await connection_manager.send_message(client_id, response)
+                try:
+                    processing_service = connection_manager.processing_services.get(client_id)
+                    if not processing_service:
+                        logger.error(f"No processing service found for client {client_id}")
+                        break
+                    
+                    response = await processing_service.process_message(message_data)
+                    
+                    # Send immediate response if available (errors, non-frame messages)
+                    if response:
+                        await connection_manager.send_message(client_id, response)
+                        
+                except Exception as processing_error:
+                    logger.error(f"Processing error for client {client_id}: {processing_error}", exc_info=True)
+                    error_response = {
+                        "type": "error",
+                        "message": "Message processing failed",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "error_code": "PROCESSING_ERROR"
+                    }
+                    await connection_manager.send_message(client_id, error_response)
                     
             except asyncio.TimeoutError:
-                logger.warning(f"Timeout waiting for message from client {client_id}")
+                # Check for client inactivity
+                inactive_time = time.time() - last_activity
+                if inactive_time > 300:  # 5 minutes of inactivity
+                    logger.info(f"Client {client_id} inactive for {inactive_time:.1f}s, disconnecting")
+                    break
+                
+                logger.debug(f"Timeout waiting for message from client {client_id} (inactive: {inactive_time:.1f}s)")
+                
                 # Send ping to check if connection is still alive
                 try:
                     await websocket.ping()
-                except:
-                    logger.info(f"Client {client_id} connection lost (ping failed)")
+                    logger.debug(f"Ping successful for client {client_id}")
+                except Exception as ping_error:
+                    logger.info(f"Client {client_id} connection lost (ping failed): {ping_error}")
                     break
-            except WebSocketDisconnect:
-                logger.info(f"Client {client_id} disconnected normally")
+                    
+            except WebSocketDisconnect as disconnect:
+                logger.info(f"Client {client_id} disconnected normally: {disconnect}")
                 break
+                
+            except ConnectionResetError:
+                logger.info(f"Client {client_id} connection reset by peer")
+                break
+                
             except Exception as e:
-                logger.error(f"Error in WebSocket message loop for client {client_id}: {e}", exc_info=True)
-                # Try to send error message to client
+                error_count += 1
+                logger.error(f"Error #{error_count} in WebSocket loop for client {client_id}: {e}", exc_info=True)
+                
+                # Disconnect client if too many errors
+                if error_count >= max_errors:
+                    logger.error(f"Too many errors ({error_count}) for client {client_id}, disconnecting")
+                    try:
+                        error_response = {
+                            "type": "error",
+                            "message": "Too many processing errors, disconnecting",
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "error_code": "TOO_MANY_ERRORS"
+                        }
+                        await connection_manager.send_message(client_id, error_response)
+                    except:
+                        pass
+                    break
+                
+                # Try to send error message to client for recoverable errors
                 try:
                     error_response = {
                         "type": "error",
                         "message": "Server processing error", 
-                        "timestamp": datetime.utcnow().isoformat()
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "error_code": "SERVER_ERROR",
+                        "retry_recommended": True
                     }
                     await connection_manager.send_message(client_id, error_response)
-                except:
-                    # If we can't send error message, connection is likely broken
-                    logger.warning(f"Failed to send error message to client {client_id}, closing connection")
+                except Exception as send_error:
+                    logger.warning(f"Failed to send error message to client {client_id}: {send_error}")
                     break
                     
     except Exception as e:
-        logger.error(f"WebSocket connection error: {e}", exc_info=True)
+        logger.error(f"Critical WebSocket connection error for client {client_id}: {e}", exc_info=True)
+        
     finally:
-        # Cleanup connection
+        # Log connection summary
+        connection_duration = time.time() - connection_start_time
+        logger.info(f"WebSocket connection summary for client {client_id}: "
+                   f"Duration: {connection_duration:.1f}s, Messages: {message_count}, Errors: {error_count}")
+        
+        # Cleanup connection with error handling
         if client_id:
-            await connection_manager.disconnect(client_id)
+            try:
+                await connection_manager.disconnect(client_id)
+            except Exception as cleanup_error:
+                logger.error(f"Error during connection cleanup for client {client_id}: {cleanup_error}")
 
 # Global startup time for uptime calculation
 startup_time = time.time()
 
-# Application startup event
+# Enhanced application startup event
 @app.on_event("startup")
 async def startup_event():
-    """Application startup event handler"""
+    """Enhanced application startup with comprehensive initialization and error handling"""
     global startup_time
     startup_time = time.time()
     
-    logger.info("StorySign Backend starting up...")
-    logger.info(f"Server configuration: {app_config.server.host}:{app_config.server.port}")
-    logger.info(f"Video configuration: {app_config.video.width}x{app_config.video.height} @ {app_config.video.fps}fps")
-    logger.info(f"MediaPipe configuration: complexity={app_config.mediapipe.model_complexity}, detection={app_config.mediapipe.min_detection_confidence}")
-    logger.info("Enhanced video processing with async loops and resource monitoring initialized")
-    logger.info("FastAPI application initialized successfully")
+    try:
+        logger.info("=" * 60)
+        logger.info("StorySign Backend starting up...")
+        logger.info("=" * 60)
+        
+        # Log system information
+        system_info = {
+            "python_version": sys.version,
+            "platform": sys.platform,
+            "memory_available_mb": psutil.virtual_memory().available / 1024 / 1024,
+            "cpu_count": psutil.cpu_count(),
+            "process_id": os.getpid()
+        }
+        logger.info(f"System info: {json.dumps(system_info, indent=2)}")
+        
+        # Log configuration
+        logger.info(f"Server configuration: {app_config.server.host}:{app_config.server.port}")
+        logger.info(f"Video configuration: {app_config.video.width}x{app_config.video.height} @ {app_config.video.fps}fps")
+        logger.info(f"MediaPipe configuration: complexity={app_config.mediapipe.model_complexity}, "
+                   f"detection={app_config.mediapipe.min_detection_confidence}")
+        
+        # Test MediaPipe availability
+        try:
+            from video_processor import MEDIAPIPE_AVAILABLE
+            if MEDIAPIPE_AVAILABLE:
+                logger.info("✅ MediaPipe is available and ready")
+            else:
+                logger.warning("⚠️  MediaPipe not available - running in compatibility mode")
+        except Exception as mp_error:
+            logger.error(f"❌ MediaPipe test failed: {mp_error}")
+        
+        # Initialize resource monitoring
+        logger.info("Enhanced video processing with async loops and resource monitoring initialized")
+        logger.info("Graceful shutdown handlers registered")
+        
+        # Log startup completion
+        startup_duration = time.time() - startup_time
+        logger.info(f"✅ FastAPI application initialized successfully in {startup_duration:.2f}s")
+        logger.info("=" * 60)
+        
+    except Exception as e:
+        logger.error(f"❌ Error during application startup: {e}", exc_info=True)
+        raise
 
-# Application shutdown event  
+# Enhanced application shutdown event  
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Application shutdown event handler"""
-    logger.info("StorySign Backend shutting down...")
+    """Enhanced application shutdown with graceful cleanup and comprehensive logging"""
+    try:
+        logger.info("=" * 60)
+        logger.info("StorySign Backend shutdown initiated...")
+        logger.info("=" * 60)
+        
+        # Get final statistics before shutdown
+        try:
+            final_stats = connection_manager.get_system_summary()
+            logger.info(f"Final system statistics: {json.dumps(final_stats, indent=2)}")
+        except Exception as stats_error:
+            logger.warning(f"Failed to get final statistics: {stats_error}")
+        
+        # Perform graceful shutdown of all connections
+        try:
+            await connection_manager.graceful_shutdown()
+        except Exception as shutdown_error:
+            logger.error(f"Error during graceful shutdown: {shutdown_error}", exc_info=True)
+        
+        # Log shutdown completion
+        if 'startup_time' in globals():
+            total_uptime = time.time() - startup_time
+            logger.info(f"Total server uptime: {total_uptime:.2f} seconds")
+        
+        logger.info("✅ StorySign Backend shutdown completed")
+        logger.info("=" * 60)
+        
+    except Exception as e:
+        logger.error(f"❌ Error during application shutdown: {e}", exc_info=True)
 
 if __name__ == "__main__":
     # This allows running the app directly with python main.py

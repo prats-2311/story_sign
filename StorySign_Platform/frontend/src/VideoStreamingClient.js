@@ -22,11 +22,11 @@ const VideoStreamingClient = forwardRef(
     const [framesReceived, setFramesReceived] = useState(0);
     const [lastError, setLastError] = useState("");
 
-    // WebSocket configuration
+    // WebSocket configuration - optimized for low latency
     const WS_URL = "ws://localhost:8000/ws/video";
     const MAX_RECONNECT_ATTEMPTS = 5;
-    const INITIAL_RECONNECT_DELAY = 1000; // 1 second
-    const FRAME_THROTTLE_MS = 100; // Send max 10 frames per second
+    const INITIAL_RECONNECT_DELAY = 500; // Reduced from 1000ms
+    const FRAME_THROTTLE_MS = 50; // Increased to 20 FPS for lower latency
 
     // Send frame data to server with enhanced message format
     const sendFrame = useCallback((message) => {
@@ -35,12 +35,12 @@ const VideoStreamingClient = forwardRef(
         return false;
       }
 
-      // Adaptive throttling based on processing capability
+      // Optimized throttling for low latency
       const processingCapability =
         message.metadata?.processing_capability || 1.0;
       const adaptiveThrottleMs = Math.max(
-        50,
-        FRAME_THROTTLE_MS * (2 - processingCapability)
+        33, // Minimum 30 FPS (33ms interval)
+        FRAME_THROTTLE_MS * (1.5 - processingCapability * 0.5)
       );
 
       const now = Date.now();
@@ -135,15 +135,36 @@ const VideoStreamingClient = forwardRef(
           setConnectionStatus("disconnected");
           onConnectionChange?.("disconnected");
 
+          // Provide more specific error messages based on close codes
+          let closeReason = "";
+          if (event.code === 1006) {
+            closeReason =
+              "Connection lost unexpectedly. The server may be unavailable.";
+          } else if (event.code === 1011) {
+            closeReason =
+              "Server encountered an error while processing the connection.";
+          } else if (event.code === 1012) {
+            closeReason = "Server is restarting. Please wait and try again.";
+          } else if (event.code !== 1000 && event.code !== 1001) {
+            closeReason = `Connection closed with code ${event.code}: ${
+              event.reason || "Unknown reason"
+            }`;
+          }
+
+          if (closeReason) {
+            setLastError(closeReason);
+          }
+
           // Attempt reconnection if we're still active and it wasn't a manual disconnect
           // Only skip reconnection for manual disconnects (when isActive becomes false)
-          if (isActive) {
+          if (isActive && event.code !== 1000) {
+            // 1000 is normal closure
             console.log(
               "Connection lost while streaming active, attempting reconnection..."
             );
             // Call scheduleReconnect directly to avoid dependency issues
             if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-              const errorMsg = `Max reconnection attempts (${MAX_RECONNECT_ATTEMPTS}) reached`;
+              const errorMsg = `Max reconnection attempts (${MAX_RECONNECT_ATTEMPTS}) reached. ${closeReason}`;
               setLastError(errorMsg);
               setConnectionStatus("error");
               onError?.(errorMsg);
@@ -171,7 +192,23 @@ const VideoStreamingClient = forwardRef(
 
         wsRef.current.onerror = (error) => {
           console.error("WebSocket error:", error);
-          const errorMsg = "WebSocket connection error";
+          let errorMsg = "WebSocket connection error";
+
+          // Provide more specific error messages when possible
+          if (
+            error.type === "error" &&
+            wsRef.current?.readyState === WebSocket.CONNECTING
+          ) {
+            errorMsg =
+              "Failed to connect to video processing server. Please check if the backend is running.";
+          } else if (
+            error.type === "error" &&
+            wsRef.current?.readyState === WebSocket.OPEN
+          ) {
+            errorMsg =
+              "Connection error during video streaming. The connection may be unstable.";
+          }
+
           setLastError(errorMsg);
           setConnectionStatus("error");
           onConnectionChange?.("error");
@@ -203,13 +240,17 @@ const VideoStreamingClient = forwardRef(
       onConnectionChange?.("disconnected");
     }, [onConnectionChange]);
 
-    // Expose sendFrame method to parent component
+    // Expose sendFrame method and stats to parent component
     useImperativeHandle(
       ref,
       () => ({
         sendFrame,
+        framesSent,
+        framesReceived,
+        connectionStatus,
+        lastError,
       }),
-      [sendFrame]
+      [sendFrame, framesSent, framesReceived, connectionStatus, lastError]
     );
 
     // Effect to handle connection lifecycle
@@ -275,6 +316,20 @@ const VideoStreamingClient = forwardRef(
         {lastError && (
           <div className="error-message">
             <p>{lastError}</p>
+            {connectionStatus === "error" && (
+              <div className="error-actions">
+                <button
+                  className="retry-btn"
+                  onClick={() => {
+                    setLastError("");
+                    reconnectAttemptsRef.current = 0;
+                    connect();
+                  }}
+                >
+                  Retry Connection
+                </button>
+              </div>
+            )}
           </div>
         )}
 

@@ -17,11 +17,11 @@ logger = logging.getLogger(__name__)
 class VideoConfig(BaseModel):
     """Configuration for video capture and processing settings"""
     
-    width: int = Field(default=640, ge=320, le=1920, description="Video frame width in pixels")
-    height: int = Field(default=480, ge=240, le=1080, description="Video frame height in pixels")
+    width: int = Field(default=240, ge=240, le=1920, description="Video frame width in pixels (optimized for low latency)")
+    height: int = Field(default=180, ge=180, le=1080, description="Video frame height in pixels (optimized for low latency)")
     fps: int = Field(default=30, ge=10, le=60, description="Target frames per second")
     format: str = Field(default="MJPG", description="Video format codec")
-    quality: int = Field(default=85, ge=50, le=100, description="JPEG compression quality (50-100)")
+    quality: int = Field(default=60, ge=30, le=100, description="JPEG compression quality (optimized for speed)")
     
     @field_validator('format')
     @classmethod
@@ -34,19 +34,19 @@ class VideoConfig(BaseModel):
 
 
 class MediaPipeConfig(BaseModel):
-    """Configuration for MediaPipe Holistic model settings"""
+    """Configuration for MediaPipe Holistic model settings (optimized for low latency)"""
     
     min_detection_confidence: float = Field(
-        default=0.5, 
+        default=0.3, 
         ge=0.0, 
         le=1.0, 
-        description="Minimum confidence for person detection"
+        description="Minimum confidence for person detection (lowered for speed)"
     )
     min_tracking_confidence: float = Field(
-        default=0.5, 
+        default=0.3, 
         ge=0.0, 
         le=1.0, 
-        description="Minimum confidence for landmark tracking"
+        description="Minimum confidence for landmark tracking (lowered for speed)"
     )
     model_complexity: int = Field(
         default=1, 
