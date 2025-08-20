@@ -1,0 +1,1370 @@
+{
+  "system_info": {
+    "gpu_acceleration_available": true,
+    "advanced_compression_available": true,
+    "test_image_count": 20
+  },
+  "jpeg_encoding": {
+    "standard_opencv": [
+      {
+        "time_ms": 1.8489360809326172,
+        "size_bytes": 10003,
+        "resolution": "320x240"
+      },
+      {
+        "time_ms": 0.7867813110351562,
+        "size_bytes": 18731,
+        "resolution": "640x480"
+      },
+      {
+        "time_ms": 2.0580291748046875,
+        "size_bytes": 35157,
+        "resolution": "1280x720"
+      },
+      {
+        "time_ms": 3.9520263671875,
+        "size_bytes": 62032,
+        "resolution": "1920x1080"
+      },
+      {
+        "time_ms": 0.18095970153808594,
+        "size_bytes": 10242,
+        "resolution": "320x240"
+      },
+      {
+        "time_ms": 0.6949901580810547,
+        "size_bytes": 18787,
+        "resolution": "640x480"
+      },
+      {
+        "time_ms": 1.6412734985351562,
+        "size_bytes": 35063,
+        "resolution": "1280x720"
+      },
+      {
+        "time_ms": 3.901958465576172,
+        "size_bytes": 62136,
+        "resolution": "1920x1080"
+      },
+      {
+        "time_ms": 0.16617774963378906,
+        "size_bytes": 10234,
+        "resolution": "320x240"
+      },
+      {
+        "time_ms": 0.5986690521240234,
+        "size_bytes": 18767,
+        "resolution": "640x480"
+      },
+      {
+        "time_ms": 1.8770694732666016,
+        "size_bytes": 35123,
+        "resolution": "1280x720"
+      },
+      {
+        "time_ms": 3.438711166381836,
+        "size_bytes": 62205,
+        "resolution": "1920x1080"
+      },
+      {
+        "time_ms": 0.1819133758544922,
+        "size_bytes": 10317,
+        "resolution": "320x240"
+      },
+      {
+        "time_ms": 0.5850791931152344,
+        "size_bytes": 18839,
+        "resolution": "640x480"
+      },
+      {
+        "time_ms": 1.5797615051269531,
+        "size_bytes": 35257,
+        "resolution": "1280x720"
+      },
+      {
+        "time_ms": 3.345966339111328,
+        "size_bytes": 62153,
+        "resolution": "1920x1080"
+      },
+      {
+        "time_ms": 0.13899803161621094,
+        "size_bytes": 10259,
+        "resolution": "320x240"
+      },
+      {
+        "time_ms": 0.4467964172363281,
+        "size_bytes": 18897,
+        "resolution": "640x480"
+      },
+      {
+        "time_ms": 1.667022705078125,
+        "size_bytes": 35318,
+        "resolution": "1280x720"
+      },
+      {
+        "time_ms": 2.755880355834961,
+        "size_bytes": 62315,
+        "resolution": "1920x1080"
+      }
+    ],
+    "turbojpeg": [
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      },
+      {
+        "error": "TurboJPEG not available"
+      }
+    ],
+    "advanced_compression": [
+      {
+        "time_ms": 0.28514862060546875,
+        "size_bytes": 10003,
+        "resolution": "320x240",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 6.484113712374582
+      },
+      {
+        "time_ms": 0.7159709930419922,
+        "size_bytes": 18731,
+        "resolution": "640x480",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 1.098901098901099
+      },
+      {
+        "time_ms": 1.8978118896484375,
+        "size_bytes": 35157,
+        "resolution": "1280x720",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 1.0844221105527638
+      },
+      {
+        "time_ms": 4.035234451293945,
+        "size_bytes": 62032,
+        "resolution": "1920x1080",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 0.9793796159527326
+      },
+      {
+        "time_ms": 0.20694732666015625,
+        "size_bytes": 10242,
+        "resolution": "320x240",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 0.8744239631336406
+      },
+      {
+        "time_ms": 0.5879402160644531,
+        "size_bytes": 18787,
+        "resolution": "640x480",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 1.1820762368207625
+      },
+      {
+        "time_ms": 1.4977455139160156,
+        "size_bytes": 35063,
+        "resolution": "1280x720",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 1.0958293537090098
+      },
+      {
+        "time_ms": 3.2639503479003906,
+        "size_bytes": 62136,
+        "resolution": "1920x1080",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 1.195471146822498
+      },
+      {
+        "time_ms": 0.1881122589111328,
+        "size_bytes": 10234,
+        "resolution": "320x240",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 0.8833967046894804
+      },
+      {
+        "time_ms": 0.5271434783935547,
+        "size_bytes": 18767,
+        "resolution": "640x480",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 1.135685210312076
+      },
+      {
+        "time_ms": 1.463174819946289,
+        "size_bytes": 35123,
+        "resolution": "1280x720",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 1.2828743685839987
+      },
+      {
+        "time_ms": 3.0291080474853516,
+        "size_bytes": 62205,
+        "resolution": "1920x1080",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 1.1352223534041717
+      },
+      {
+        "time_ms": 0.17690658569335938,
+        "size_bytes": 10317,
+        "resolution": "320x240",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 1.028301886792453
+      },
+      {
+        "time_ms": 0.49304962158203125,
+        "size_bytes": 18839,
+        "resolution": "640x480",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 1.1866537717601546
+      },
+      {
+        "time_ms": 1.3170242309570312,
+        "size_bytes": 35257,
+        "resolution": "1280x720",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 1.1994931209268647
+      },
+      {
+        "time_ms": 3.047943115234375,
+        "size_bytes": 62153,
+        "resolution": "1920x1080",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 1.0977784730913642
+      },
+      {
+        "time_ms": 0.17404556274414062,
+        "size_bytes": 10259,
+        "resolution": "320x240",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 0.7986301369863014
+      },
+      {
+        "time_ms": 0.5021095275878906,
+        "size_bytes": 18897,
+        "resolution": "640x480",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 0.8898385565052231
+      },
+      {
+        "time_ms": 1.3790130615234375,
+        "size_bytes": 35318,
+        "resolution": "1280x720",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 1.2088520055325034
+      },
+      {
+        "time_ms": 2.913951873779297,
+        "size_bytes": 62315,
+        "resolution": "1920x1080",
+        "method": "unknown",
+        "compression_ratio": 1.0,
+        "speedup": 0.945753559155621
+      }
+    ]
+  },
+  "image_resizing": {
+    "standard_opencv": [
+      {
+        "time_ms": 1.0769367218017578,
+        "original_size": "320x240",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 5.140066146850586,
+        "original_size": "320x240",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.41103363037109375,
+        "original_size": "320x240",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.3337860107421875,
+        "original_size": "640x480",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.028133392333984375,
+        "original_size": "640x480",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.3457069396972656,
+        "original_size": "640x480",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.23412704467773438,
+        "original_size": "1280x720",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.2770423889160156,
+        "original_size": "1280x720",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.247955322265625,
+        "original_size": "1280x720",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.3898143768310547,
+        "original_size": "1920x1080",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.4317760467529297,
+        "original_size": "1920x1080",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.6361007690429688,
+        "original_size": "1920x1080",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.05125999450683594,
+        "original_size": "320x240",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.1838207244873047,
+        "original_size": "320x240",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.2570152282714844,
+        "original_size": "320x240",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.13113021850585938,
+        "original_size": "640x480",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.051021575927734375,
+        "original_size": "640x480",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.28896331787109375,
+        "original_size": "640x480",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.2200603485107422,
+        "original_size": "1280x720",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.24890899658203125,
+        "original_size": "1280x720",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.13303756713867188,
+        "original_size": "1280x720",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.3409385681152344,
+        "original_size": "1920x1080",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.3352165222167969,
+        "original_size": "1920x1080",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.5090236663818359,
+        "original_size": "1920x1080",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.0362396240234375,
+        "original_size": "320x240",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.21576881408691406,
+        "original_size": "320x240",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.25534629821777344,
+        "original_size": "320x240",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.1461505889892578,
+        "original_size": "640x480",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.018835067749023438,
+        "original_size": "640x480",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.3662109375,
+        "original_size": "640x480",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.26416778564453125,
+        "original_size": "1280x720",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.30231475830078125,
+        "original_size": "1280x720",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.051021575927734375,
+        "original_size": "1280x720",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.29087066650390625,
+        "original_size": "1920x1080",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.36787986755371094,
+        "original_size": "1920x1080",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.5600452423095703,
+        "original_size": "1920x1080",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.009775161743164062,
+        "original_size": "320x240",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.19311904907226562,
+        "original_size": "320x240",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.2582073211669922,
+        "original_size": "320x240",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.13303756713867188,
+        "original_size": "640x480",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.012874603271484375,
+        "original_size": "640x480",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.31685829162597656,
+        "original_size": "640x480",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.2722740173339844,
+        "original_size": "1280x720",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.2951622009277344,
+        "original_size": "1280x720",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.057220458984375,
+        "original_size": "1280x720",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.39196014404296875,
+        "original_size": "1920x1080",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.2932548522949219,
+        "original_size": "1920x1080",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.5209445953369141,
+        "original_size": "1920x1080",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.032901763916015625,
+        "original_size": "320x240",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.2129077911376953,
+        "original_size": "320x240",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.24771690368652344,
+        "original_size": "320x240",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.16117095947265625,
+        "original_size": "640x480",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.016927719116210938,
+        "original_size": "640x480",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.31304359436035156,
+        "original_size": "640x480",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.2796649932861328,
+        "original_size": "1280x720",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.30493736267089844,
+        "original_size": "1280x720",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.1418590545654297,
+        "original_size": "1280x720",
+        "target_size": "1280x720"
+      },
+      {
+        "time_ms": 0.4589557647705078,
+        "original_size": "1920x1080",
+        "target_size": "320x240"
+      },
+      {
+        "time_ms": 0.3349781036376953,
+        "original_size": "1920x1080",
+        "target_size": "640x480"
+      },
+      {
+        "time_ms": 0.4820823669433594,
+        "original_size": "1920x1080",
+        "target_size": "1280x720"
+      }
+    ],
+    "gpu_accelerated": [
+      {
+        "time_ms": 0.03409385681152344,
+        "original_size": "320x240",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 31.587412587412587
+      },
+      {
+        "time_ms": 0.20623207092285156,
+        "original_size": "320x240",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 24.923699421965317
+      },
+      {
+        "time_ms": 0.3058910369873047,
+        "original_size": "320x240",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 1.3437256430241622
+      },
+      {
+        "time_ms": 0.22411346435546875,
+        "original_size": "640x480",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 1.4893617021276595
+      },
+      {
+        "time_ms": 0.019311904907226562,
+        "original_size": "640x480",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 1.4567901234567902
+      },
+      {
+        "time_ms": 0.45990943908691406,
+        "original_size": "640x480",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.751684810782789
+      },
+      {
+        "time_ms": 0.8950233459472656,
+        "original_size": "1280x720",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 0.2615876398508258
+      },
+      {
+        "time_ms": 1.0256767272949219,
+        "original_size": "1280x720",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 0.2701069270106927
+      },
+      {
+        "time_ms": 0.23508071899414062,
+        "original_size": "1280x720",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 1.054766734279919
+      },
+      {
+        "time_ms": 10.55002212524414,
+        "original_size": "1920x1080",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 0.03694915254237288
+      },
+      {
+        "time_ms": 2.893209457397461,
+        "original_size": "1920x1080",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 0.1492377420683972
+      },
+      {
+        "time_ms": 2.042055130004883,
+        "original_size": "1920x1080",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.31150029188558087
+      },
+      {
+        "time_ms": 0.06079673767089844,
+        "original_size": "320x240",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 0.8431372549019608
+      },
+      {
+        "time_ms": 0.16188621520996094,
+        "original_size": "320x240",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 1.1354933726067746
+      },
+      {
+        "time_ms": 0.3368854522705078,
+        "original_size": "320x240",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.7629157820240623
+      },
+      {
+        "time_ms": 0.047206878662109375,
+        "original_size": "640x480",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 2.7777777777777777
+      },
+      {
+        "time_ms": 0.024080276489257812,
+        "original_size": "640x480",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 2.118811881188119
+      },
+      {
+        "time_ms": 0.3190040588378906,
+        "original_size": "640x480",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.905829596412556
+      },
+      {
+        "time_ms": 0.7729530334472656,
+        "original_size": "1280x720",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 0.2847008019740901
+      },
+      {
+        "time_ms": 0.9257793426513672,
+        "original_size": "1280x720",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 0.26886428019572495
+      },
+      {
+        "time_ms": 0.23221969604492188,
+        "original_size": "1280x720",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.5728952772073922
+      },
+      {
+        "time_ms": 10.21885871887207,
+        "original_size": "1920x1080",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 0.03336366393691234
+      },
+      {
+        "time_ms": 2.6259422302246094,
+        "original_size": "1920x1080",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 0.12765571091338296
+      },
+      {
+        "time_ms": 2.0198822021484375,
+        "original_size": "1920x1080",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.25200661000944286
+      },
+      {
+        "time_ms": 0.030994415283203125,
+        "original_size": "320x240",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 1.1692307692307693
+      },
+      {
+        "time_ms": 0.1671314239501953,
+        "original_size": "320x240",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 1.291012838801712
+      },
+      {
+        "time_ms": 0.2751350402832031,
+        "original_size": "320x240",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.9280762564991335
+      },
+      {
+        "time_ms": 0.05888938903808594,
+        "original_size": "640x480",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 2.4817813765182186
+      },
+      {
+        "time_ms": 0.07104873657226562,
+        "original_size": "640x480",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 0.2651006711409396
+      },
+      {
+        "time_ms": 0.31495094299316406,
+        "original_size": "640x480",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 1.1627554882664648
+      },
+      {
+        "time_ms": 0.7882118225097656,
+        "original_size": "1280x720",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 0.3351482153660012
+      },
+      {
+        "time_ms": 0.9400844573974609,
+        "original_size": "1280x720",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 0.3215825513568349
+      },
+      {
+        "time_ms": 0.16999244689941406,
+        "original_size": "1280x720",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.30014025245441794
+      },
+      {
+        "time_ms": 9.826183319091797,
+        "original_size": "1920x1080",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 0.029601591692143447
+      },
+      {
+        "time_ms": 2.526998519897461,
+        "original_size": "1920x1080",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 0.14557977167657327
+      },
+      {
+        "time_ms": 2.0189285278320312,
+        "original_size": "1920x1080",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.2773972602739726
+      },
+      {
+        "time_ms": 0.025272369384765625,
+        "original_size": "320x240",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 0.3867924528301887
+      },
+      {
+        "time_ms": 0.1628398895263672,
+        "original_size": "320x240",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 1.1859443631039532
+      },
+      {
+        "time_ms": 0.36597251892089844,
+        "original_size": "320x240",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.7055374592833876
+      },
+      {
+        "time_ms": 0.03600120544433594,
+        "original_size": "640x480",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 3.6953642384105962
+      },
+      {
+        "time_ms": 0.0438690185546875,
+        "original_size": "640x480",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 0.29347826086956524
+      },
+      {
+        "time_ms": 0.3199577331542969,
+        "original_size": "640x480",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.9903129657228018
+      },
+      {
+        "time_ms": 0.8027553558349609,
+        "original_size": "1280x720",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 0.3391743391743392
+      },
+      {
+        "time_ms": 0.9386539459228516,
+        "original_size": "1280x720",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 0.3144526289052578
+      },
+      {
+        "time_ms": 0.10704994201660156,
+        "original_size": "1280x720",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.534521158129176
+      },
+      {
+        "time_ms": 9.756803512573242,
+        "original_size": "1920x1080",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 0.04017300784399971
+      },
+      {
+        "time_ms": 2.5789737701416016,
+        "original_size": "1920x1080",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 0.11370990108163076
+      },
+      {
+        "time_ms": 2.0368099212646484,
+        "original_size": "1920x1080",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.255764953763315
+      },
+      {
+        "time_ms": 0.00476837158203125,
+        "original_size": "320x240",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 6.9
+      },
+      {
+        "time_ms": 0.14710426330566406,
+        "original_size": "320x240",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 1.4473257698541329
+      },
+      {
+        "time_ms": 0.247955322265625,
+        "original_size": "320x240",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.9990384615384615
+      },
+      {
+        "time_ms": 0.06604194641113281,
+        "original_size": "640x480",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 2.44043321299639
+      },
+      {
+        "time_ms": 0.051975250244140625,
+        "original_size": "640x480",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 0.3256880733944954
+      },
+      {
+        "time_ms": 0.32901763916015625,
+        "original_size": "640x480",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.9514492753623188
+      },
+      {
+        "time_ms": 0.8029937744140625,
+        "original_size": "1280x720",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 0.34827790973871736
+      },
+      {
+        "time_ms": 0.9522438049316406,
+        "original_size": "1280x720",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 0.3202303455182774
+      },
+      {
+        "time_ms": 0.2300739288330078,
+        "original_size": "1280x720",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.616580310880829
+      },
+      {
+        "time_ms": 9.839057922363281,
+        "original_size": "1920x1080",
+        "target_size": "320x240",
+        "method": "CPU_Optimized",
+        "speedup": 0.04664631191237763
+      },
+      {
+        "time_ms": 2.5599002838134766,
+        "original_size": "1920x1080",
+        "target_size": "640x480",
+        "method": "CPU_Optimized",
+        "speedup": 0.13085591878550806
+      },
+      {
+        "time_ms": 2.0799636840820312,
+        "original_size": "1920x1080",
+        "target_size": "1280x720",
+        "method": "CPU_Optimized",
+        "speedup": 0.23177441540577717
+      }
+    ]
+  },
+  "end_to_end_pipeline": {
+    "standard_pipeline": [
+      {
+        "time_ms": 0.6852149963378906,
+        "size_bytes": 19797,
+        "resolution": "320x240"
+      },
+      {
+        "time_ms": 0.5030632019042969,
+        "size_bytes": 18731,
+        "resolution": "640x480"
+      },
+      {
+        "time_ms": 0.7421970367431641,
+        "size_bytes": 15450,
+        "resolution": "1280x720"
+      },
+      {
+        "time_ms": 0.7622241973876953,
+        "size_bytes": 14431,
+        "resolution": "1920x1080"
+      },
+      {
+        "time_ms": 0.6411075592041016,
+        "size_bytes": 20256,
+        "resolution": "320x240"
+      },
+      {
+        "time_ms": 0.4611015319824219,
+        "size_bytes": 18787,
+        "resolution": "640x480"
+      },
+      {
+        "time_ms": 0.7309913635253906,
+        "size_bytes": 15410,
+        "resolution": "1280x720"
+      },
+      {
+        "time_ms": 0.7569789886474609,
+        "size_bytes": 14454,
+        "resolution": "1920x1080"
+      },
+      {
+        "time_ms": 0.621795654296875,
+        "size_bytes": 20266,
+        "resolution": "320x240"
+      },
+      {
+        "time_ms": 0.46896934509277344,
+        "size_bytes": 18767,
+        "resolution": "640x480"
+      },
+      {
+        "time_ms": 0.6961822509765625,
+        "size_bytes": 15486,
+        "resolution": "1280x720"
+      },
+      {
+        "time_ms": 0.7381439208984375,
+        "size_bytes": 14502,
+        "resolution": "1920x1080"
+      },
+      {
+        "time_ms": 0.7090568542480469,
+        "size_bytes": 20445,
+        "resolution": "320x240"
+      },
+      {
+        "time_ms": 0.48804283142089844,
+        "size_bytes": 18839,
+        "resolution": "640x480"
+      },
+      {
+        "time_ms": 0.7269382476806641,
+        "size_bytes": 15554,
+        "resolution": "1280x720"
+      },
+      {
+        "time_ms": 0.7240772247314453,
+        "size_bytes": 14503,
+        "resolution": "1920x1080"
+      },
+      {
+        "time_ms": 0.6279945373535156,
+        "size_bytes": 20300,
+        "resolution": "320x240"
+      },
+      {
+        "time_ms": 0.46181678771972656,
+        "size_bytes": 18897,
+        "resolution": "640x480"
+      },
+      {
+        "time_ms": 0.7240772247314453,
+        "size_bytes": 15586,
+        "resolution": "1280x720"
+      },
+      {
+        "time_ms": 1.0578632354736328,
+        "size_bytes": 14567,
+        "resolution": "1920x1080"
+      }
+    ],
+    "optimized_pipeline": [
+      {
+        "time_ms": 0.701904296875,
+        "size_bytes": 19797,
+        "resolution": "320x240",
+        "method": "unknown",
+        "speedup": 0.9762228260869565,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 0.5350112915039062,
+        "size_bytes": 18731,
+        "resolution": "640x480",
+        "method": "unknown",
+        "speedup": 0.9402852049910874,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 1.4128684997558594,
+        "size_bytes": 15243,
+        "resolution": "1280x720",
+        "method": "unknown",
+        "speedup": 0.525312183597705,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 4.678010940551758,
+        "size_bytes": 14668,
+        "resolution": "1920x1080",
+        "method": "unknown",
+        "speedup": 0.16293766882421895,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 0.7989406585693359,
+        "size_bytes": 20256,
+        "resolution": "320x240",
+        "method": "unknown",
+        "speedup": 0.8024470307370934,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 0.5390644073486328,
+        "size_bytes": 18787,
+        "resolution": "640x480",
+        "method": "unknown",
+        "speedup": 0.8553737284387439,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 1.5401840209960938,
+        "size_bytes": 15140,
+        "resolution": "1280x720",
+        "method": "unknown",
+        "speedup": 0.4746130030959752,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 3.1118392944335938,
+        "size_bytes": 14702,
+        "resolution": "1920x1080",
+        "method": "unknown",
+        "speedup": 0.2432577382776586,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 0.6401538848876953,
+        "size_bytes": 20266,
+        "resolution": "320x240",
+        "method": "unknown",
+        "speedup": 0.9713221601489758,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 0.5090236663818359,
+        "size_bytes": 18767,
+        "resolution": "640x480",
+        "method": "unknown",
+        "speedup": 0.921311475409836,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 1.4121532440185547,
+        "size_bytes": 15253,
+        "resolution": "1280x720",
+        "method": "unknown",
+        "speedup": 0.4929934154989026,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 3.993988037109375,
+        "size_bytes": 14754,
+        "resolution": "1920x1080",
+        "method": "unknown",
+        "speedup": 0.18481375358166188,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 0.7100105285644531,
+        "size_bytes": 20445,
+        "resolution": "320x240",
+        "method": "unknown",
+        "speedup": 0.9986568166554735,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 0.4978179931640625,
+        "size_bytes": 18839,
+        "resolution": "640x480",
+        "method": "unknown",
+        "speedup": 0.9803639846743295,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 1.4650821685791016,
+        "size_bytes": 15325,
+        "resolution": "1280x720",
+        "method": "unknown",
+        "speedup": 0.49617575264442637,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 3.7131309509277344,
+        "size_bytes": 14747,
+        "resolution": "1920x1080",
+        "method": "unknown",
+        "speedup": 0.19500449467060485,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 0.7312297821044922,
+        "size_bytes": 20300,
+        "resolution": "320x240",
+        "method": "unknown",
+        "speedup": 0.8588196935115748,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 0.5171298980712891,
+        "size_bytes": 18897,
+        "resolution": "640x480",
+        "method": "unknown",
+        "speedup": 0.8930382664822499,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 1.6629695892333984,
+        "size_bytes": 15369,
+        "resolution": "1280x720",
+        "method": "unknown",
+        "speedup": 0.4354121863799283,
+        "latency_target_met": true
+      },
+      {
+        "time_ms": 3.3578872680664062,
+        "size_bytes": 14811,
+        "resolution": "1920x1080",
+        "method": "unknown",
+        "speedup": 0.3150383413802897,
+        "latency_target_met": true
+      }
+    ]
+  },
+  "summary": {
+    "jpeg_encoding": {
+      "standard_opencv": {
+        "count": 20,
+        "mean": 1.5923500061035156,
+        "median": 1.6105175018310547,
+        "min": 0.13899803161621094,
+        "max": 3.9520263671875,
+        "std": 1.2979398940903077
+      },
+      "turbojpeg": {
+        "count": 0
+      },
+      "advanced_compression": {
+        "count": 20,
+        "mean": 1.3851165771484375,
+        "median": 1.0164976119995117,
+        "min": 0.17404556274414062,
+        "max": 4.035234451293945,
+        "std": 1.2353697909192687,
+        "avg_speedup": 1.339354869300365
+      }
+    },
+    "end_to_end_pipeline": {
+      "standard": {
+        "count": 20,
+        "mean": 0.6663918495178223,
+        "median": 0.7026195526123047,
+        "min": 0.4611015319824219,
+        "max": 1.0578632354736328,
+        "std": 0.1422837334890199
+      },
+      "optimized": {
+        "count": 20,
+        "mean": 1.626420021057129,
+        "median": 1.1055469512939453,
+        "min": 0.4978179931640625,
+        "max": 4.678010940551758,
+        "std": 1.35495999808985
+      },
+      "avg_speedup": 0.6361699862543846
+    }
+  }
+}

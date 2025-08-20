@@ -1,0 +1,80 @@
+# Advanced Optimization Requirements for Ultra-Low Latency StorySign Platform
+# Install with: pip install -r requirements_advanced.txt
+
+# Core dependencies (required)
+opencv-python>=4.8.0
+numpy>=1.21.0
+fastapi>=0.100.0
+uvicorn>=0.23.0
+websockets>=11.0
+pydantic>=2.0.0
+PyYAML>=6.0
+psutil>=5.9.0
+
+# MediaPipe (required for ASL recognition)
+mediapipe>=0.10.0
+
+# GPU Acceleration (optional but recommended)
+# CUDA 12.x support (choose one based on your CUDA version)
+# cupy-cuda12x>=12.0.0  # For CUDA 12.x
+# cupy-cuda11x>=11.0.0  # For CUDA 11.x
+
+# OpenCL support (cross-platform GPU acceleration)
+pyopencl>=2023.1; platform_system != "Windows"
+
+# Intel OpenVINO (CPU optimization)
+openvino>=2023.1; platform_system != "Windows"
+
+# Ultra-Fast JPEG Processing
+PyTurboJPEG>=1.7.0
+
+# Advanced Video Codecs
+av>=10.0.0
+
+# Ultra-Fast Compression
+lz4>=4.3.0
+zstandard>=0.21.0
+
+# Modern Image Formats
+pillow-heif>=0.13.0
+Pillow>=10.0.0
+
+# Performance Libraries
+numba>=0.57.0; platform_system != "Windows"
+mkl>=2023.0; platform_system != "Windows"
+
+# Async I/O Optimization
+uvloop>=0.17.0; platform_system != "Windows"
+
+# Memory Optimization
+memory-profiler>=0.60.0
+
+# Monitoring and Profiling
+py-spy>=0.3.14
+line-profiler>=4.0.0
+gpustat>=1.1.0; platform_system != "Windows"
+nvidia-ml-py>=12.0.0; platform_system != "Windows"
+
+# Scientific Computing (optimized versions)
+scipy>=1.11.0
+scikit-image>=0.21.0
+
+# Additional Performance Tools
+cython>=3.0.0
+bottleneck>=1.3.0
+numexpr>=2.8.0
+
+# Development and Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-benchmark>=4.0.0
+
+# Optional: WebRTC for even lower latency (experimental)
+# aiortc>=1.6.0
+
+# Optional: Hardware-specific optimizations
+# Intel IPP (Intel Integrated Performance Primitives)
+# intel-ipp>=2023.0; platform_system != "Windows"
+
+# Optional: AMD GPU support
+# rocm-tools>=5.6.0; platform_system == "Linux"
