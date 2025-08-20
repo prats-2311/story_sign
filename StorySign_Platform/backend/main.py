@@ -16,6 +16,10 @@ import uvicorn
 import json
 import asyncio
 from typing import Optional
+import time
+from collections import deque
+import psutil
+import threading
 
 from config import get_config, AppConfig
 from video_processor import FrameProcessor
@@ -48,10 +52,229 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+class ResourceMonitor:
+    """
+    Monitor system resources for individual client sessions
+    Tracks CPU, memory usage, and processing performance
+    """
+    
+    def __init__(self, client_id: str):
+        self.client_id = client_id
+        self.logger = logging.getLogger(f"{__name__}.ResourceMonitor.{client_id}")
+        self.monitoring_active = False
+        self.monitoring_task = None
+        self.stats_history = deque([], 60)  # Keep last 60 measurements (1 minute at 1Hz)
+        
+    async def start_monitoring(self):
+        """Start resource monitoring"""
+        self.monitoring_active = True
+        self.monitoring_task = asyncio.create_task(self._monitoring_loop())
+        self.logger.info(f"Resource monitoring started for client {self.client_id}")
+        
+    async def stop_monitoring(self):
+        """Stop resource monitoring"""
+        self.monitoring_active = False
+        if self.monitoring_task and not self.monitoring_task.done():
+            self.monitoring_task.cancel()
+            try:
+                await self.monitoring_task
+            except asyncio.CancelledError:
+                pass
+        self.logger.info(f"Resource monitoring stopped for client {self.client_id}")
+        
+    async def _monitoring_loop(self):
+        """Monitoring loop that runs every second"""
+        try:
+            while self.monitoring_active:
+                try:
+                    # Get current resource stats
+                    stats = await self._collect_resource_stats()
+                    self.stats_history.append(stats)
+                    
+                    # Log warning if resources are high
+                    if stats['cpu_percent'] > 80 or stats['memory_percent'] > 85:
+                        self.logger.warning(f"High resource usage for client {self.client_id}: "
+                                          f"CPU: {stats['cpu_percent']:.1f}%, "
+                                          f"Memory: {stats['memory_percent']:.1f}%")
+                    
+                    await asyncio.sleep(1.0)  # Monitor every second
+                    
+                except Exception as e:
+                    self.logger.error(f"Error in resource monitoring for client {self.client_id}: {e}")
+                    await asyncio.sleep(1.0)
+                    
+        except asyncio.CancelledError:
+            pass
+        
+    async def _collect_resource_stats(self) -> dict:
+        """Collect current resource statistics"""
+        try:
+            # Run in thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
+            stats = await loop.run_in_executor(None, self._get_system_stats)
+            return stats
+        except Exception as e:
+            self.logger.error(f"Failed to collect resource stats: {e}")
+            return {
+                'cpu_percent': 0.0,
+                'memory_percent': 0.0,
+                'memory_mb': 0.0,
+                'timestamp': time.time()
+            }
+    
+    def _get_system_stats(self) -> dict:
+        """Get system statistics (runs in thread pool)"""
+        process = psutil.Process()
+        return {
+            'cpu_percent': process.cpu_percent(),
+            'memory_percent': process.memory_percent(),
+            'memory_mb': process.memory_info().rss / 1024 / 1024,
+            'timestamp': time.time()
+        }
+    
+    async def get_current_stats(self) -> dict:
+        """Get current resource statistics"""
+        if self.stats_history:
+            return self.stats_history[-1]
+        else:
+            return await self._collect_resource_stats()
+    
+    def get_average_stats(self, window_seconds: int = 30) -> dict:
+        """Get average statistics over time window"""
+        if not self.stats_history:
+            return {'cpu_percent': 0.0, 'memory_percent': 0.0, 'memory_mb': 0.0}
+        
+        # Filter stats within time window
+        current_time = time.time()
+        recent_stats = [
+            stats for stats in self.stats_history 
+            if current_time - stats['timestamp'] <= window_seconds
+        ]
+        
+        if not recent_stats:
+            return self.stats_history[-1]
+        
+        # Calculate averages
+        avg_cpu = sum(s['cpu_percent'] for s in recent_stats) / len(recent_stats)
+        avg_memory = sum(s['memory_percent'] for s in recent_stats) / len(recent_stats)
+        avg_memory_mb = sum(s['memory_mb'] for s in recent_stats) / len(recent_stats)
+        
+        return {
+            'cpu_percent': avg_cpu,
+            'memory_percent': avg_memory,
+            'memory_mb': avg_memory_mb,
+            'sample_count': len(recent_stats)
+        }
+
+
+class PerformanceOptimizer:
+    """
+    Performance optimizer that adjusts processing parameters based on system load
+    """
+    
+    def __init__(self, config: AppConfig):
+        self.config = config
+        self.logger = logging.getLogger(f"{__name__}.PerformanceOptimizer")
+        self.optimization_level = 0  # 0 = normal, 1 = light optimization, 2 = aggressive
+        self.last_optimization_time = 0
+        self.optimization_cooldown = 5.0  # Seconds between optimizations
+        
+    async def optimize_if_needed(self, resource_stats: dict, processing_stats: dict) -> bool:
+        """
+        Check if optimization is needed and apply if necessary
+        
+        Args:
+            resource_stats: Current resource usage statistics
+            processing_stats: Current processing performance statistics
+            
+        Returns:
+            True if optimization was applied, False otherwise
+        """
+        current_time = time.time()
+        
+        # Check cooldown period
+        if current_time - self.last_optimization_time < self.optimization_cooldown:
+            return False
+        
+        # Determine if optimization is needed
+        cpu_usage = resource_stats.get('cpu_percent', 0)
+        memory_usage = resource_stats.get('memory_percent', 0)
+        avg_processing_time = processing_stats.get('average_processing_time', 0)
+        frames_dropped = processing_stats.get('frames_dropped', 0)
+        
+        # Define optimization thresholds
+        high_cpu_threshold = 75.0
+        high_memory_threshold = 80.0
+        high_processing_time_threshold = 50.0  # ms
+        high_drop_rate_threshold = 10
+        
+        optimization_needed = False
+        new_optimization_level = self.optimization_level
+        
+        # Check if we need to increase optimization
+        if (cpu_usage > high_cpu_threshold or 
+            memory_usage > high_memory_threshold or
+            avg_processing_time > high_processing_time_threshold or
+            frames_dropped > high_drop_rate_threshold):
+            
+            if self.optimization_level < 2:
+                new_optimization_level = min(2, self.optimization_level + 1)
+                optimization_needed = True
+                
+        # Check if we can reduce optimization (system is performing well)
+        elif (cpu_usage < 50.0 and 
+              memory_usage < 60.0 and
+              avg_processing_time < 25.0 and
+              frames_dropped == 0):
+            
+            if self.optimization_level > 0:
+                new_optimization_level = max(0, self.optimization_level - 1)
+                optimization_needed = True
+        
+        # Apply optimization if needed
+        if optimization_needed:
+            await self._apply_optimization_level(new_optimization_level)
+            self.optimization_level = new_optimization_level
+            self.last_optimization_time = current_time
+            
+            self.logger.info(f"Performance optimization applied: level {self.optimization_level} "
+                           f"(CPU: {cpu_usage:.1f}%, Memory: {memory_usage:.1f}%, "
+                           f"Avg time: {avg_processing_time:.1f}ms, Dropped: {frames_dropped})")
+            return True
+        
+        return False
+    
+    async def _apply_optimization_level(self, level: int):
+        """
+        Apply specific optimization level
+        
+        Args:
+            level: Optimization level (0=normal, 1=light, 2=aggressive)
+        """
+        try:
+            if level == 0:
+                # Normal performance - no optimizations
+                self.logger.debug("Applying normal performance settings")
+                
+            elif level == 1:
+                # Light optimization - reduce quality slightly
+                self.logger.info("Applying light performance optimization")
+                # Could adjust MediaPipe model complexity or frame resolution
+                
+            elif level == 2:
+                # Aggressive optimization - significant quality reduction
+                self.logger.info("Applying aggressive performance optimization")
+                # Could skip frames, reduce resolution, or disable some features
+                
+        except Exception as e:
+            self.logger.error(f"Failed to apply optimization level {level}: {e}")
+
+
 class VideoProcessingService:
     """
-    Video processing service for individual WebSocket client sessions
-    Handles frame processing isolation per client connection
+    Enhanced video processing service for individual WebSocket client sessions
+    Handles frame processing isolation per client connection with async processing loop,
+    queue management, performance monitoring, and resource cleanup
     """
     
     def __init__(self, client_id: str, config: AppConfig):
@@ -67,36 +290,279 @@ class VideoProcessingService:
             mediapipe_config=config.mediapipe
         )
         
+        # Frame processing queue management
+        self.frame_queue = asyncio.Queue(maxsize=10)  # Limit queue size to prevent memory issues
+        self.processing_loop_task = None
+        self.websocket = None
+        
+        # Performance monitoring
+        self.processing_stats = {
+            'frames_processed': 0,
+            'frames_dropped': 0,
+            'total_processing_time': 0.0,
+            'average_processing_time': 0.0,
+            'peak_processing_time': 0.0,
+            'queue_overflows': 0,
+            'last_frame_timestamp': None
+        }
+        
+        # Resource monitoring
+        self.resource_monitor = ResourceMonitor(client_id)
+        self.performance_optimizer = PerformanceOptimizer(config)
+        
+        # Processing loop control
+        self._shutdown_event = asyncio.Event()
+        
     async def start_processing(self, websocket: WebSocket):
-        """Start video processing for this client session"""
+        """Start video processing for this client session with async processing loop"""
         self.is_active = True
-        self.logger.info(f"Starting video processing for client {self.client_id}")
+        self.websocket = websocket
+        self.logger.info(f"Starting enhanced video processing for client {self.client_id}")
+        
+        # Start the async processing loop
+        self.processing_loop_task = asyncio.create_task(self._processing_loop())
+        
+        # Start resource monitoring
+        await self.resource_monitor.start_monitoring()
+        
+        self.logger.info(f"Processing loop and resource monitoring started for client {self.client_id}")
         
     async def stop_processing(self):
-        """Stop video processing for this client session"""
+        """Stop video processing for this client session with proper cleanup"""
         self.is_active = False
+        
+        # Signal shutdown to processing loop
+        self._shutdown_event.set()
+        
+        # Cancel processing loop task
+        if self.processing_loop_task and not self.processing_loop_task.done():
+            self.processing_loop_task.cancel()
+            try:
+                await self.processing_loop_task
+            except asyncio.CancelledError:
+                self.logger.info(f"Processing loop cancelled for client {self.client_id}")
+        
+        # Stop resource monitoring
+        await self.resource_monitor.stop_monitoring()
         
         # Clean up frame processor resources
         if hasattr(self, 'frame_processor'):
             self.frame_processor.close()
+        
+        # Clear remaining frames in queue
+        while not self.frame_queue.empty():
+            try:
+                self.frame_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+        
+        # Log final statistics
+        self._log_final_stats()
+        
+        self.logger.info(f"Enhanced video processing stopped for client {self.client_id}")
+    
+    async def _processing_loop(self):
+        """
+        Async processing loop for handling incoming frames from queue
+        Implements performance optimization and resource management
+        """
+        self.logger.info(f"Starting async processing loop for client {self.client_id}")
+        
+        try:
+            while not self._shutdown_event.is_set():
+                try:
+                    # Wait for frame with timeout to allow periodic checks
+                    frame_data = await asyncio.wait_for(
+                        self.frame_queue.get(), 
+                        timeout=1.0
+                    )
+                    
+                    # Process frame with performance monitoring
+                    await self._process_frame_with_monitoring(frame_data)
+                    
+                    # Mark task as done
+                    self.frame_queue.task_done()
+                    
+                    # Check resource usage and optimize if needed
+                    await self._check_and_optimize_performance()
+                    
+                except asyncio.TimeoutError:
+                    # Periodic check - continue loop
+                    continue
+                except Exception as e:
+                    self.logger.error(f"Error in processing loop for client {self.client_id}: {e}", exc_info=True)
+                    # Continue processing other frames
+                    continue
+                    
+        except asyncio.CancelledError:
+            self.logger.info(f"Processing loop cancelled for client {self.client_id}")
+        except Exception as e:
+            self.logger.error(f"Critical error in processing loop for client {self.client_id}: {e}", exc_info=True)
+        finally:
+            self.logger.info(f"Processing loop ended for client {self.client_id}")
+    
+    async def _process_frame_with_monitoring(self, frame_data: dict):
+        """
+        Process frame with comprehensive performance monitoring
+        
+        Args:
+            frame_data: Frame data dictionary from queue
+        """
+        start_time = time.time()
+        
+        try:
+            # Process the frame
+            response = await self._process_raw_frame(frame_data)
             
-        self.logger.info(f"Stopping video processing for client {self.client_id}")
+            # Calculate processing time
+            processing_time = (time.time() - start_time) * 1000  # Convert to ms
+            
+            # Update performance statistics
+            self._update_processing_stats(processing_time)
+            
+            # Send response to client if websocket is still active
+            if self.websocket and response:
+                try:
+                    await self.websocket.send_text(json.dumps(response))
+                except Exception as e:
+                    self.logger.warning(f"Failed to send response to client {self.client_id}: {e}")
+                    # Don't raise exception - continue processing
+            
+        except Exception as e:
+            self.logger.error(f"Error processing frame for client {self.client_id}: {e}", exc_info=True)
+    
+    async def _check_and_optimize_performance(self):
+        """
+        Check system resources and optimize performance if needed
+        """
+        try:
+            # Get current resource usage
+            resource_stats = await self.resource_monitor.get_current_stats()
+            
+            # Apply performance optimizations if needed
+            optimization_applied = await self.performance_optimizer.optimize_if_needed(
+                resource_stats, 
+                self.processing_stats
+            )
+            
+            if optimization_applied:
+                self.logger.info(f"Performance optimization applied for client {self.client_id}")
+                
+        except Exception as e:
+            self.logger.warning(f"Performance optimization check failed for client {self.client_id}: {e}")
+    
+    def _update_processing_stats(self, processing_time_ms: float):
+        """
+        Update processing statistics for performance monitoring
+        
+        Args:
+            processing_time_ms: Processing time in milliseconds
+        """
+        self.processing_stats['frames_processed'] += 1
+        self.processing_stats['total_processing_time'] += processing_time_ms
+        self.processing_stats['average_processing_time'] = (
+            self.processing_stats['total_processing_time'] / 
+            self.processing_stats['frames_processed']
+        )
+        
+        if processing_time_ms > self.processing_stats['peak_processing_time']:
+            self.processing_stats['peak_processing_time'] = processing_time_ms
+            
+        self.processing_stats['last_frame_timestamp'] = time.time()
+    
+    def _log_final_stats(self):
+        """Log final processing statistics"""
+        stats = self.processing_stats
+        self.logger.info(f"Final stats for client {self.client_id}: "
+                        f"Processed: {stats['frames_processed']}, "
+                        f"Dropped: {stats['frames_dropped']}, "
+                        f"Avg time: {stats['average_processing_time']:.2f}ms, "
+                        f"Peak time: {stats['peak_processing_time']:.2f}ms, "
+                        f"Queue overflows: {stats['queue_overflows']}")
+    
+    async def queue_frame_for_processing(self, message_data: dict) -> bool:
+        """
+        Queue frame for processing with overflow handling
+        
+        Args:
+            message_data: Frame message data
+            
+        Returns:
+            True if queued successfully, False if dropped due to overflow
+        """
+        try:
+            # Try to put frame in queue without blocking
+            self.frame_queue.put_nowait(message_data)
+            return True
+        except asyncio.QueueFull:
+            # Queue is full - drop frame and update statistics
+            self.processing_stats['frames_dropped'] += 1
+            self.processing_stats['queue_overflows'] += 1
+            
+            self.logger.warning(f"Frame dropped for client {self.client_id} - queue full "
+                              f"(dropped: {self.processing_stats['frames_dropped']})")
+            return False
+    
+    def get_processing_stats(self) -> dict:
+        """
+        Get current processing statistics for monitoring
+        
+        Returns:
+            Dictionary with current processing statistics
+        """
+        stats = self.processing_stats.copy()
+        stats['client_id'] = self.client_id
+        stats['is_active'] = self.is_active
+        stats['queue_size'] = self.frame_queue.qsize()
+        stats['queue_maxsize'] = self.frame_queue.maxsize
+        
+        # Add resource stats if available
+        if hasattr(self, 'resource_monitor'):
+            try:
+                # Get the most recent stats from history
+                if self.resource_monitor.stats_history:
+                    stats['resource_stats'] = self.resource_monitor.stats_history[-1]
+                else:
+                    stats['resource_stats'] = {'status': 'no_data'}
+            except Exception:
+                stats['resource_stats'] = {'status': 'unavailable'}
+        
+        return stats
         
     async def process_message(self, message_data: dict) -> Optional[dict]:
         """
-        Process incoming WebSocket message from client
+        Process incoming WebSocket message from client using queue-based system
         
         Args:
             message_data: Parsed JSON message from client
             
         Returns:
-            Response message dict or None if no response needed
+            Response message dict or None if queued for async processing
         """
         try:
             message_type = message_data.get("type")
             
             if message_type == "raw_frame":
-                return await self._process_raw_frame(message_data)
+                # Queue frame for async processing instead of processing immediately
+                queued = await self.queue_frame_for_processing(message_data)
+                
+                if not queued:
+                    # Frame was dropped due to queue overflow
+                    return {
+                        "type": "error",
+                        "message": "Frame dropped - processing queue full",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "metadata": {
+                            "client_id": self.client_id,
+                            "frames_dropped": self.processing_stats['frames_dropped'],
+                            "queue_overflows": self.processing_stats['queue_overflows']
+                        }
+                    }
+                
+                # Frame queued successfully - no immediate response needed
+                # Response will be sent by processing loop
+                return None
+                
             else:
                 self.logger.warning(f"Unknown message type: {message_type}")
                 return {
@@ -287,6 +753,46 @@ class ConnectionManager:
     def get_connection_count(self) -> int:
         """Get current number of active connections"""
         return len(self.active_connections)
+    
+    def get_all_processing_stats(self) -> Dict[str, dict]:
+        """Get processing statistics for all active connections"""
+        stats = {}
+        for client_id, service in self.processing_services.items():
+            try:
+                stats[client_id] = service.get_processing_stats()
+            except Exception as e:
+                logger.warning(f"Failed to get stats for client {client_id}: {e}")
+                stats[client_id] = {'error': str(e)}
+        return stats
+    
+    def get_system_summary(self) -> dict:
+        """Get system-wide processing summary"""
+        all_stats = self.get_all_processing_stats()
+        
+        total_frames_processed = sum(
+            stats.get('frames_processed', 0) 
+            for stats in all_stats.values() 
+            if isinstance(stats, dict) and 'frames_processed' in stats
+        )
+        
+        total_frames_dropped = sum(
+            stats.get('frames_dropped', 0) 
+            for stats in all_stats.values() 
+            if isinstance(stats, dict) and 'frames_dropped' in stats
+        )
+        
+        active_queues = sum(
+            1 for stats in all_stats.values() 
+            if isinstance(stats, dict) and stats.get('queue_size', 0) > 0
+        )
+        
+        return {
+            'active_connections': len(self.active_connections),
+            'total_frames_processed': total_frames_processed,
+            'total_frames_dropped': total_frames_dropped,
+            'active_processing_queues': active_queues,
+            'client_stats': all_stats
+        }
 
 # Initialize connection manager
 connection_manager = ConnectionManager()
@@ -405,6 +911,44 @@ async def get_configuration() -> Dict[str, Any]:
             detail="Configuration retrieval failed"
         )
 
+@app.get("/stats")
+async def get_processing_statistics() -> Dict[str, Any]:
+    """
+    Get current processing statistics for all connections
+    
+    Returns:
+        Dict containing system-wide processing statistics
+    """
+    try:
+        logger.info("Processing statistics endpoint accessed")
+        
+        # Get system summary with all client statistics
+        system_summary = connection_manager.get_system_summary()
+        
+        # Add timestamp and system info
+        stats_response = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "system_summary": system_summary,
+            "server_info": {
+                "uptime_seconds": time.time() - startup_time if 'startup_time' in globals() else 0,
+                "configuration": {
+                    "max_connections": app_config.server.max_connections,
+                    "video_resolution": f"{app_config.video.width}x{app_config.video.height}",
+                    "mediapipe_complexity": app_config.mediapipe.model_complexity
+                }
+            }
+        }
+        
+        logger.info("Processing statistics retrieved successfully")
+        return stats_response
+        
+    except Exception as e:
+        logger.error(f"Processing statistics retrieval failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Processing statistics retrieval failed"
+        )
+
 @app.websocket("/ws/video")
 async def websocket_video_endpoint(websocket: WebSocket):
     """
@@ -459,11 +1003,12 @@ async def websocket_video_endpoint(websocket: WebSocket):
                     await connection_manager.send_message(client_id, error_response)
                     continue
                 
-                # Process message through video processing service
+                # Process message through enhanced video processing service
                 processing_service = connection_manager.processing_services[client_id]
                 response = await processing_service.process_message(message_data)
                 
-                # Send response if available
+                # Send immediate response if available (errors, non-frame messages)
+                # Frame processing responses are handled by the async processing loop
                 if response:
                     await connection_manager.send_message(client_id, response)
                     
@@ -500,14 +1045,21 @@ async def websocket_video_endpoint(websocket: WebSocket):
         if client_id:
             await connection_manager.disconnect(client_id)
 
+# Global startup time for uptime calculation
+startup_time = time.time()
+
 # Application startup event
 @app.on_event("startup")
 async def startup_event():
     """Application startup event handler"""
+    global startup_time
+    startup_time = time.time()
+    
     logger.info("StorySign Backend starting up...")
     logger.info(f"Server configuration: {app_config.server.host}:{app_config.server.port}")
     logger.info(f"Video configuration: {app_config.video.width}x{app_config.video.height} @ {app_config.video.fps}fps")
     logger.info(f"MediaPipe configuration: complexity={app_config.mediapipe.model_complexity}, detection={app_config.mediapipe.min_detection_confidence}")
+    logger.info("Enhanced video processing with async loops and resource monitoring initialized")
     logger.info("FastAPI application initialized successfully")
 
 # Application shutdown event  
