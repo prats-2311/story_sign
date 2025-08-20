@@ -17,11 +17,11 @@ logger = logging.getLogger(__name__)
 class VideoConfig(BaseModel):
     """Configuration for video capture and processing settings"""
     
-    width: int = Field(default=240, ge=240, le=1920, description="Video frame width in pixels (optimized for low latency)")
-    height: int = Field(default=180, ge=180, le=1080, description="Video frame height in pixels (optimized for low latency)")
+    width: int = Field(default=640, ge=240, le=1920, description="Video frame width in pixels")
+    height: int = Field(default=480, ge=180, le=1080, description="Video frame height in pixels")
     fps: int = Field(default=30, ge=10, le=60, description="Target frames per second")
     format: str = Field(default="MJPG", description="Video format codec")
-    quality: int = Field(default=60, ge=30, le=100, description="JPEG compression quality (optimized for speed)")
+    quality: int = Field(default=85, ge=30, le=100, description="JPEG compression quality")
     
     @field_validator('format')
     @classmethod

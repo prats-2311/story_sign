@@ -230,17 +230,16 @@ const WebcamCapture = ({ onFrameCapture, onError, isActive = false }) => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
-    // Optimized resolution for low latency
+    // Use full resolution for processing
     const metrics = performanceMetricsRef.current;
 
-    // Use smaller base resolution for faster processing
-    const baseWidth = 240; // Reduced from 320
-    const baseHeight = 180; // Reduced from 240
+    // Reset to full 640x480 resolution for processing
+    const baseWidth = 640;
+    const baseHeight = 480;
 
-    // More aggressive resolution scaling for performance
-    const resolutionScale = Math.max(0.3, metrics.processingCapability * 0.8);
-    const maxWidth = Math.floor(baseWidth * resolutionScale);
-    const maxHeight = Math.floor(baseHeight * resolutionScale);
+    // Use full resolution without scaling
+    const maxWidth = baseWidth;
+    const maxHeight = baseHeight;
 
     const videoWidth = video.videoWidth || 640;
     const videoHeight = video.videoHeight || 480;
@@ -261,8 +260,8 @@ const WebcamCapture = ({ onFrameCapture, onError, isActive = false }) => {
     ctx.drawImage(video, 0, 0, canvasWidth, canvasHeight);
 
     try {
-      // Lower quality for faster encoding/transmission
-      const quality = Math.max(0.2, 0.4 * metrics.processingCapability);
+      // Use higher quality for full resolution processing
+      const quality = Math.max(0.7, 0.85 * metrics.processingCapability);
       const base64Data = canvas.toDataURL("image/jpeg", quality);
 
       // Update performance metrics
