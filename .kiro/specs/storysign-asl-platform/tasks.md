@@ -79,7 +79,7 @@
   - _Requirements: 4.4, 4.5, 6.4_
 
 - [ ] 8. Create real-time video processing loop
-- [ ] 8.1 Implement client-side frame capture loop
+- [x] 8.1 Implement client-side frame capture loop
 
   - Create requestAnimationFrame-based capture loop for smooth performance
   - Add frame rate management and adaptive FPS based on processing capability

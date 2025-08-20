@@ -28,34 +28,35 @@ const VideoStreamingClient = forwardRef(
     const INITIAL_RECONNECT_DELAY = 1000; // 1 second
     const FRAME_THROTTLE_MS = 100; // Send max 10 frames per second
 
-    // Send frame data to server
-    const sendFrame = useCallback((frameData) => {
+    // Send frame data to server with enhanced message format
+    const sendFrame = useCallback((message) => {
       if (wsRef.current?.readyState !== WebSocket.OPEN) {
         console.warn("WebSocket not connected, cannot send frame");
         return false;
       }
 
-      // Throttle frame sending to prevent overwhelming the connection
+      // Adaptive throttling based on processing capability
+      const processingCapability =
+        message.metadata?.processing_capability || 1.0;
+      const adaptiveThrottleMs = Math.max(
+        50,
+        FRAME_THROTTLE_MS * (2 - processingCapability)
+      );
+
       const now = Date.now();
-      if (now - lastFrameSentRef.current < FRAME_THROTTLE_MS) {
+      if (now - lastFrameSentRef.current < adaptiveThrottleMs) {
         return false; // Skip this frame
       }
       lastFrameSentRef.current = now;
 
       try {
-        const message = {
-          type: "raw_frame",
-          timestamp: new Date().toISOString(),
-          frame_data: frameData.frameData,
-          metadata: {
-            frame_number: frameData.frameNumber,
-            client_id: `frontend_${Date.now()}`,
-          },
-        };
-
         const messageStr = JSON.stringify(message);
         console.log(
-          `Sending frame ${frameData.frameNumber}, size: ${messageStr.length} bytes`
+          `Sending frame ${message.metadata?.frame_number}, size: ${
+            messageStr.length
+          } bytes, FPS: ${message.metadata?.adaptive_fps}, capability: ${(
+            processingCapability * 100
+          ).toFixed(0)}%`
         );
         wsRef.current.send(messageStr);
         setFramesSent((prev) => prev + 1);

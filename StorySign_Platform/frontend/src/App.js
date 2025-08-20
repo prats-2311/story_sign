@@ -70,16 +70,18 @@ function App() {
     }
   };
 
-  const handleFrameCapture = (frameData) => {
+  const handleFrameCapture = (message) => {
     // Send frame to WebSocket if streaming is active
     if (streamingActive && videoStreamingRef.current) {
-      videoStreamingRef.current.sendFrame(frameData);
+      videoStreamingRef.current.sendFrame(message);
     }
 
     console.log("Frame captured:", {
-      timestamp: frameData.timestamp,
-      frameNumber: frameData.frameNumber,
-      size: `${frameData.width}x${frameData.height}`,
+      timestamp: message.timestamp,
+      frameNumber: message.metadata?.frame_number,
+      size: `${message.metadata?.width}x${message.metadata?.height}`,
+      adaptiveFPS: message.metadata?.adaptive_fps,
+      processingCapability: message.metadata?.processing_capability,
     });
   };
 
