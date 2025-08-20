@@ -113,12 +113,38 @@ class StorySignLauncher:
         """Start backend with MediaPipe environment"""
         self.print_colored("🔧 Starting backend with MediaPipe...", Colors.BLUE)
         
+        # Try direct path to mediapipe_env python first
+        mediapipe_python = "/opt/anaconda3/envs/mediapipe_env/bin/python"
+        
+        if os.path.exists(mediapipe_python):
+            self.print_colored("🔍 Testing MediaPipe environment...", Colors.YELLOW)
+            try:
+                # Test if MediaPipe works
+                test_result = subprocess.run([
+                    mediapipe_python, "-c", 
+                    "import mediapipe as mp; print('MediaPipe version:', mp.__version__)"
+                ], capture_output=True, text=True, timeout=10)
+                
+                if test_result.returncode == 0:
+                    self.print_colored("✅ MediaPipe environment verified", Colors.GREEN)
+                    self.print_colored("🚀 Starting backend with mediapipe_env...", Colors.BLUE)
+                    
+                    self.backend_process = subprocess.Popen(
+                        [mediapipe_python, "main.py"],
+                        cwd="backend",
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE
+                    )
+                    return True
+                else:
+                    self.print_colored("❌ MediaPipe test failed in environment", Colors.RED)
+            except Exception as e:
+                self.print_colored(f"❌ Error testing MediaPipe environment: {e}", Colors.RED)
+        
+        # Fallback: try conda run method
+        self.print_colored("🔄 Trying conda run method...", Colors.YELLOW)
         try:
-            # Change to backend directory and start with conda
-            backend_cmd = [
-                "conda", "run", "-n", "mediapipe_env", 
-                "python", "main.py"
-            ]
+            backend_cmd = ["conda", "run", "-n", "mediapipe_env", "python", "main.py"]
             
             self.backend_process = subprocess.Popen(
                 backend_cmd,
@@ -126,10 +152,22 @@ class StorySignLauncher:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-            
             return True
         except Exception as e:
-            self.print_colored(f"❌ Failed to start backend: {e}", Colors.RED)
+            self.print_colored(f"❌ conda run method failed: {e}", Colors.RED)
+        
+        # Final fallback: system python
+        self.print_colored("⚠️  Using system python (MediaPipe may not work)", Colors.YELLOW)
+        try:
+            self.backend_process = subprocess.Popen(
+                ["python", "main.py"],
+                cwd="backend",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            return True
+        except Exception as e:
+            self.print_colored(f"❌ Failed to start backend with system python: {e}", Colors.RED)
             return False
             
     def wait_for_backend(self):

@@ -11,12 +11,14 @@ cd StorySign_Platform
 python run_full_app.py
 ```
 
-### Option 2: Bash Script
+### Option 2: Bash Script (✅ WORKING)
 
 ```bash
 cd StorySign_Platform
 ./run_full_app.sh
 ```
+
+**Note**: The bash script uses direct path to `/opt/anaconda3/envs/mediapipe_env/bin/python` which works reliably with MediaPipe.
 
 ## What the Scripts Do
 
