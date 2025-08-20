@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import "./App.css";
 import WebcamCapture from "./WebcamCapture";
+import VideoStreamingClient from "./VideoStreamingClient";
 
 function App() {
   const [backendMessage, setBackendMessage] = useState("");
@@ -8,6 +9,10 @@ function App() {
   const [connectionStatus, setConnectionStatus] = useState("not_tested");
   const [webcamActive, setWebcamActive] = useState(false);
   const [webcamError, setWebcamError] = useState("");
+  const [streamingActive, setStreamingActive] = useState(false);
+  const [processedFrameData, setProcessedFrameData] = useState(null);
+
+  const videoStreamingRef = useRef(null);
 
   const testBackendConnection = async () => {
     setIsLoading(true);
@@ -66,12 +71,35 @@ function App() {
   };
 
   const handleFrameCapture = (frameData) => {
-    // This will be used in future tasks for sending frames to backend
+    // Send frame to WebSocket if streaming is active
+    if (streamingActive && videoStreamingRef.current) {
+      videoStreamingRef.current.sendFrame(frameData);
+    }
+
     console.log("Frame captured:", {
       timestamp: frameData.timestamp,
       frameNumber: frameData.frameNumber,
       size: `${frameData.width}x${frameData.height}`,
     });
+  };
+
+  const handleStreamingConnectionChange = (status) => {
+    console.log("Streaming connection status:", status);
+  };
+
+  const handleProcessedFrame = (message) => {
+    setProcessedFrameData(message);
+    console.log("Processed frame received:", {
+      frameNumber: message.metadata?.frame_number,
+      processingTime: message.metadata?.processing_time_ms,
+      landmarks: message.metadata?.landmarks_detected,
+    });
+  };
+
+  const handleStreamingError = (error) => {
+    console.error("Streaming error:", error);
+    setBackendMessage(`Streaming error: ${error}`);
+    setConnectionStatus("error");
   };
 
   const handleWebcamError = (error) => {
@@ -82,7 +110,17 @@ function App() {
     setWebcamActive(!webcamActive);
     if (webcamActive) {
       setWebcamError("");
+      // Also stop streaming when stopping webcam
+      setStreamingActive(false);
     }
+  };
+
+  const toggleStreaming = () => {
+    if (!webcamActive) {
+      setBackendMessage("Please start webcam first before enabling streaming");
+      return;
+    }
+    setStreamingActive(!streamingActive);
   };
 
   return (
@@ -132,6 +170,13 @@ function App() {
               <button className="webcam-toggle-btn" onClick={toggleWebcam}>
                 {webcamActive ? "Stop Webcam" : "Start Webcam"}
               </button>
+              <button
+                className="streaming-toggle-btn"
+                onClick={toggleStreaming}
+                disabled={!webcamActive}
+              >
+                {streamingActive ? "Stop Streaming" : "Start Streaming"}
+              </button>
             </div>
             {webcamError && (
               <div className="webcam-error">
@@ -143,6 +188,33 @@ function App() {
               onFrameCapture={handleFrameCapture}
               onError={handleWebcamError}
             />
+          </div>
+
+          <div className="streaming-area">
+            <h3>Video Streaming</h3>
+            <VideoStreamingClient
+              ref={videoStreamingRef}
+              isActive={streamingActive}
+              onConnectionChange={handleStreamingConnectionChange}
+              onProcessedFrame={handleProcessedFrame}
+              onError={handleStreamingError}
+            />
+            {processedFrameData && (
+              <div className="processed-frame-info">
+                <h4>Latest Processed Frame</h4>
+                <p>Frame #{processedFrameData.metadata?.frame_number}</p>
+                <p>
+                  Processing Time:{" "}
+                  {processedFrameData.metadata?.processing_time_ms}ms
+                </p>
+                <p>
+                  Landmarks:{" "}
+                  {JSON.stringify(
+                    processedFrameData.metadata?.landmarks_detected
+                  )}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </main>

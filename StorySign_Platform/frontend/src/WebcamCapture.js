@@ -95,16 +95,31 @@ const WebcamCapture = ({ onFrameCapture, onError, isActive = false }) => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    // Reduce canvas dimensions for better WebSocket performance
+    // Use smaller resolution for streaming while maintaining aspect ratio
+    const maxWidth = 320;
+    const maxHeight = 240;
+    const videoWidth = video.videoWidth || 640;
+    const videoHeight = video.videoHeight || 480;
 
-    // Draw current video frame to canvas
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const aspectRatio = videoWidth / videoHeight;
+    let canvasWidth = maxWidth;
+    let canvasHeight = maxWidth / aspectRatio;
+
+    if (canvasHeight > maxHeight) {
+      canvasHeight = maxHeight;
+      canvasWidth = maxHeight * aspectRatio;
+    }
+
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    // Draw current video frame to canvas with reduced size
+    ctx.drawImage(video, 0, 0, canvasWidth, canvasHeight);
 
     try {
-      // Convert canvas to base64 JPEG
-      const base64Data = canvas.toDataURL("image/jpeg", 0.8);
+      // Convert canvas to base64 JPEG with lower quality for smaller size
+      const base64Data = canvas.toDataURL("image/jpeg", 0.5);
 
       setFrameCount((prev) => prev + 1);
 

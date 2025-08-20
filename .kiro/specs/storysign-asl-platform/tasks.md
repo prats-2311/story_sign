@@ -44,8 +44,8 @@
   - Add error handling for webcam access permissions and device availability
   - _Requirements: 1.1, 1.6, 6.2_
 
-- [ ] 6. Implement WebSocket infrastructure
-- [ ] 6.1 Create backend WebSocket endpoint for video streaming
+- [x] 6. Implement WebSocket infrastructure
+- [x] 6.1 Create backend WebSocket endpoint for video streaming
 
   - Add WebSocket /ws/video endpoint to FastAPI application
   - Implement connection handling with per-client processing isolation
@@ -53,7 +53,7 @@
   - Add WebSocket message parsing and validation
   - _Requirements: 3.3, 3.4, 4.1_
 
-- [ ] 6.2 Create frontend WebSocket client for video streaming
+- [x] 6.2 Create frontend WebSocket client for video streaming
 
   - Implement WebSocket connection management in React component
   - Add automatic reconnection logic with exponential backoff
@@ -70,7 +70,7 @@
   - Add landmark drawing and overlay functionality on processed frames
   - _Requirements: 1.2, 1.3, 1.4, 4.2, 4.3_
 
-- [ ] 7.2 Implement frame encoding and streaming response
+- [x] 7.2 Implement frame encoding and streaming response
 
   - Create frame re-encoding functionality for processed frames
   - Add metadata generation for processing time and landmark detection status
