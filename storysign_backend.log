@@ -1,0 +1,112 @@
+2025-08-20 19:41:13,536 - main - INFO - Configuration loaded successfully
+2025-08-20 19:41:13,537 - main - INFO - StorySign Backend starting up...
+2025-08-20 19:41:13,537 - main - INFO - Server configuration: 0.0.0.0:8000
+2025-08-20 19:41:13,537 - main - INFO - Video configuration: 640x480 @ 30fps
+2025-08-20 19:41:13,537 - main - INFO - MediaPipe configuration: complexity=1, detection=0.5
+2025-08-20 19:41:13,537 - main - INFO - FastAPI application initialized successfully
+2025-08-20 19:42:05,380 - main - INFO - StorySign Backend shutting down...
+2025-08-20 19:42:29,171 - main - INFO - StorySign Backend starting up...
+2025-08-20 19:42:29,171 - main - INFO - Server configuration: 0.0.0.0:8000
+2025-08-20 19:42:29,171 - main - INFO - Video configuration: 640x480 @ 30fps
+2025-08-20 19:42:29,171 - main - INFO - MediaPipe configuration: complexity=1, detection=0.5
+2025-08-20 19:42:29,171 - main - INFO - FastAPI application initialized successfully
+2025-08-20 19:42:39,084 - main - INFO - Health check endpoint accessed
+2025-08-20 19:42:39,084 - main - INFO - Health check completed successfully
+2025-08-20 19:43:08,700 - main - INFO - Health check endpoint accessed
+2025-08-20 19:43:08,701 - main - INFO - Health check completed successfully
+2025-08-20 19:43:15,284 - video_processor.MediaPipeProcessor - INFO - 🔍 MEDIAPIPE_AVAILABLE flag: False
+2025-08-20 19:43:15,284 - video_processor.MediaPipeProcessor - WARNING - ❌ MediaPipe not available - using mock implementation for compatibility
+2025-08-20 19:43:15,285 - video_processor.FrameProcessor - INFO - Frame processor initialized
+2025-08-20 19:43:15,285 - main.VideoProcessingService.client_1 - INFO - Starting video processing for client client_1
+2025-08-20 19:43:15,285 - main - INFO - Client client_1 connected. Total connections: 1
+2025-08-20 19:43:15,285 - main - INFO - WebSocket connection established for client client_1
+2025-08-20 19:43:51,120 - main - INFO - Client client_1 disconnected normally
+2025-08-20 19:43:51,120 - video_processor.MediaPipeProcessor - INFO - MediaPipe Holistic model closed
+2025-08-20 19:43:51,120 - video_processor.FrameProcessor - INFO - Frame processor closed
+2025-08-20 19:43:51,120 - main.VideoProcessingService.client_1 - INFO - Stopping video processing for client client_1
+2025-08-20 19:43:51,121 - main - INFO - Client client_1 disconnected. Total connections: 0
+2025-08-20 19:43:52,136 - video_processor.MediaPipeProcessor - INFO - 🔍 MEDIAPIPE_AVAILABLE flag: False
+2025-08-20 19:43:52,136 - video_processor.MediaPipeProcessor - WARNING - ❌ MediaPipe not available - using mock implementation for compatibility
+2025-08-20 19:43:52,136 - video_processor.FrameProcessor - INFO - Frame processor initialized
+2025-08-20 19:43:52,136 - main.VideoProcessingService.client_2 - INFO - Starting video processing for client client_2
+2025-08-20 19:43:52,136 - main - INFO - Client client_2 connected. Total connections: 1
+2025-08-20 19:43:52,136 - main - INFO - WebSocket connection established for client client_2
+2025-08-20 19:44:22,138 - main - WARNING - Timeout waiting for message from client client_2
+2025-08-20 19:44:22,139 - main - INFO - Client client_2 connection lost (ping failed)
+2025-08-20 19:44:22,139 - video_processor.MediaPipeProcessor - INFO - MediaPipe Holistic model closed
+2025-08-20 19:44:22,139 - video_processor.FrameProcessor - INFO - Frame processor closed
+2025-08-20 19:44:22,139 - main.VideoProcessingService.client_2 - INFO - Stopping video processing for client client_2
+2025-08-20 19:44:22,139 - main - INFO - Client client_2 disconnected. Total connections: 0
+2025-08-20 19:45:48,997 - main - INFO - StorySign Backend shutting down...
+2025-08-20 19:48:42,507 - main - INFO - Configuration loaded successfully
+2025-08-20 19:48:42,508 - main - INFO - StorySign Backend starting up...
+2025-08-20 19:48:42,508 - main - INFO - Server configuration: 0.0.0.0:8000
+2025-08-20 19:48:42,508 - main - INFO - Video configuration: 640x480 @ 30fps
+2025-08-20 19:48:42,508 - main - INFO - MediaPipe configuration: complexity=1, detection=0.5
+2025-08-20 19:48:42,508 - main - INFO - FastAPI application initialized successfully
+2025-08-20 19:49:00,292 - main - INFO - Health check endpoint accessed
+2025-08-20 19:49:00,292 - main - INFO - Health check completed successfully
+2025-08-20 19:49:52,860 - main - INFO - Health check endpoint accessed
+2025-08-20 19:49:52,862 - main - INFO - Health check completed successfully
+2025-08-20 19:49:58,754 - main - INFO - StorySign Backend shutting down...
+2025-08-20 19:49:59,757 - main - INFO - Configuration loaded successfully
+2025-08-20 19:49:59,758 - main - INFO - StorySign Backend starting up...
+2025-08-20 19:49:59,758 - main - INFO - Server configuration: 0.0.0.0:8000
+2025-08-20 19:49:59,758 - main - INFO - Video configuration: 640x480 @ 30fps
+2025-08-20 19:49:59,758 - main - INFO - MediaPipe configuration: complexity=1, detection=0.5
+2025-08-20 19:49:59,758 - main - INFO - FastAPI application initialized successfully
+2025-08-20 19:50:26,489 - video_processor.MediaPipeProcessor - INFO - 🔍 MEDIAPIPE_AVAILABLE flag: True
+2025-08-20 19:50:26,619 - video_processor.MediaPipeProcessor - INFO - ✅ MediaPipe Holistic initialized with complexity 1
+2025-08-20 19:50:26,620 - video_processor.FrameProcessor - INFO - Frame processor initialized
+2025-08-20 19:50:26,620 - main.VideoProcessingService.client_1 - INFO - Starting video processing for client client_1
+2025-08-20 19:50:26,620 - main - INFO - Client client_1 connected. Total connections: 1
+2025-08-20 19:50:26,620 - main - INFO - WebSocket connection established for client client_1
+2025-08-20 19:50:26,744 - main - INFO - Client client_1 disconnected normally
+2025-08-20 19:50:26,753 - video_processor.MediaPipeProcessor - INFO - MediaPipe Holistic model closed
+2025-08-20 19:50:26,753 - video_processor.FrameProcessor - INFO - Frame processor closed
+2025-08-20 19:50:26,753 - main.VideoProcessingService.client_1 - INFO - Stopping video processing for client client_1
+2025-08-20 19:50:26,753 - main - INFO - Client client_1 disconnected. Total connections: 0
+2025-08-20 19:50:43,290 - main - INFO - Health check endpoint accessed
+2025-08-20 19:50:43,290 - main - INFO - Health check completed successfully
+2025-08-20 19:50:50,240 - video_processor.MediaPipeProcessor - INFO - 🔍 MEDIAPIPE_AVAILABLE flag: True
+2025-08-20 19:50:50,270 - video_processor.MediaPipeProcessor - INFO - ✅ MediaPipe Holistic initialized with complexity 1
+2025-08-20 19:50:50,270 - video_processor.FrameProcessor - INFO - Frame processor initialized
+2025-08-20 19:50:50,270 - main.VideoProcessingService.client_2 - INFO - Starting video processing for client client_2
+2025-08-20 19:50:50,270 - main - INFO - Client client_2 connected. Total connections: 1
+2025-08-20 19:50:50,270 - main - INFO - WebSocket connection established for client client_2
+2025-08-20 19:51:35,508 - main - INFO - Client client_2 disconnected normally
+2025-08-20 19:51:35,526 - video_processor.MediaPipeProcessor - INFO - MediaPipe Holistic model closed
+2025-08-20 19:51:35,526 - video_processor.FrameProcessor - INFO - Frame processor closed
+2025-08-20 19:51:35,526 - main.VideoProcessingService.client_2 - INFO - Stopping video processing for client client_2
+2025-08-20 19:51:35,527 - main - INFO - Client client_2 disconnected. Total connections: 0
+2025-08-20 19:51:36,522 - video_processor.MediaPipeProcessor - INFO - 🔍 MEDIAPIPE_AVAILABLE flag: True
+2025-08-20 19:51:36,545 - video_processor.MediaPipeProcessor - INFO - ✅ MediaPipe Holistic initialized with complexity 1
+2025-08-20 19:51:36,545 - video_processor.FrameProcessor - INFO - Frame processor initialized
+2025-08-20 19:51:36,545 - main.VideoProcessingService.client_3 - INFO - Starting video processing for client client_3
+2025-08-20 19:51:36,545 - main - INFO - Client client_3 connected. Total connections: 1
+2025-08-20 19:51:36,545 - main - INFO - WebSocket connection established for client client_3
+2025-08-20 19:52:06,547 - main - WARNING - Timeout waiting for message from client client_3
+2025-08-20 19:52:06,548 - main - INFO - Client client_3 connection lost (ping failed)
+2025-08-20 19:52:06,563 - video_processor.MediaPipeProcessor - INFO - MediaPipe Holistic model closed
+2025-08-20 19:52:06,563 - video_processor.FrameProcessor - INFO - Frame processor closed
+2025-08-20 19:52:06,563 - main.VideoProcessingService.client_3 - INFO - Stopping video processing for client client_3
+2025-08-20 19:52:06,563 - main - INFO - Client client_3 disconnected. Total connections: 0
+2025-08-20 19:54:51,917 - main - INFO - StorySign Backend shutting down...
+2025-08-20 19:54:53,265 - main - INFO - Configuration loaded successfully
+2025-08-20 19:54:53,266 - main - INFO - StorySign Backend starting up...
+2025-08-20 19:54:53,266 - main - INFO - Server configuration: 0.0.0.0:8000
+2025-08-20 19:54:53,266 - main - INFO - Video configuration: 640x480 @ 30fps
+2025-08-20 19:54:53,266 - main - INFO - MediaPipe configuration: complexity=1, detection=0.5
+2025-08-20 19:54:53,266 - main - INFO - FastAPI application initialized successfully
+2025-08-20 19:54:53,591 - video_processor.MediaPipeProcessor - INFO - 🔍 MEDIAPIPE_AVAILABLE flag: True
+2025-08-20 19:54:53,729 - video_processor.MediaPipeProcessor - INFO - ✅ MediaPipe Holistic initialized with complexity 1
+2025-08-20 19:54:53,730 - video_processor.FrameProcessor - INFO - Frame processor initialized
+2025-08-20 19:54:53,730 - main.VideoProcessingService.client_1 - INFO - Starting video processing for client client_1
+2025-08-20 19:54:53,730 - main - INFO - Client client_1 connected. Total connections: 1
+2025-08-20 19:54:53,730 - main - INFO - WebSocket connection established for client client_1
+2025-08-20 19:55:23,731 - main - WARNING - Timeout waiting for message from client client_1
+2025-08-20 19:55:23,732 - main - INFO - Client client_1 connection lost (ping failed)
+2025-08-20 19:55:23,743 - video_processor.MediaPipeProcessor - INFO - MediaPipe Holistic model closed
+2025-08-20 19:55:23,743 - video_processor.FrameProcessor - INFO - Frame processor closed
+2025-08-20 19:55:23,743 - main.VideoProcessingService.client_1 - INFO - Stopping video processing for client client_1
+2025-08-20 19:55:23,744 - main - INFO - Client client_1 disconnected. Total connections: 0

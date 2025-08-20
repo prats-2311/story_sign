@@ -87,6 +87,9 @@ class MediaPipeProcessor:
         self.config = mediapipe_config
         self.logger = logging.getLogger(f"{__name__}.MediaPipeProcessor")
         
+        # Debug logging
+        self.logger.info(f"🔍 MEDIAPIPE_AVAILABLE flag: {MEDIAPIPE_AVAILABLE}")
+        
         # Initialize MediaPipe components
         self.mp_holistic = mp.solutions.holistic
         self.mp_drawing = mp.solutions.drawing_utils
@@ -102,9 +105,9 @@ class MediaPipeProcessor:
         )
         
         if MEDIAPIPE_AVAILABLE:
-            self.logger.info(f"MediaPipe Holistic initialized with complexity {self.config.model_complexity}")
+            self.logger.info(f"✅ MediaPipe Holistic initialized with complexity {self.config.model_complexity}")
         else:
-            self.logger.warning("MediaPipe not available - using mock implementation for compatibility")
+            self.logger.warning("❌ MediaPipe not available - using mock implementation for compatibility")
         
     def process_frame(self, frame: np.ndarray) -> Tuple[np.ndarray, Dict[str, bool]]:
         """

@@ -191,7 +191,7 @@ function App() {
           </div>
 
           <div className="streaming-area">
-            <h3>Video Streaming</h3>
+            <h3>Processed Video Stream</h3>
             <VideoStreamingClient
               ref={videoStreamingRef}
               isActive={streamingActive}
@@ -199,6 +199,17 @@ function App() {
               onProcessedFrame={handleProcessedFrame}
               onError={handleStreamingError}
             />
+            {streamingActive && processedFrameData?.frame_data ? (
+              <img
+                src={processedFrameData.frame_data}
+                alt="Processed Stream with MediaPipe Skeleton"
+                style={{ width: "100%", maxWidth: "640px" }}
+              />
+            ) : (
+              <div className="video-placeholder">
+                <p>Processed stream will appear here</p>
+              </div>
+            )}
             {processedFrameData && (
               <div className="processed-frame-info">
                 <h4>Latest Processed Frame</h4>
