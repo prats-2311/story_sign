@@ -95,11 +95,11 @@ class MediaPipeProcessor:
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_drawing_styles = mp.solutions.drawing_styles
         
-        # Initialize holistic model with optimized settings for low latency
+        # Initialize holistic model with maximum speed optimization (complexity 0)
         self.holistic = self.mp_holistic.Holistic(
-            min_detection_confidence=max(0.3, self.config.min_detection_confidence - 0.2),  # Lower for speed
-            min_tracking_confidence=max(0.3, self.config.min_tracking_confidence - 0.2),   # Lower for speed
-            model_complexity=min(1, self.config.model_complexity),  # Use faster model (0 or 1)
+            min_detection_confidence=0.3,  # Lowered for maximum speed
+            min_tracking_confidence=0.3,   # Lowered for maximum speed
+            model_complexity=0,  # Use fastest "Lite" model for maximum speed
             enable_segmentation=False,  # Disable segmentation for speed
             refine_face_landmarks=False  # Disable face refinement for speed
         )
@@ -464,8 +464,8 @@ class FrameProcessor:
         start_time = time.time()
         
         try:
-            # Optimized JPEG encoding for speed over quality
-            quality = min(60, self.video_config.quality)  # Cap quality for speed
+            # Aggressive JPEG compression for maximum speed (as per latency solution)
+            quality = 50  # Fixed at 50 for optimal speed/quality balance
             encode_params = [
                 cv2.IMWRITE_JPEG_QUALITY, quality,
                 cv2.IMWRITE_JPEG_OPTIMIZE, 0,  # Disable optimization for speed

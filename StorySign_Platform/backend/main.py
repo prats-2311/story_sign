@@ -26,6 +26,7 @@ import time
 from collections import deque
 import psutil
 import threading
+from concurrent.futures import ThreadPoolExecutor
 
 from config import get_config, AppConfig
 from video_processor import FrameProcessor
@@ -840,9 +841,24 @@ class VideoProcessingService:
                 "timestamp": datetime.utcnow().isoformat()
             }
     
+    def _process_frame_sync(self, frame_data: str, frame_count: int) -> dict:
+        """
+        Synchronous frame processing for ThreadPoolExecutor
+        This runs in a separate thread to avoid blocking the async event loop
+        
+        Args:
+            frame_data: Base64 frame data
+            frame_count: Frame sequence number
+            
+        Returns:
+            Processing result dictionary
+        """
+        return self.frame_processor.process_base64_frame(frame_data, frame_count)
+
     async def _process_raw_frame(self, message_data: dict) -> dict:
         """
         Process raw frame data through MediaPipe with enhanced streaming response
+        Uses ThreadPoolExecutor to prevent blocking the async event loop
         
         Args:
             message_data: Message containing raw frame data
@@ -863,8 +879,15 @@ class VideoProcessingService:
             client_metadata = message_data.get("metadata", {})
             client_frame_number = client_metadata.get("frame_number", self.frame_count)
             
-            # Process frame through enhanced MediaPipe pipeline
-            processing_result = self.frame_processor.process_base64_frame(frame_data, self.frame_count)
+            # Process frame through enhanced MediaPipe pipeline using ThreadPoolExecutor
+            # This prevents blocking the async event loop during CPU-intensive processing
+            loop = asyncio.get_event_loop()
+            processing_result = await loop.run_in_executor(
+                executor, 
+                self._process_frame_sync, 
+                frame_data, 
+                self.frame_count
+            )
             
             # Create streaming response based on processing result
             if processing_result["success"]:
@@ -1146,12 +1169,22 @@ class ConnectionManager:
                     # Force close remaining connections
                     await self._force_close_remaining_connections()
             
+            # Shutdown ThreadPoolExecutor
+            self.logger.info("Shutting down ThreadPoolExecutor...")
+            executor.shutdown(wait=True, timeout=10.0)
+            self.logger.info("ThreadPoolExecutor shutdown completed")
+            
             self.logger.info("Connection manager graceful shutdown completed")
             
         except Exception as e:
             self.logger.error(f"Error during graceful shutdown: {e}", exc_info=True)
             # Attempt force cleanup
             await self._force_close_remaining_connections()
+            # Force shutdown executor
+            try:
+                executor.shutdown(wait=False)
+            except Exception as executor_error:
+                self.logger.error(f"Error shutting down executor: {executor_error}")
     
     async def _shutdown_client_gracefully(self, client_id: str):
         """
@@ -1214,6 +1247,19 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Create ThreadPoolExecutor for CPU-intensive MediaPipe processing
+# This prevents blocking the async event loop during frame processing
+executor = ThreadPoolExecutor(
+    max_workers=4,  # Adjust based on CPU cores
+    thread_name_prefix="mediapipe_worker"
+)
+
+logger.info("🚀 LATENCY OPTIMIZATIONS ACTIVE:")
+logger.info("   ✅ ThreadPoolExecutor initialized for non-blocking MediaPipe processing")
+logger.info("   ✅ MediaPipe model complexity set to 0 (fastest)")
+logger.info("   ✅ JPEG compression optimized to quality 50 for speed")
+logger.info("   ✅ Video resolution reset to 640x480 for full quality processing")
 
 # Add CORS middleware for frontend communication
 app.add_middleware(

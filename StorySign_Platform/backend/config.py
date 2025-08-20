@@ -21,7 +21,7 @@ class VideoConfig(BaseModel):
     height: int = Field(default=480, ge=180, le=1080, description="Video frame height in pixels")
     fps: int = Field(default=30, ge=10, le=60, description="Target frames per second")
     format: str = Field(default="MJPG", description="Video format codec")
-    quality: int = Field(default=85, ge=30, le=100, description="JPEG compression quality")
+    quality: int = Field(default=50, ge=30, le=100, description="JPEG compression quality (optimized for low latency)")
     
     @field_validator('format')
     @classmethod
@@ -40,19 +40,19 @@ class MediaPipeConfig(BaseModel):
         default=0.3, 
         ge=0.0, 
         le=1.0, 
-        description="Minimum confidence for person detection (lowered for speed)"
+        description="Minimum confidence for person detection (optimized for speed)"
     )
     min_tracking_confidence: float = Field(
         default=0.3, 
         ge=0.0, 
         le=1.0, 
-        description="Minimum confidence for landmark tracking (lowered for speed)"
+        description="Minimum confidence for landmark tracking (optimized for speed)"
     )
     model_complexity: int = Field(
-        default=1, 
+        default=0, 
         ge=0, 
         le=2, 
-        description="Model complexity (0=lite, 1=full, 2=heavy)"
+        description="Model complexity (0=lite/fastest, 1=full, 2=heavy) - optimized for speed"
     )
     enable_segmentation: bool = Field(
         default=False, 

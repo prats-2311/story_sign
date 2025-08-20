@@ -7,13 +7,13 @@ video:
   height: 480 # Video frame height in pixels (240-1080)
   fps: 30 # Target frames per second (10-60)
   format: "MJPG" # Video format codec (MJPG, YUYV, H264)
-  quality: 85 # JPEG compression quality (50-100)
+  quality: 50 # JPEG compression quality (optimized for low latency)
 
 # MediaPipe Holistic model settings
 mediapipe:
   min_detection_confidence: 0.5 # Minimum confidence for person detection (0.0-1.0)
   min_tracking_confidence: 0.5 # Minimum confidence for landmark tracking (0.0-1.0)
-  model_complexity: 1 # Model complexity: 0=lite, 1=full, 2=heavy
+  model_complexity: 0 # Model complexity: 0=lite/fastest, 1=full, 2=heavy (optimized for speed)
   enable_segmentation: false # Enable pose segmentation mask
   refine_face_landmarks: true # Enable refined face landmark detection
 
