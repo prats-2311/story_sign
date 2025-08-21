@@ -146,3 +146,146 @@
   - Add final UI polish and user experience improvements
   - Create comprehensive documentation and deployment instructions
   - _Requirements: 1.5, 5.6_
+
+## Phase 2: ASL World Implementation
+
+- [ ] 13. Implement hybrid AI infrastructure
+- [x] 13.1 Set up local vision service integration
+
+  - Configure local vision model (moondream2 or phi3:vision) via Ollama or LM Studio
+  - Add local vision service URL configuration to backend/config.yaml
+  - Create backend/local_vision_service.py with object identification functionality
+  - Implement base64 image processing and model communication
+  - Add error handling and fallback behavior for service unavailability
+  - _Requirements: 10.1, 10.6_
+
+- [ ] 13.2 Create Ollama LLM service integration
+
+  - Create backend/ollama_service.py for cloud LLM communication
+  - Implement story generation functionality using identified objects as prompts
+  - Add signing analysis functionality for gesture feedback
+  - Configure async processing to prevent blocking video stream
+  - Add timeout management and error handling for LLM requests
+  - _Requirements: 10.2, 10.4, 10.5_
+
+- [ ] 14. Implement story generation API
+- [ ] 14.1 Create object recognition and story generation endpoint
+
+  - Add POST /api/story/recognize_and_generate endpoint to backend/main.py
+  - Implement image reception and processing workflow
+  - Integrate local vision service for object identification
+  - Connect to Ollama service for story generation using identified object
+  - Return structured story response with sentence array
+  - _Requirements: 7.1, 7.2, 7.3, 7.4_
+
+- [ ] 14.2 Add story generation error handling and validation
+
+  - Implement object identification validation and fallback options
+  - Add story generation timeout and retry logic
+  - Create user-friendly error messages for AI service failures
+  - Add loading indicators and progress tracking for story generation
+  - Test end-to-end story generation workflow
+  - _Requirements: 7.5, 7.6_
+
+- [ ] 15. Create ASL World Module frontend component
+- [ ] 15.1 Implement ASL World Module UI component
+
+  - Create frontend/src/ASLWorldModule.js as main learning interface
+  - Add "Scan Object to Start" button with frame capture functionality
+  - Implement story display with sentence highlighting
+  - Create practice control buttons ("Next Sentence", "Try Again")
+  - Add feedback display area for AI-generated signing analysis
+  - _Requirements: 9.1, 9.2, 9.5_
+
+- [ ] 15.2 Integrate story generation workflow in frontend
+
+  - Add story generation state management to App.js
+  - Implement frame capture and API call to story generation endpoint
+  - Handle story generation loading states and error scenarios
+  - Pass story data to ASL World Module component
+  - Add visual indicators for AI processing states
+  - _Requirements: 7.1, 7.6, 9.6_
+
+- [ ] 16. Implement gesture segmentation and analysis
+- [ ] 16.1 Enhance video processor for gesture detection
+
+  - Modify backend/video_processor.py to add stateful gesture analysis
+  - Implement gesture start detection using hand movement velocity
+  - Add gesture end detection using movement pause detection
+  - Create landmark data buffering during signing periods
+  - Add practice session state management (target sentence, current mode)
+  - _Requirements: 8.1, 8.2, 8.3_
+
+- [ ] 16.2 Implement signing analysis and feedback system
+
+  - Integrate Ollama service for signing attempt analysis
+  - Create landmark buffer processing and analysis workflow
+  - Implement contextual feedback generation based on target sentence
+  - Add WebSocket message broadcasting for ASL feedback
+  - Create gesture detection state indicators in processed frames
+  - _Requirements: 8.3, 8.4_
+
+- [ ] 17. Create interactive practice session workflow
+- [ ] 17.1 Implement practice session controls and state management
+
+  - Add practice session WebSocket message handling (control messages)
+  - Implement sentence progression logic ("Next Sentence" functionality)
+  - Add practice session reset functionality ("Try Again" functionality)
+  - Create practice session state synchronization between frontend and backend
+  - Add visual indicators for gesture listening and processing states
+  - _Requirements: 8.5, 8.6, 8.7, 9.3, 9.4_
+
+- [ ] 17.2 Integrate feedback display and user interaction
+
+  - Enhance VideoStreamingClient.js to handle ASL feedback messages
+  - Implement feedback data flow from WebSocket to ASL World Module
+  - Add feedback display formatting and user-friendly presentation
+  - Create practice session completion handling and story restart options
+  - Test complete practice session workflow end-to-end
+  - _Requirements: 8.4, 8.5, 9.5_
+
+- [ ] 18. Implement comprehensive AI service management
+- [ ] 18.1 Add AI service health monitoring and status display
+
+  - Create AI service health check functionality in backend
+  - Add service status indicators to frontend UI
+  - Implement service reconnection and retry logic
+  - Add graceful degradation when AI services are unavailable
+  - Create user notifications for service status changes
+  - _Requirements: 10.6, 9.6_
+
+- [ ] 18.2 Optimize AI service performance and user experience
+
+  - Implement caching for frequently used story templates
+  - Add progress indicators for AI processing operations
+  - Optimize gesture analysis batching and processing efficiency
+  - Add estimated completion times for AI operations
+  - Create comprehensive error handling for all AI service interactions
+  - _Requirements: 7.6, 9.6_
+
+- [ ] 19. Create comprehensive Phase 2 testing suite
+- [ ] 19.1 Implement AI integration tests
+
+  - Create pytest tests for local vision service integration
+  - Add tests for Ollama LLM service story generation and analysis
+  - Implement mock AI services for testing without external dependencies
+  - Test error handling and fallback scenarios for AI service failures
+  - Add performance tests for AI service response times
+  - _Requirements: 7.5, 8.4, 10.6_
+
+- [ ] 19.2 Create end-to-end ASL World workflow tests
+
+  - Implement integration tests for complete story generation workflow
+  - Add tests for practice session gesture detection and feedback loop
+  - Create frontend component tests for ASL World Module interactions
+  - Test WebSocket message handling for practice session controls
+  - Add manual testing scenarios for complete user journey validation
+  - _Requirements: 8.1, 8.2, 8.3, 8.4, 9.1, 9.2_
+
+- [ ] 20. Final Phase 2 integration and polish
+  - Integrate all Phase 2 components into cohesive user experience
+  - Add final UI/UX refinements and visual polish
+  - Optimize performance for real-time AI processing and video streaming
+  - Create comprehensive documentation for Phase 2 features
+  - Conduct thorough end-to-end testing of complete ASL World functionality
+  - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_

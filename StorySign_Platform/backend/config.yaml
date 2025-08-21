@@ -24,3 +24,12 @@ server:
   reload: true # Enable auto-reload in development
   log_level: "info" # Logging level (debug, info, warning, error, critical)
   max_connections: 10 # Maximum WebSocket connections (1-100)
+
+# Local vision service configuration
+local_vision:
+  service_url: "http://localhost:1234" # LM Studio service URL (default port)
+  model_name: "google/gemma-3-4b" # Model name as loaded in LM Studio
+  service_type: "lm_studio" # Service type: "ollama" or "lm_studio"
+  timeout_seconds: 30 # Request timeout in seconds
+  max_retries: 3 # Maximum retry attempts
+  enabled: true # Enable/disable local vision service

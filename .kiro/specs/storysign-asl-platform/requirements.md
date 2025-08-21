@@ -81,3 +81,56 @@ StorySign ASL Platform is a real-time American Sign Language (ASL) recognition a
 4. WHEN MediaPipe processing fails THEN the system SHALL continue operation without crashing
 5. WHEN the frontend cannot connect to the backend THEN the system SHALL display a connection error message
 6. IF any component encounters an unexpected error THEN the system SHALL log the error details for debugging
+
+### Requirement 7
+
+**User Story:** As a user, I want to generate personalized stories by showing objects to the camera, so that I can practice ASL with content that interests me.
+
+#### Acceptance Criteria
+
+1. WHEN I click the "Scan Object to Start" button THEN the system SHALL capture a high-quality frame from my webcam
+2. WHEN a frame is captured THEN the system SHALL send it to a local vision model for object identification
+3. WHEN an object is identified THEN the system SHALL use the object name to generate a complete story using a cloud LLM
+4. WHEN the story is generated THEN the system SHALL display the story and transition to practice mode
+5. IF the object cannot be identified THEN the system SHALL display an error message and allow me to try again
+6. WHEN the story generation process is active THEN the system SHALL show clear loading indicators
+
+### Requirement 8
+
+**User Story:** As a user, I want to practice ASL sentence by sentence with real-time feedback, so that I can learn effectively and improve my signing skills.
+
+#### Acceptance Criteria
+
+1. WHEN I enter practice mode THEN the system SHALL display the full story with the current sentence highlighted
+2. WHEN I start signing THEN the system SHALL detect the beginning of my gesture and start recording landmark data
+3. WHEN I finish signing THEN the system SHALL detect the end of my gesture and analyze my signing attempt
+4. WHEN my signing is analyzed THEN the system SHALL provide specific feedback about my performance
+5. WHEN I receive feedback THEN the system SHALL display "Next Sentence" and "Try Again" buttons
+6. WHEN I click "Next Sentence" THEN the system SHALL move to the next sentence in the story
+7. WHEN I click "Try Again" THEN the system SHALL clear the feedback and allow me to practice the same sentence again
+
+### Requirement 9
+
+**User Story:** As a user, I want an intuitive ASL World learning interface, so that I can easily navigate through the story generation and practice workflow.
+
+#### Acceptance Criteria
+
+1. WHEN the ASL World module loads THEN the system SHALL display a clear interface for story generation
+2. WHEN I am in practice mode THEN the system SHALL show my video feed with MediaPipe overlays
+3. WHEN the system is listening for signs THEN the system SHALL provide clear visual indicators
+4. WHEN the system is processing my signing THEN the system SHALL show appropriate loading states
+5. WHEN I complete all sentences in a story THEN the system SHALL provide options to generate a new story or practice again
+6. WHEN any AI processing occurs THEN the system SHALL display progress indicators and estimated completion times
+
+### Requirement 10
+
+**User Story:** As a developer, I want a hybrid AI architecture with local vision and cloud LLM integration, so that the system can efficiently process visual input and generate contextual content.
+
+#### Acceptance Criteria
+
+1. WHEN the backend starts THEN the system SHALL connect to a local vision model service (Ollama or LM Studio)
+2. WHEN the backend starts THEN the system SHALL connect to a cloud LLM service for story generation
+3. WHEN processing an image THEN the system SHALL use the local vision model for object identification
+4. WHEN generating stories THEN the system SHALL use the cloud LLM with the identified object as context
+5. WHEN analyzing signing attempts THEN the system SHALL use the cloud LLM to provide contextual feedback
+6. IF any AI service is unavailable THEN the system SHALL provide appropriate fallback behavior and error messages

@@ -91,12 +91,33 @@ class ServerConfig(BaseModel):
         return v.lower()
 
 
+class LocalVisionConfig(BaseModel):
+    """Configuration for local vision service integration"""
+    
+    service_url: str = Field(default="http://localhost:1234", description="Local vision service URL")
+    model_name: str = Field(default="google/gemma-3-4b", description="Vision model name")
+    service_type: str = Field(default="lm_studio", description="Service type (ollama or lm_studio)")
+    timeout_seconds: int = Field(default=30, ge=5, le=120, description="Request timeout in seconds")
+    max_retries: int = Field(default=3, ge=1, le=10, description="Maximum retry attempts")
+    enabled: bool = Field(default=True, description="Enable/disable local vision service")
+    
+    @field_validator('service_type')
+    @classmethod
+    def validate_service_type(cls, v):
+        """Validate service type is supported"""
+        supported_types = ['ollama', 'lm_studio']
+        if v not in supported_types:
+            raise ValueError(f"Service type must be one of {supported_types}")
+        return v
+
+
 class AppConfig(BaseModel):
     """Main application configuration containing all sub-configurations"""
     
     video: VideoConfig = Field(default_factory=VideoConfig)
     mediapipe: MediaPipeConfig = Field(default_factory=MediaPipeConfig)
     server: ServerConfig = Field(default_factory=ServerConfig)
+    local_vision: LocalVisionConfig = Field(default_factory=LocalVisionConfig)
     
     class Config:
         """Pydantic configuration"""
@@ -191,6 +212,18 @@ class ConfigManager:
         if os.getenv('STORYSIGN_SERVER__MAX_CONNECTIONS'):
             env_vars.setdefault('server', {})['max_connections'] = int(os.getenv('STORYSIGN_SERVER__MAX_CONNECTIONS'))
         
+        # Local vision configuration from environment
+        if os.getenv('STORYSIGN_LOCAL_VISION__SERVICE_URL'):
+            env_vars.setdefault('local_vision', {})['service_url'] = os.getenv('STORYSIGN_LOCAL_VISION__SERVICE_URL')
+        if os.getenv('STORYSIGN_LOCAL_VISION__MODEL_NAME'):
+            env_vars.setdefault('local_vision', {})['model_name'] = os.getenv('STORYSIGN_LOCAL_VISION__MODEL_NAME')
+        if os.getenv('STORYSIGN_LOCAL_VISION__TIMEOUT_SECONDS'):
+            env_vars.setdefault('local_vision', {})['timeout_seconds'] = int(os.getenv('STORYSIGN_LOCAL_VISION__TIMEOUT_SECONDS'))
+        if os.getenv('STORYSIGN_LOCAL_VISION__MAX_RETRIES'):
+            env_vars.setdefault('local_vision', {})['max_retries'] = int(os.getenv('STORYSIGN_LOCAL_VISION__MAX_RETRIES'))
+        if os.getenv('STORYSIGN_LOCAL_VISION__ENABLED'):
+            env_vars.setdefault('local_vision', {})['enabled'] = os.getenv('STORYSIGN_LOCAL_VISION__ENABLED').lower() == 'true'
+        
         # Merge environment variables with file configuration (env vars take precedence)
         for section, values in env_vars.items():
             if section in config_data:
@@ -227,6 +260,7 @@ class ConfigManager:
             logger.debug(f"Video config: {self._config.video}")
             logger.debug(f"MediaPipe config: {self._config.mediapipe}")
             logger.debug(f"Server config: {self._config.server}")
+            logger.debug(f"Local vision config: {self._config.local_vision}")
             
             return self._config
             
