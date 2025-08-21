@@ -15,9 +15,10 @@ import traceback
 import gc
 import resource
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 import uvicorn
 import json
 import asyncio
@@ -30,6 +31,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 from config import get_config, AppConfig
 from video_processor import FrameProcessor
+from local_vision_service import get_vision_service, VisionResult
+from ollama_service import get_ollama_service, StoryResponse
 # Temporarily comment out performance optimizer
 # from performance_optimizer import initialize_performance_optimizer, get_performance_optimizer
 
@@ -1358,6 +1361,139 @@ async def get_processing_statistics() -> Dict[str, Any]:
             status_code=500,
             detail="Processing statistics retrieval failed"
         )
+
+
+# Request models for API endpoints
+class StoryGenerationRequest(BaseModel):
+    """Request model for story generation endpoint"""
+    frame_data: str = Field(..., description="Base64 encoded image data")
+    custom_prompt: Optional[str] = Field(None, description="Optional custom prompt for object identification")
+
+
+@app.post("/api/story/recognize_and_generate")
+async def recognize_and_generate_story(request: StoryGenerationRequest) -> Dict[str, Any]:
+    """
+    Object recognition and story generation endpoint
+    
+    Processes an image to identify objects and generates a personalized story
+    based on the identified object using local vision and cloud LLM services.
+    
+    Args:
+        request: StoryGenerationRequest containing base64 image data
+        
+    Returns:
+        Dict containing story generation result with structured story data
+        
+    Raises:
+        HTTPException: If processing fails or services are unavailable
+    """
+    start_time = time.time()
+    
+    try:
+        logger.info("Story generation endpoint accessed")
+        
+        # Validate request data
+        if not request.frame_data:
+            raise HTTPException(
+                status_code=400,
+                detail="No image data provided"
+            )
+        
+        # Initialize services
+        vision_service = await get_vision_service()
+        ollama_service = await get_ollama_service()
+        
+        # Check service health
+        vision_healthy = await vision_service.check_health()
+        ollama_healthy = await ollama_service.check_health()
+        
+        if not vision_healthy and not ollama_healthy:
+            raise HTTPException(
+                status_code=503,
+                detail="Both vision and story generation services are unavailable"
+            )
+        
+        # Step 1: Object identification using local vision service
+        object_name = None
+        vision_error = None
+        
+        if vision_healthy:
+            logger.info("Attempting object identification with local vision service")
+            vision_result: VisionResult = await vision_service.identify_object(
+                request.frame_data, 
+                request.custom_prompt
+            )
+            
+            if vision_result.success and vision_result.object_name:
+                object_name = vision_result.object_name
+                logger.info(f"Object identified: '{object_name}' (confidence: {vision_result.confidence})")
+            else:
+                vision_error = vision_result.error_message
+                logger.warning(f"Vision service failed: {vision_error}")
+        else:
+            vision_error = "Local vision service is not available"
+            logger.warning(vision_error)
+        
+        # Fallback: Use a default object if vision service fails
+        if not object_name:
+            fallback_objects = ["ball", "book", "flower", "cup", "toy"]
+            import random
+            object_name = random.choice(fallback_objects)
+            logger.info(f"Using fallback object: '{object_name}' due to vision service failure")
+        
+        # Step 2: Story generation using Ollama service
+        if not ollama_healthy:
+            raise HTTPException(
+                status_code=503,
+                detail="Story generation service is unavailable"
+            )
+        
+        logger.info(f"Generating story for object: '{object_name}'")
+        story_result: StoryResponse = await ollama_service.generate_story(object_name)
+        
+        if not story_result.success:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Story generation failed: {story_result.error}"
+            )
+        
+        # Calculate total processing time
+        total_time_ms = (time.time() - start_time) * 1000
+        
+        # Prepare response
+        response_data = {
+            "success": True,
+            "story": story_result.story,
+            "processing_info": {
+                "object_identification": {
+                    "success": object_name is not None,
+                    "identified_object": object_name,
+                    "vision_service_used": vision_healthy,
+                    "fallback_used": vision_error is not None,
+                    "error": vision_error
+                },
+                "story_generation": {
+                    "success": story_result.success,
+                    "generation_time_ms": story_result.generation_time_ms
+                },
+                "total_processing_time_ms": total_time_ms
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        logger.info(f"Story generation completed successfully in {total_time_ms:.1f}ms")
+        return response_data
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in story generation: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error during story generation: {str(e)}"
+        )
+
 
 @app.websocket("/ws/video")
 async def websocket_video_endpoint(websocket: WebSocket):

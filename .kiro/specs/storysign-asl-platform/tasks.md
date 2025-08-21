@@ -169,7 +169,7 @@
   - _Requirements: 10.2, 10.4, 10.5_
 
 - [ ] 14. Implement story generation API
-- [ ] 14.1 Create object recognition and story generation endpoint
+- [x] 14.1 Create object recognition and story generation endpoint
 
   - Add POST /api/story/recognize_and_generate endpoint to backend/main.py
   - Implement image reception and processing workflow
