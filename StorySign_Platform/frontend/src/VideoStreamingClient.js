@@ -68,6 +68,32 @@ const VideoStreamingClient = forwardRef(
       }
     }, []);
 
+    // Send practice control messages for ASL World
+    const sendPracticeControl = useCallback((action, data = {}) => {
+      if (wsRef.current?.readyState !== WebSocket.OPEN) {
+        console.warn("WebSocket not connected, cannot send practice control");
+        return false;
+      }
+
+      try {
+        const controlMessage = {
+          type: "control",
+          action: action,
+          data: data,
+          timestamp: new Date().toISOString(),
+        };
+
+        const messageStr = JSON.stringify(controlMessage);
+        console.log(`Sending practice control: ${action}`, data);
+        wsRef.current.send(messageStr);
+        return true;
+      } catch (error) {
+        console.error("Error sending practice control:", error);
+        setLastError(`Failed to send practice control: ${error.message}`);
+        return false;
+      }
+    }, []);
+
     // Handle incoming messages from server
     const handleIncomingMessage = useCallback(
       (message) => {
@@ -77,10 +103,27 @@ const VideoStreamingClient = forwardRef(
             onProcessedFrame?.(message);
             break;
 
+          case "asl_feedback":
+            // Handle ASL feedback messages for practice sessions
+            console.log("Received ASL feedback:", message.data);
+            onProcessedFrame?.(message); // Pass to parent for handling
+            break;
+
           case "error":
             console.error("Server error:", message.message);
             setLastError(`Server error: ${message.message}`);
             onError?.(message.message);
+            break;
+
+          case "critical_error":
+            console.error("Critical server error:", message.message);
+            setLastError(`Critical error: ${message.message}`);
+            onError?.(message.message);
+            // Critical errors may require reconnection
+            if (message.metadata?.requires_reconnection) {
+              disconnect();
+              setTimeout(() => connect(), 2000);
+            }
             break;
 
           default:
@@ -245,12 +288,20 @@ const VideoStreamingClient = forwardRef(
       ref,
       () => ({
         sendFrame,
+        sendPracticeControl,
         framesSent,
         framesReceived,
         connectionStatus,
         lastError,
       }),
-      [sendFrame, framesSent, framesReceived, connectionStatus, lastError]
+      [
+        sendFrame,
+        sendPracticeControl,
+        framesSent,
+        framesReceived,
+        connectionStatus,
+        lastError,
+      ]
     );
 
     // Effect to handle connection lifecycle

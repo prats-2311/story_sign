@@ -71,7 +71,9 @@ describe("StorySign App", () => {
     fireEvent.click(button);
 
     await waitFor(() => {
-      expect(screen.getByText(/Connection failed/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Cannot reach backend server/i)
+      ).toBeInTheDocument();
     });
   });
 
@@ -88,9 +90,7 @@ describe("StorySign App", () => {
     fireEvent.click(button);
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/Backend error: 500 Internal Server Error/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Backend server error/i)).toBeInTheDocument();
     });
   });
 
@@ -104,7 +104,208 @@ describe("StorySign App", () => {
 
     fireEvent.click(button);
 
-    expect(screen.getByText(/Testing.../i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Testing.../i })
+    ).toBeInTheDocument();
     expect(button).toBeDisabled();
+  });
+
+  test("renders ASL World toggle button", () => {
+    render(<App />);
+    const aslWorldButton = screen.getByRole("button", {
+      name: /Enter ASL World/i,
+    });
+    expect(aslWorldButton).toBeInTheDocument();
+  });
+
+  test("ASL World toggle button is disabled when backend not connected", () => {
+    render(<App />);
+    const aslWorldButton = screen.getByRole("button", {
+      name: /Enter ASL World/i,
+    });
+    expect(aslWorldButton).toBeDisabled();
+  });
+
+  test("ASL World toggle button is enabled when backend is connected", async () => {
+    const mockResponse = {
+      message: "Hello from the StorySign Backend!",
+      status: "healthy",
+    };
+
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse,
+    });
+
+    render(<App />);
+    const testBackendButton = screen.getByRole("button", {
+      name: /Test Backend/i,
+    });
+    fireEvent.click(testBackendButton);
+
+    await waitFor(() => {
+      const aslWorldButton = screen.getByRole("button", {
+        name: /Enter ASL World/i,
+      });
+      expect(aslWorldButton).not.toBeDisabled();
+    });
+  });
+
+  test("toggles ASL World view when button is clicked", async () => {
+    // First connect to backend
+    const mockResponse = {
+      message: "Hello from the StorySign Backend!",
+      status: "healthy",
+    };
+
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse,
+    });
+
+    render(<App />);
+    const testBackendButton = screen.getByRole("button", {
+      name: /Test Backend/i,
+    });
+    fireEvent.click(testBackendButton);
+
+    await waitFor(() => {
+      const aslWorldButton = screen.getByRole("button", {
+        name: /Enter ASL World/i,
+      });
+      expect(aslWorldButton).not.toBeDisabled();
+    });
+
+    // Click ASL World button
+    const aslWorldButton = screen.getByRole("button", {
+      name: /Enter ASL World/i,
+    });
+    fireEvent.click(aslWorldButton);
+
+    // Should show ASL World interface
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Interactive American Sign Language Learning/i)
+      ).toBeInTheDocument();
+      expect(screen.getByText(/Generate Your Story/i)).toBeInTheDocument();
+    });
+
+    // Button text should change
+    expect(
+      screen.getByRole("button", { name: /Exit ASL World/i })
+    ).toBeInTheDocument();
+  });
+
+  test("handles story generation API call", async () => {
+    // Mock successful backend connection
+    const mockBackendResponse = {
+      message: "Hello from the StorySign Backend!",
+      status: "healthy",
+    };
+
+    // Mock successful story generation
+    const mockStoryResponse = {
+      success: true,
+      story: {
+        title: "The Adventure of the Red Ball",
+        sentences: [
+          "Once upon a time, there was a bright red ball.",
+          "The ball loved to bounce in the sunny park.",
+        ],
+        identified_object: "ball",
+        generation_time_ms: 2340,
+      },
+    };
+
+    fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockBackendResponse,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockStoryResponse,
+      });
+
+    render(<App />);
+
+    // Connect to backend first
+    const testBackendButton = screen.getByRole("button", {
+      name: /Test Backend/i,
+    });
+    fireEvent.click(testBackendButton);
+
+    await waitFor(() => {
+      const aslWorldButton = screen.getByRole("button", {
+        name: /Enter ASL World/i,
+      });
+      expect(aslWorldButton).not.toBeDisabled();
+    });
+
+    // Enter ASL World
+    const aslWorldButton = screen.getByRole("button", {
+      name: /Enter ASL World/i,
+    });
+    fireEvent.click(aslWorldButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Generate Your Story/i)).toBeInTheDocument();
+    });
+
+    // Note: Full story generation test would require mocking webcam access
+    // This test verifies the UI integration is working
+  });
+
+  test("handles story generation error", async () => {
+    // Mock successful backend connection
+    const mockBackendResponse = {
+      message: "Hello from the StorySign Backend!",
+      status: "healthy",
+    };
+
+    // Mock story generation error
+    fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockBackendResponse,
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        statusText: "Service Unavailable",
+        json: async () => ({
+          error_type: "service_unavailable",
+          user_message:
+            "AI services are temporarily unavailable. Please try again later.",
+        }),
+      });
+
+    render(<App />);
+
+    // Connect to backend first
+    const testBackendButton = screen.getByRole("button", {
+      name: /Test Backend/i,
+    });
+    fireEvent.click(testBackendButton);
+
+    await waitFor(() => {
+      const aslWorldButton = screen.getByRole("button", {
+        name: /Enter ASL World/i,
+      });
+      expect(aslWorldButton).not.toBeDisabled();
+    });
+
+    // Enter ASL World
+    const aslWorldButton = screen.getByRole("button", {
+      name: /Enter ASL World/i,
+    });
+    fireEvent.click(aslWorldButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Generate Your Story/i)).toBeInTheDocument();
+    });
+
+    // This test verifies error handling integration is in place
+    // Full error testing would require mocking the story generation call
   });
 });

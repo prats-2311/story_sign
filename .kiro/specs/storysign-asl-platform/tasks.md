@@ -197,7 +197,7 @@
   - Add feedback display area for AI-generated signing analysis
   - _Requirements: 9.1, 9.2, 9.5_
 
-- [ ] 15.2 Integrate story generation workflow in frontend
+- [x] 15.2 Integrate story generation workflow in frontend
 
   - Add story generation state management to App.js
   - Implement frame capture and API call to story generation endpoint

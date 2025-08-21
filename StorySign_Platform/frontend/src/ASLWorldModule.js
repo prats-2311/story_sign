@@ -19,11 +19,6 @@ const ASLWorldModule = ({
 
   // Handle object scanning and story generation
   const handleScanObject = useCallback(async () => {
-    if (!onFrameCapture) {
-      console.error("Frame capture function not provided");
-      return;
-    }
-
     try {
       // Capture high-quality frame from webcam
       const canvas = canvasRef.current;
@@ -41,7 +36,7 @@ const ASLWorldModule = ({
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Convert to base64 JPEG
+      // Convert to base64 JPEG with high quality for object recognition
       const frameData = canvas.toDataURL("image/jpeg", 0.9);
 
       // Call the story generation handler
@@ -51,7 +46,7 @@ const ASLWorldModule = ({
     } catch (error) {
       console.error("Error capturing frame for story generation:", error);
     }
-  }, [onFrameCapture, onStoryGenerate]);
+  }, [onStoryGenerate]);
 
   // Handle practice control actions
   const handlePracticeControl = useCallback(

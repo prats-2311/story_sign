@@ -1235,3 +1235,144 @@ select:focus {
   color: #666;
   font-size: 0.9rem;
 }
+/* ASL World Integration Styles */
+.asl-world-container {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  max-width: 1200px;
+  width: 100%;
+  min-height: 600px;
+}
+
+.asl-world-header {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 20px;
+}
+
+.back-to-main-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.back-to-main-btn:hover {
+  background-color: #5a6268;
+}
+
+.asl-world-toggle {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.asl-world-toggle-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.asl-world-toggle-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.asl-world-toggle-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.toggle-help {
+  margin-top: 10px;
+  color: #666;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.story-generation-error {
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 20px;
+  text-align: left;
+}
+
+.story-generation-error .error-text {
+  margin: 0 0 10px 0;
+  font-weight: 500;
+}
+
+.story-generation-error .retry-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.story-generation-error .retry-btn:hover {
+  background-color: #c82333;
+}
+
+/* Loading indicators for AI processing */
+.ai-processing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background-color: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 6px;
+  color: #1565c0;
+  font-size: 14px;
+}
+
+.ai-processing-indicator .loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #bbdefb;
+  border-top: 2px solid #1565c0;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive design for ASL World */
+@media (max-width: 768px) {
+  .asl-world-container {
+    padding: 15px;
+    margin: 0 10px;
+  }
+
+  .asl-world-toggle-btn {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+}
