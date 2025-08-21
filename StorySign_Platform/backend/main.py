@@ -1373,94 +1373,296 @@ class StoryGenerationRequest(BaseModel):
 @app.post("/api/story/recognize_and_generate")
 async def recognize_and_generate_story(request: StoryGenerationRequest) -> Dict[str, Any]:
     """
-    Object recognition and story generation endpoint
+    Enhanced object recognition and story generation endpoint with comprehensive error handling
     
     Processes an image to identify objects and generates a personalized story
     based on the identified object using local vision and cloud LLM services.
+    Includes validation, fallback options, timeout handling, and user-friendly error messages.
     
     Args:
         request: StoryGenerationRequest containing base64 image data
         
     Returns:
-        Dict containing story generation result with structured story data
+        Dict containing story generation result with structured story data and error handling info
         
     Raises:
         HTTPException: If processing fails or services are unavailable
     """
     start_time = time.time()
+    processing_stages = {
+        "validation": {"status": "pending", "start_time": None, "duration_ms": None},
+        "object_identification": {"status": "pending", "start_time": None, "duration_ms": None},
+        "story_generation": {"status": "pending", "start_time": None, "duration_ms": None}
+    }
     
     try:
-        logger.info("Story generation endpoint accessed")
+        logger.info("Enhanced story generation endpoint accessed")
         
-        # Validate request data
+        # Stage 1: Enhanced request validation
+        processing_stages["validation"]["start_time"] = time.time()
+        processing_stages["validation"]["status"] = "in_progress"
+        
+        validation_errors = []
+        
+        # Validate frame data presence
         if not request.frame_data:
+            validation_errors.append("No image data provided")
+        
+        # Validate frame data format
+        elif not request.frame_data.strip():
+            validation_errors.append("Empty image data provided")
+        
+        # Validate base64 format
+        else:
+            try:
+                # Remove data URL prefix if present
+                frame_data = request.frame_data
+                if frame_data.startswith('data:image/'):
+                    frame_data = frame_data.split(',', 1)[1]
+                
+                # Test base64 decoding
+                import base64
+                decoded_data = base64.b64decode(frame_data)
+                
+                # Check minimum size (should be at least a few KB for a real image)
+                if len(decoded_data) < 1000:
+                    validation_errors.append("Image data appears to be too small to be a valid image")
+                
+                # Check maximum size (prevent DoS attacks)
+                elif len(decoded_data) > 10 * 1024 * 1024:  # 10MB limit
+                    validation_errors.append("Image data is too large (maximum 10MB allowed)")
+                
+            except Exception as e:
+                validation_errors.append(f"Invalid base64 image format: {str(e)}")
+        
+        # Validate custom prompt if provided
+        if request.custom_prompt and len(request.custom_prompt) > 500:
+            validation_errors.append("Custom prompt is too long (maximum 500 characters)")
+        
+        processing_stages["validation"]["duration_ms"] = (time.time() - processing_stages["validation"]["start_time"]) * 1000
+        
+        if validation_errors:
+            processing_stages["validation"]["status"] = "failed"
             raise HTTPException(
                 status_code=400,
-                detail="No image data provided"
+                detail={
+                    "error_type": "validation_error",
+                    "message": "Request validation failed",
+                    "validation_errors": validation_errors,
+                    "user_message": "Please check your image data and try again. Make sure you're using a valid image file.",
+                    "retry_allowed": True,
+                    "processing_stages": processing_stages
+                }
             )
         
-        # Initialize services
+        processing_stages["validation"]["status"] = "completed"
+        
+        # Initialize services with health checks
         vision_service = await get_vision_service()
         ollama_service = await get_ollama_service()
         
-        # Check service health
+        # Enhanced service health validation
         vision_healthy = await vision_service.check_health()
         ollama_healthy = await ollama_service.check_health()
         
+        service_status = {
+            "vision_service": {
+                "healthy": vision_healthy,
+                "status": await vision_service.get_service_status() if vision_healthy else None
+            },
+            "ollama_service": {
+                "healthy": ollama_healthy,
+                "last_check": time.time()
+            }
+        }
+        
+        # Check if we can proceed with at least one service
         if not vision_healthy and not ollama_healthy:
             raise HTTPException(
                 status_code=503,
-                detail="Both vision and story generation services are unavailable"
+                detail={
+                    "error_type": "service_unavailable",
+                    "message": "Both AI services are currently unavailable",
+                    "user_message": "Our AI services are temporarily unavailable. Please try again in a few moments.",
+                    "retry_allowed": True,
+                    "retry_delay_seconds": 30,
+                    "service_status": service_status,
+                    "processing_stages": processing_stages
+                }
             )
         
-        # Step 1: Object identification using local vision service
+        if not ollama_healthy:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "error_type": "story_service_unavailable", 
+                    "message": "Story generation service is unavailable",
+                    "user_message": "The story generation service is temporarily unavailable. Please try again later.",
+                    "retry_allowed": True,
+                    "retry_delay_seconds": 60,
+                    "service_status": service_status,
+                    "processing_stages": processing_stages
+                }
+            )
+        
+        # Stage 2: Enhanced object identification with validation and fallbacks
+        processing_stages["object_identification"]["start_time"] = time.time()
+        processing_stages["object_identification"]["status"] = "in_progress"
+        
         object_name = None
         vision_error = None
+        identification_confidence = 0.0
+        fallback_used = False
         
         if vision_healthy:
             logger.info("Attempting object identification with local vision service")
-            vision_result: VisionResult = await vision_service.identify_object(
-                request.frame_data, 
-                request.custom_prompt
-            )
             
-            if vision_result.success and vision_result.object_name:
-                object_name = vision_result.object_name
-                logger.info(f"Object identified: '{object_name}' (confidence: {vision_result.confidence})")
-            else:
-                vision_error = vision_result.error_message
-                logger.warning(f"Vision service failed: {vision_error}")
+            try:
+                # Add timeout wrapper for vision service
+                vision_result: VisionResult = await asyncio.wait_for(
+                    vision_service.identify_object(request.frame_data, request.custom_prompt),
+                    timeout=30.0  # 30 second timeout for vision processing
+                )
+                
+                # Enhanced object identification validation
+                if vision_result.success and vision_result.object_name:
+                    # Validate object name quality
+                    object_name = vision_result.object_name.strip().lower()
+                    identification_confidence = vision_result.confidence or 0.0
+                    
+                    # Check if object name is reasonable
+                    if len(object_name) < 2:
+                        vision_error = "Object name too short - may not be reliable"
+                        object_name = None
+                    elif len(object_name) > 50:
+                        vision_error = "Object name too long - may not be reliable"
+                        object_name = None
+                    elif identification_confidence < 0.3:
+                        vision_error = f"Low confidence identification ({identification_confidence:.2f})"
+                        object_name = None
+                    else:
+                        logger.info(f"Object identified: '{object_name}' (confidence: {identification_confidence:.2f})")
+                else:
+                    vision_error = vision_result.error_message or "Object identification failed"
+                    logger.warning(f"Vision service failed: {vision_error}")
+                    
+            except asyncio.TimeoutError:
+                vision_error = "Object identification timed out"
+                logger.warning("Vision service timed out after 30 seconds")
+            except Exception as e:
+                vision_error = f"Vision service error: {str(e)}"
+                logger.error(f"Vision service exception: {e}", exc_info=True)
         else:
             vision_error = "Local vision service is not available"
             logger.warning(vision_error)
         
-        # Fallback: Use a default object if vision service fails
+        # Enhanced fallback logic with multiple options
         if not object_name:
-            fallback_objects = ["ball", "book", "flower", "cup", "toy"]
+            fallback_used = True
+            
+            # Try different fallback strategies
+            fallback_strategies = [
+                # Strategy 1: Common storytelling objects
+                ["ball", "book", "flower", "cup", "toy", "cat", "dog", "tree", "car", "house"],
+                # Strategy 2: Educational objects
+                ["apple", "pencil", "chair", "table", "window", "door", "clock", "phone"],
+                # Strategy 3: Nature objects
+                ["bird", "fish", "rock", "leaf", "cloud", "sun", "moon", "star"]
+            ]
+            
             import random
-            object_name = random.choice(fallback_objects)
-            logger.info(f"Using fallback object: '{object_name}' due to vision service failure")
+            selected_strategy = random.choice(fallback_strategies)
+            object_name = random.choice(selected_strategy)
+            
+            logger.info(f"Using fallback object: '{object_name}' (reason: {vision_error})")
         
-        # Step 2: Story generation using Ollama service
-        if not ollama_healthy:
-            raise HTTPException(
-                status_code=503,
-                detail="Story generation service is unavailable"
-            )
+        processing_stages["object_identification"]["duration_ms"] = (time.time() - processing_stages["object_identification"]["start_time"]) * 1000
+        processing_stages["object_identification"]["status"] = "completed"
+        
+        # Stage 3: Enhanced story generation with timeout and retry logic
+        processing_stages["story_generation"]["start_time"] = time.time()
+        processing_stages["story_generation"]["status"] = "in_progress"
         
         logger.info(f"Generating story for object: '{object_name}'")
-        story_result: StoryResponse = await ollama_service.generate_story(object_name)
         
-        if not story_result.success:
+        # Retry logic for story generation
+        max_story_retries = 3
+        story_result = None
+        last_story_error = None
+        
+        for attempt in range(max_story_retries):
+            try:
+                logger.info(f"Story generation attempt {attempt + 1}/{max_story_retries}")
+                
+                # Add timeout for story generation
+                story_result = await asyncio.wait_for(
+                    ollama_service.generate_story(object_name),
+                    timeout=90.0  # 90 second timeout for story generation
+                )
+                
+                # Validate story result
+                if story_result.success and story_result.story:
+                    # Additional validation of story content
+                    story_sentences = story_result.story.get("sentences", [])
+                    
+                    if not story_sentences:
+                        last_story_error = "Generated story has no sentences"
+                        continue
+                    elif len(story_sentences) < 3:
+                        last_story_error = f"Generated story too short ({len(story_sentences)} sentences)"
+                        continue
+                    elif any(len(sentence.strip()) < 10 for sentence in story_sentences):
+                        last_story_error = "Generated story contains sentences that are too short"
+                        continue
+                    else:
+                        # Story is valid
+                        break
+                else:
+                    last_story_error = story_result.error or "Story generation returned no content"
+                    
+            except asyncio.TimeoutError:
+                last_story_error = f"Story generation timed out (attempt {attempt + 1})"
+                logger.warning(f"Story generation timeout on attempt {attempt + 1}")
+            except Exception as e:
+                last_story_error = f"Story generation error: {str(e)}"
+                logger.error(f"Story generation exception on attempt {attempt + 1}: {e}")
+            
+            # Wait before retry (exponential backoff)
+            if attempt < max_story_retries - 1:
+                wait_time = 2 ** attempt  # 1s, 2s, 4s
+                logger.info(f"Waiting {wait_time}s before retry...")
+                await asyncio.sleep(wait_time)
+        
+        processing_stages["story_generation"]["duration_ms"] = (time.time() - processing_stages["story_generation"]["start_time"]) * 1000
+        
+        # Check if story generation ultimately failed
+        if not story_result or not story_result.success:
+            processing_stages["story_generation"]["status"] = "failed"
             raise HTTPException(
                 status_code=500,
-                detail=f"Story generation failed: {story_result.error}"
+                detail={
+                    "error_type": "story_generation_failed",
+                    "message": f"Story generation failed after {max_story_retries} attempts",
+                    "user_message": "We couldn't generate a story right now. Please try again with a different image or try again later.",
+                    "retry_allowed": True,
+                    "retry_delay_seconds": 10,
+                    "last_error": last_story_error,
+                    "attempts_made": max_story_retries,
+                    "processing_stages": processing_stages,
+                    "fallback_suggestions": [
+                        "Try taking a clearer photo of the object",
+                        "Make sure the object is well-lit and centered",
+                        "Try a different object if the current one isn't working"
+                    ]
+                }
             )
+        
+        processing_stages["story_generation"]["status"] = "completed"
         
         # Calculate total processing time
         total_time_ms = (time.time() - start_time) * 1000
         
-        # Prepare response
+        # Prepare enhanced response with comprehensive metadata
         response_data = {
             "success": True,
             "story": story_result.story,
@@ -1468,30 +1670,61 @@ async def recognize_and_generate_story(request: StoryGenerationRequest) -> Dict[
                 "object_identification": {
                     "success": object_name is not None,
                     "identified_object": object_name,
+                    "confidence": identification_confidence,
                     "vision_service_used": vision_healthy,
-                    "fallback_used": vision_error is not None,
-                    "error": vision_error
+                    "fallback_used": fallback_used,
+                    "error": vision_error,
+                    "processing_time_ms": processing_stages["object_identification"]["duration_ms"]
                 },
                 "story_generation": {
                     "success": story_result.success,
-                    "generation_time_ms": story_result.generation_time_ms
+                    "generation_time_ms": story_result.generation_time_ms,
+                    "retries_needed": max_story_retries - 1 if story_result.success else max_story_retries,
+                    "processing_time_ms": processing_stages["story_generation"]["duration_ms"]
                 },
-                "total_processing_time_ms": total_time_ms
+                "validation": {
+                    "processing_time_ms": processing_stages["validation"]["duration_ms"]
+                },
+                "total_processing_time_ms": total_time_ms,
+                "service_status": service_status,
+                "processing_stages": processing_stages
             },
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
+            "user_feedback": {
+                "message": "Story generated successfully!",
+                "can_retry": True,
+                "suggestions": [
+                    "You can generate a new story by scanning a different object",
+                    "Click 'Try Again' if you want a different story with the same object"
+                ]
+            }
         }
         
-        logger.info(f"Story generation completed successfully in {total_time_ms:.1f}ms")
+        logger.info(f"Enhanced story generation completed successfully in {total_time_ms:.1f}ms")
         return response_data
         
     except HTTPException:
-        # Re-raise HTTP exceptions as-is
+        # Re-raise HTTP exceptions as-is (they already have enhanced error details)
         raise
     except Exception as e:
-        logger.error(f"Unexpected error in story generation: {e}", exc_info=True)
+        # Handle unexpected errors with enhanced error information
+        total_time_ms = (time.time() - start_time) * 1000
+        
+        logger.error(f"Unexpected error in enhanced story generation: {e}", exc_info=True)
+        
         raise HTTPException(
             status_code=500,
-            detail=f"Internal server error during story generation: {str(e)}"
+            detail={
+                "error_type": "internal_server_error",
+                "message": f"An unexpected error occurred during story generation",
+                "user_message": "Something went wrong on our end. Please try again in a few moments.",
+                "retry_allowed": True,
+                "retry_delay_seconds": 5,
+                "technical_error": str(e),
+                "processing_time_ms": total_time_ms,
+                "processing_stages": processing_stages,
+                "timestamp": datetime.utcnow().isoformat()
+            }
         )
 
 

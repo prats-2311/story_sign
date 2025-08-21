@@ -142,41 +142,162 @@ class LocalVisionService:
         """
         return self._health_status
     
-    def _validate_base64_image(self, base64_data: str) -> bool:
+    def _validate_identification_input(self, base64_image: str, custom_prompt: Optional[str]) -> Dict[str, Any]:
         """
-        Validate base64 image data
+        Enhanced validation of identification input parameters
+        
+        Args:
+            base64_image: Base64 encoded image data
+            custom_prompt: Optional custom prompt
+            
+        Returns:
+            Dict with validation result
+        """
+        try:
+            # Check if image data is provided
+            if not base64_image:
+                return {"valid": False, "error": "No image data provided"}
+            
+            if not base64_image.strip():
+                return {"valid": False, "error": "Empty image data provided"}
+            
+            # Validate custom prompt if provided
+            if custom_prompt:
+                if len(custom_prompt) > 1000:
+                    return {"valid": False, "error": "Custom prompt too long (maximum 1000 characters)"}
+                
+                # Check for potentially problematic content
+                problematic_terms = ["ignore", "system", "prompt", "instruction", "override"]
+                if any(term in custom_prompt.lower() for term in problematic_terms):
+                    return {"valid": False, "error": "Custom prompt contains potentially problematic content"}
+            
+            # Validate base64 image format and content
+            validation_result = self._validate_base64_image(base64_image)
+            if not validation_result["valid"]:
+                return {"valid": False, "error": validation_result["error"]}
+            
+            return {"valid": True, "error": None}
+            
+        except Exception as e:
+            logger.error(f"Input validation error: {e}")
+            return {"valid": False, "error": f"Input validation failed: {str(e)}"}
+    
+    def _validate_base64_image(self, base64_data: str) -> Dict[str, Any]:
+        """
+        Enhanced validation of base64 image data
         
         Args:
             base64_data: Base64 encoded image string
             
         Returns:
-            bool: True if valid, False otherwise
+            Dict with validation result and details
         """
         try:
             # Remove data URL prefix if present
-            if base64_data.startswith('data:image/'):
-                base64_data = base64_data.split(',', 1)[1]
+            clean_data = base64_data
+            if clean_data.startswith('data:image/'):
+                clean_data = clean_data.split(',', 1)[1]
+            
+            # Check base64 format
+            if not clean_data:
+                return {"valid": False, "error": "Empty base64 data after cleaning"}
             
             # Try to decode base64 data
-            decoded = base64.b64decode(base64_data)
+            try:
+                decoded = base64.b64decode(clean_data)
+            except Exception as e:
+                return {"valid": False, "error": f"Invalid base64 encoding: {str(e)}"}
             
-            # Check if it looks like image data (basic validation)
-            if len(decoded) < 100:  # Too small to be a real image
-                return False
+            # Check size constraints
+            if len(decoded) < 500:  # Too small to be a real image
+                return {"valid": False, "error": f"Image data too small ({len(decoded)} bytes, minimum 500)"}
+            
+            if len(decoded) > 20 * 1024 * 1024:  # 20MB limit
+                return {"valid": False, "error": f"Image data too large ({len(decoded)} bytes, maximum 20MB)"}
                 
             # Check for common image file signatures
             image_signatures = [
-                b'\xff\xd8\xff',  # JPEG
-                b'\x89PNG\r\n\x1a\n',  # PNG
-                b'GIF87a',  # GIF87a
-                b'GIF89a',  # GIF89a
+                (b'\xff\xd8\xff', "JPEG"),
+                (b'\x89PNG\r\n\x1a\n', "PNG"),
+                (b'GIF87a', "GIF87a"),
+                (b'GIF89a', "GIF89a"),
+                (b'RIFF', "WebP"),  # WebP starts with RIFF
             ]
             
-            return any(decoded.startswith(sig) for sig in image_signatures)
+            detected_format = None
+            for signature, format_name in image_signatures:
+                if decoded.startswith(signature):
+                    detected_format = format_name
+                    break
+            
+            if not detected_format:
+                return {"valid": False, "error": "Unrecognized image format (not JPEG, PNG, GIF, or WebP)"}
+            
+            return {"valid": True, "error": None, "format": detected_format, "size_bytes": len(decoded)}
             
         except Exception as e:
             logger.error(f"Base64 image validation failed: {e}")
-            return False
+            return {"valid": False, "error": f"Image validation error: {str(e)}"}
+    
+    def _validate_object_identification(self, object_name: str, confidence: Optional[float]) -> Dict[str, Any]:
+        """
+        Validate the quality of object identification result
+        
+        Args:
+            object_name: Identified object name
+            confidence: Confidence score
+            
+        Returns:
+            Dict with validation result
+        """
+        try:
+            if not object_name:
+                return {"valid": False, "reason": "Empty object name"}
+            
+            # Clean and check object name
+            clean_name = object_name.strip().lower()
+            
+            if len(clean_name) < 2:
+                return {"valid": False, "reason": f"Object name too short: '{clean_name}'"}
+            
+            if len(clean_name) > 100:
+                return {"valid": False, "reason": f"Object name too long: '{clean_name[:50]}...'"}
+            
+            # Check for reasonable content
+            if clean_name.isdigit():
+                return {"valid": False, "reason": "Object name is only numbers"}
+            
+            # Check for repeated characters (sign of poor generation)
+            if len(set(clean_name.replace(' ', ''))) < 3:
+                return {"valid": False, "reason": "Object name has too few unique characters"}
+            
+            # Check confidence if provided
+            if confidence is not None:
+                if confidence < 0.1:
+                    return {"valid": False, "reason": f"Confidence too low: {confidence:.2f}"}
+                elif confidence < 0.3:
+                    return {"valid": False, "reason": f"Confidence below threshold: {confidence:.2f}"}
+            
+            # Check for common problematic responses
+            problematic_responses = [
+                "unknown", "unclear", "cannot", "unable", "error", "failed",
+                "not sure", "maybe", "possibly", "might be", "could be",
+                "i see", "this is", "appears to be", "looks like"
+            ]
+            
+            if any(problem in clean_name for problem in problematic_responses):
+                return {"valid": False, "reason": f"Object name contains uncertain language: '{clean_name}'"}
+            
+            # Check for reasonable word count (1-4 words is good for objects)
+            words = clean_name.split()
+            if len(words) > 5:
+                return {"valid": False, "reason": f"Object name too verbose ({len(words)} words): '{clean_name}'"}
+            
+            return {"valid": True, "reason": "Object identification validation passed"}
+            
+        except Exception as e:
+            logger.error(f"Object validation error: {e}")
+            return {"valid": False, "reason": f"Validation error: {str(e)}"}
     
     def _prepare_vision_prompt(self, custom_prompt: Optional[str] = None) -> str:
         """
@@ -345,14 +466,14 @@ class LocalVisionService:
     
     async def identify_object(self, base64_image: str, custom_prompt: Optional[str] = None) -> VisionResult:
         """
-        Identify the main object in a base64 encoded image
+        Identify the main object in a base64 encoded image with enhanced validation and error handling
         
         Args:
             base64_image: Base64 encoded image data
             custom_prompt: Optional custom prompt for the vision model
             
         Returns:
-            VisionResult: Object identification result
+            VisionResult: Object identification result with detailed error information
         """
         start_time = asyncio.get_event_loop().time()
         
@@ -363,79 +484,137 @@ class LocalVisionService:
                 error_message="Local vision service is disabled in configuration"
             )
         
-        # Validate input
-        if not base64_image:
+        # Enhanced input validation
+        validation_result = self._validate_identification_input(base64_image, custom_prompt)
+        if not validation_result["valid"]:
             return VisionResult(
                 success=False,
-                error_message="No image data provided"
+                error_message=validation_result["error"],
+                processing_time_ms=(asyncio.get_event_loop().time() - start_time) * 1000
             )
         
         # Clean base64 data (remove data URL prefix if present)
-        if base64_image.startswith('data:image/'):
-            base64_image = base64_image.split(',', 1)[1]
+        clean_image_data = base64_image
+        if clean_image_data.startswith('data:image/'):
+            clean_image_data = clean_image_data.split(',', 1)[1]
         
-        # Validate base64 image
-        if not self._validate_base64_image(base64_image):
+        # Enhanced service health check with retry
+        health_check_attempts = 2
+        service_healthy = False
+        
+        for health_attempt in range(health_check_attempts):
+            service_healthy = await self.check_health()
+            if service_healthy:
+                break
+            elif health_attempt < health_check_attempts - 1:
+                logger.info(f"Service health check failed, retrying in 2 seconds...")
+                await asyncio.sleep(2)
+        
+        if not service_healthy:
             return VisionResult(
                 success=False,
-                error_message="Invalid image data format"
+                error_message=f"Local vision service is not available at {self.config.service_url}. Please check if the service is running.",
+                processing_time_ms=(asyncio.get_event_loop().time() - start_time) * 1000
             )
         
-        # Check service health
-        if not await self.check_health():
-            return VisionResult(
-                success=False,
-                error_message=f"Local vision service is not available at {self.config.service_url}"
-            )
-        
-        # Prepare prompt
+        # Prepare prompt with validation
         prompt = self._prepare_vision_prompt(custom_prompt)
         
-        # Attempt identification with retries
+        # Enhanced identification with retries and better error handling
         last_error = None
+        best_result = None
         
         for attempt in range(self.config.max_retries):
             try:
                 logger.info(f"Attempting object identification (attempt {attempt + 1}/{self.config.max_retries})")
                 
-                # Make the vision request
-                response_data = await self._make_vision_request(base64_image, prompt)
+                # Add timeout for individual requests
+                try:
+                    response_data = await asyncio.wait_for(
+                        self._make_vision_request(clean_image_data, prompt),
+                        timeout=self.config.timeout_seconds
+                    )
+                except asyncio.TimeoutError:
+                    last_error = f"Vision request timed out after {self.config.timeout_seconds} seconds"
+                    logger.warning(f"Vision request timeout (attempt {attempt + 1})")
+                    continue
                 
-                # Parse the response
+                # Parse and validate the response
                 object_name, confidence = self._parse_vision_response(response_data)
                 
                 if object_name:
-                    processing_time = (asyncio.get_event_loop().time() - start_time) * 1000
+                    # Enhanced object name validation
+                    validation_result = self._validate_object_identification(object_name, confidence)
                     
-                    return VisionResult(
-                        success=True,
-                        object_name=object_name,
-                        confidence=confidence,
-                        processing_time_ms=processing_time
-                    )
+                    if validation_result["valid"]:
+                        processing_time = (asyncio.get_event_loop().time() - start_time) * 1000
+                        
+                        logger.info(f"Object successfully identified: '{object_name}' (confidence: {confidence:.2f})")
+                        
+                        return VisionResult(
+                            success=True,
+                            object_name=object_name,
+                            confidence=confidence,
+                            processing_time_ms=processing_time
+                        )
+                    else:
+                        # Keep track of best result even if not perfect
+                        if not best_result or (confidence and confidence > best_result.get("confidence", 0)):
+                            best_result = {
+                                "object_name": object_name,
+                                "confidence": confidence,
+                                "validation_issue": validation_result["reason"]
+                            }
+                        
+                        last_error = f"Object identification validation failed: {validation_result['reason']}"
+                        logger.warning(f"Validation failed for '{object_name}': {validation_result['reason']}")
                 else:
-                    last_error = "Could not identify object in image"
+                    last_error = "Could not parse object name from vision model response"
                     
             except aiohttp.ClientError as e:
                 last_error = f"Network error: {e}"
                 logger.warning(f"Vision request failed (attempt {attempt + 1}): {last_error}")
                 
-                # Wait before retry (exponential backoff)
-                if attempt < self.config.max_retries - 1:
-                    wait_time = 2 ** attempt  # 1s, 2s, 4s, etc.
-                    await asyncio.sleep(wait_time)
-                    
             except Exception as e:
                 last_error = f"Unexpected error: {e}"
-                logger.error(f"Unexpected error during vision request (attempt {attempt + 1}): {last_error}")
+                logger.error(f"Unexpected error during vision request (attempt {attempt + 1}): {last_error}", exc_info=True)
+                
+                # For unexpected errors, don't retry
                 break
+            
+            # Wait before retry with exponential backoff
+            if attempt < self.config.max_retries - 1:
+                wait_time = min(2 ** attempt, 10)  # Cap at 10 seconds
+                logger.info(f"Waiting {wait_time}s before retry...")
+                await asyncio.sleep(wait_time)
         
-        # All attempts failed
+        # All attempts failed - check if we have a best result to fall back to
         processing_time = (asyncio.get_event_loop().time() - start_time) * 1000
+        
+        if best_result and best_result["confidence"] and best_result["confidence"] > 0.2:
+            # Use best result with lower confidence if it's reasonable
+            logger.info(f"Using best available result: '{best_result['object_name']}' "
+                       f"(confidence: {best_result['confidence']:.2f}, issue: {best_result['validation_issue']})")
+            
+            return VisionResult(
+                success=True,
+                object_name=best_result["object_name"],
+                confidence=best_result["confidence"],
+                processing_time_ms=processing_time,
+                error_message=f"Used best available result despite: {best_result['validation_issue']}"
+            )
+        
+        # Provide detailed error message for complete failure
+        error_details = []
+        error_details.append(f"Failed after {self.config.max_retries} attempts")
+        if last_error:
+            error_details.append(f"Last error: {last_error}")
+        if best_result:
+            error_details.append(f"Best attempt found '{best_result['object_name']}' but {best_result['validation_issue']}")
         
         return VisionResult(
             success=False,
-            error_message=f"Failed to identify object after {self.config.max_retries} attempts: {last_error}",
+            error_message=". ".join(error_details),
             processing_time_ms=processing_time
         )
     

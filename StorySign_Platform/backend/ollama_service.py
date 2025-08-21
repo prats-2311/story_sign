@@ -188,13 +188,13 @@ class OllamaService:
     
     async def generate_story(self, object_name: str) -> StoryResponse:
         """
-        Generate a personalized story based on identified object
+        Generate a personalized story based on identified object with enhanced error handling
         
         Args:
             object_name: Name of the object identified by vision service
             
         Returns:
-            StoryResponse: Story generation result
+            StoryResponse: Story generation result with detailed error information
         """
         if not self.config.enabled:
             return StoryResponse(
@@ -205,8 +205,22 @@ class OllamaService:
         start_time = time.time()
         
         try:
+            # Validate object name
+            if not object_name or not object_name.strip():
+                return StoryResponse(
+                    success=False,
+                    error="No object name provided for story generation",
+                    generation_time_ms=(time.time() - start_time) * 1000
+                )
+            
+            # Clean and validate object name
+            clean_object_name = object_name.strip().lower()
+            if len(clean_object_name) > 100:
+                clean_object_name = clean_object_name[:100]
+                logger.warning(f"Object name truncated to 100 characters: {clean_object_name}")
+            
             # Create story generation prompt
-            prompt = self._create_story_prompt(object_name)
+            prompt = self._create_story_prompt(clean_object_name)
             
             payload = {
                 "prompt": prompt,
@@ -214,12 +228,15 @@ class OllamaService:
                 "options": {
                     "temperature": self.config.temperature,
                     "num_predict": self.config.max_tokens,
-                    "stop": ["</story>", "\n\n---"]
+                    "stop": ["</story>", "\n\n---", "END_STORY"],
+                    "top_p": 0.9,
+                    "repeat_penalty": 1.1
                 }
             }
             
-            logger.info(f"Generating story for object: {object_name}")
+            logger.info(f"Generating story for object: '{clean_object_name}'")
             
+            # Enhanced request with better error handling
             success, response_data, error = await self._make_request(
                 "api/generate", 
                 payload, 
@@ -227,14 +244,34 @@ class OllamaService:
             )
             
             if not success:
+                # Provide more specific error messages
+                if "not found" in (error or "").lower():
+                    error_msg = f"Story generation model '{self.config.story_model}' is not available. Please check Ollama configuration."
+                elif "timeout" in (error or "").lower():
+                    error_msg = "Story generation timed out. The AI service may be overloaded."
+                elif "connection" in (error or "").lower():
+                    error_msg = "Cannot connect to story generation service. Please check if Ollama is running."
+                else:
+                    error_msg = error or "Failed to generate story"
+                
                 return StoryResponse(
                     success=False,
-                    error=error or "Failed to generate story",
+                    error=error_msg,
                     generation_time_ms=(time.time() - start_time) * 1000
                 )
             
-            # Parse story from response
-            story_data = self._parse_story_response(response_data, object_name)
+            # Enhanced story parsing with validation
+            story_data = self._parse_story_response(response_data, clean_object_name)
+            
+            # Validate generated story quality
+            validation_result = self._validate_story_quality(story_data)
+            if not validation_result["valid"]:
+                logger.warning(f"Generated story failed quality validation: {validation_result['reason']}")
+                return StoryResponse(
+                    success=False,
+                    error=f"Generated story quality issue: {validation_result['reason']}",
+                    generation_time_ms=(time.time() - start_time) * 1000
+                )
             
             generation_time = (time.time() - start_time) * 1000
             
@@ -246,11 +283,20 @@ class OllamaService:
                 generation_time_ms=generation_time
             )
         
-        except Exception as e:
-            logger.error(f"Error generating story: {e}")
+        except asyncio.TimeoutError:
+            error_msg = f"Story generation timed out after {self.config.timeout_seconds} seconds"
+            logger.error(error_msg)
             return StoryResponse(
                 success=False,
-                error=f"Story generation error: {str(e)}",
+                error=error_msg,
+                generation_time_ms=(time.time() - start_time) * 1000
+            )
+        except Exception as e:
+            error_msg = f"Story generation error: {str(e)}"
+            logger.error(f"Error generating story: {e}", exc_info=True)
+            return StoryResponse(
+                success=False,
+                error=error_msg,
                 generation_time_ms=(time.time() - start_time) * 1000
             )
     
@@ -482,6 +528,71 @@ Be encouraging and specific in your feedback."""
             "sentences": final_sentences,
             "identified_object": object_name
         }
+    
+    def _validate_story_quality(self, story_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate the quality of generated story content
+        
+        Args:
+            story_data: Parsed story data
+            
+        Returns:
+            Dict with validation result and reason
+        """
+        try:
+            # Check if story has required fields
+            if not isinstance(story_data, dict):
+                return {"valid": False, "reason": "Story data is not a dictionary"}
+            
+            if "sentences" not in story_data:
+                return {"valid": False, "reason": "Story missing sentences"}
+            
+            sentences = story_data["sentences"]
+            if not isinstance(sentences, list):
+                return {"valid": False, "reason": "Story sentences is not a list"}
+            
+            # Check sentence count
+            if len(sentences) < 3:
+                return {"valid": False, "reason": f"Story too short ({len(sentences)} sentences, minimum 3)"}
+            
+            if len(sentences) > 10:
+                return {"valid": False, "reason": f"Story too long ({len(sentences)} sentences, maximum 10)"}
+            
+            # Check sentence quality
+            for i, sentence in enumerate(sentences):
+                if not isinstance(sentence, str):
+                    return {"valid": False, "reason": f"Sentence {i+1} is not a string"}
+                
+                sentence = sentence.strip()
+                if len(sentence) < 10:
+                    return {"valid": False, "reason": f"Sentence {i+1} too short ({len(sentence)} characters)"}
+                
+                if len(sentence) > 200:
+                    return {"valid": False, "reason": f"Sentence {i+1} too long ({len(sentence)} characters)"}
+                
+                # Check for reasonable content (not just repeated characters or nonsense)
+                words = sentence.split()
+                if len(words) < 3:
+                    return {"valid": False, "reason": f"Sentence {i+1} has too few words ({len(words)})"}
+                
+                # Check for repeated words (sign of poor generation)
+                unique_words = set(word.lower().strip('.,!?;:') for word in words)
+                if len(unique_words) < len(words) * 0.6:  # Less than 60% unique words
+                    return {"valid": False, "reason": f"Sentence {i+1} has too many repeated words"}
+            
+            # Check story title if present
+            if "title" in story_data:
+                title = story_data["title"]
+                if isinstance(title, str) and title.strip():
+                    if len(title.strip()) > 100:
+                        return {"valid": False, "reason": "Story title too long"}
+            
+            # All checks passed
+            return {"valid": True, "reason": "Story quality validation passed"}
+            
+        except Exception as e:
+            logger.error(f"Error during story quality validation: {e}")
+            return {"valid": False, "reason": f"Validation error: {str(e)}"}
     
     def _parse_analysis_response(self, response_data: Dict) -> Dict[str, Any]:
         """
