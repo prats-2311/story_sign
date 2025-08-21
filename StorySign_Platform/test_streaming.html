@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StorySign Streaming Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+      }
+      .status.connected {
+        background-color: #d4edda;
+        color: #155724;
+      }
+      .status.disconnected {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+      .status.connecting {
+        background-color: #fff3cd;
+        color: #856404;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 5px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background-color: #007bff;
+        color: white;
+      }
+      .btn-success {
+        background-color: #28a745;
+        color: white;
+      }
+      .btn-danger {
+        background-color: #dc3545;
+        color: white;
+      }
+      #log {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 10px;
+        height: 200px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🚀 StorySign Streaming Test</h1>
+
+    <div id="status" class="status disconnected">Status: Disconnected</div>
+
+    <div>
+      <button id="testBackend" class="btn-primary">Test Backend</button>
+      <button id="connectWS" class="btn-success">Connect WebSocket</button>
+      <button id="disconnectWS" class="btn-danger">Disconnect</button>
+    </div>
+
+    <h3>Log:</h3>
+    <div id="log"></div>
+
+    <script>
+      let ws = null;
+      const statusDiv = document.getElementById("status");
+      const logDiv = document.getElementById("log");
+
+      function log(message) {
+        const timestamp = new Date().toLocaleTimeString();
+        logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+        console.log(message);
+      }
+
+      function updateStatus(status, message) {
+        statusDiv.className = `status ${status}`;
+        statusDiv.textContent = `Status: ${message}`;
+      }
+
+      // Test backend connectivity
+      document.getElementById("testBackend").onclick = async () => {
+        log("Testing backend connectivity...");
+        try {
+          const response = await fetch("http://localhost:8000/");
+          const data = await response.json();
+          log("✅ Backend test successful: " + data.message);
+          updateStatus("connected", "Backend Connected");
+        } catch (error) {
+          log("❌ Backend test failed: " + error.message);
+          updateStatus("disconnected", "Backend Error");
+        }
+      };
+
+      // Connect WebSocket
+      document.getElementById("connectWS").onclick = () => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          log("⚠️ WebSocket already connected");
+          return;
+        }
+
+        log("Connecting to WebSocket...");
+        updateStatus("connecting", "Connecting...");
+
+        ws = new WebSocket("ws://localhost:8000/ws/video");
+
+        ws.onopen = () => {
+          log("✅ WebSocket connected successfully");
+          updateStatus("connected", "WebSocket Connected");
+
+          // Send a test message
+          const testMessage = {
+            type: "test",
+            timestamp: new Date().toISOString(),
+            message: "Hello from test client",
+          };
+          ws.send(JSON.stringify(testMessage));
+          log("📤 Sent test message");
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            log(
+              `📥 Received: ${data.type} - ${JSON.stringify(data).substring(
+                0,
+                100
+              )}...`
+            );
+          } catch (error) {
+            log(`📥 Received raw: ${event.data.substring(0, 100)}...`);
+          }
+        };
+
+        ws.onclose = (event) => {
+          log(`🔌 WebSocket closed: ${event.code} - ${event.reason}`);
+          updateStatus("disconnected", "Disconnected");
+        };
+
+        ws.onerror = (error) => {
+          log("❌ WebSocket error: " + error);
+          updateStatus("disconnected", "Connection Error");
+        };
+      };
+
+      // Disconnect WebSocket
+      document.getElementById("disconnectWS").onclick = () => {
+        if (ws) {
+          ws.close();
+          log("🔌 WebSocket disconnected manually");
+        }
+      };
+
+      // Auto-test backend on load
+      window.onload = () => {
+        log("🚀 StorySign Streaming Test initialized");
+        document.getElementById("testBackend").click();
+      };
+    </script>
+  </body>
+</html>

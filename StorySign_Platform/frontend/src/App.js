@@ -1,8 +1,10 @@
 import React, { useState, useRef } from "react";
 import "./App.css";
+import "./PerformanceMonitor.css";
 import WebcamCapture from "./WebcamCapture";
 import VideoStreamingClient from "./VideoStreamingClient";
 import ProcessedVideoDisplay from "./ProcessedVideoDisplay";
+import PerformanceMonitorSimple from "./PerformanceMonitorSimple";
 
 function App() {
   const [backendMessage, setBackendMessage] = useState("");
@@ -16,6 +18,13 @@ function App() {
   const [streamingConnectionStatus, setStreamingConnectionStatus] =
     useState("disconnected");
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
+  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(true);
+  const [optimizationSettings, setOptimizationSettings] = useState({
+    adaptiveQuality: true,
+    targetFPS: 30,
+    maxLatency: 100,
+    qualityProfile: "balanced",
+  });
 
   const videoStreamingRef = useRef(null);
 
@@ -141,6 +150,14 @@ function App() {
       setBackendMessage(`Streaming error: ${error}`);
       setConnectionStatus("error");
     }
+  };
+
+  const handleOptimizationChange = (newSettings) => {
+    setOptimizationSettings(newSettings);
+    console.log("Optimization settings updated:", newSettings);
+
+    // Send optimization settings to backend if needed
+    // This could be implemented as a WebSocket message or REST API call
   };
 
   const handleWebcamError = (error) => {
@@ -356,6 +373,33 @@ function App() {
               isActive={streamingActive}
             />
           </div>
+
+          {/* Performance Monitor */}
+          {showPerformanceMonitor && (
+            <div className="performance-section">
+              <div className="section-header">
+                <h3>Performance Monitor</h3>
+                <button
+                  className="toggle-monitor-btn"
+                  onClick={() =>
+                    setShowPerformanceMonitor(!showPerformanceMonitor)
+                  }
+                >
+                  {showPerformanceMonitor ? "Hide Monitor" : "Show Monitor"}
+                </button>
+              </div>
+              <PerformanceMonitorSimple
+                streamingStats={{
+                  framesSent: videoStreamingRef.current?.framesSent || 0,
+                  framesReceived:
+                    videoStreamingRef.current?.framesReceived || 0,
+                }}
+                processedFrameData={processedFrameData}
+                connectionStatus={streamingConnectionStatus}
+                onOptimizationChange={handleOptimizationChange}
+              />
+            </div>
+          )}
         </div>
       </main>
     </div>

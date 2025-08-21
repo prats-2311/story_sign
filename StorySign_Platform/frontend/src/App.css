@@ -883,3 +883,355 @@
   background-color: #f44336;
   color: white;
 }
+
+/* Performance Section Styles */
+.performance-section {
+  grid-column: 1 / -1;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.section-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.toggle-monitor-btn {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.toggle-monitor-btn:hover {
+  background-color: #1976d2;
+}
+
+/* Enhanced UI Polish */
+.App {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.App-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.control-panel {
+  background: white;
+  border: 1px solid #e0e0e0;
+  transition: box-shadow 0.3s ease;
+}
+
+.control-panel:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* Button Enhancements */
+button {
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+button:disabled {
+  transform: none;
+  box-shadow: none;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Status Indicators Enhancement */
+.status-dot {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.status-indicator:hover .status-dot {
+  transform: scale(1.2);
+}
+
+/* Message Display Enhancement */
+.message-display {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.message-display::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.message-display:hover::before {
+  left: 100%;
+}
+
+/* Video Container Enhancements */
+.video-container {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.video-container::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    45deg,
+    transparent 49%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 51%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.video-container:hover::after {
+  opacity: 1;
+}
+
+/* Loading Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.control-panel > * {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.control-panel > *:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.control-panel > *:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.control-panel > *:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.control-panel > *:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+/* Responsive Enhancements */
+@media (max-width: 1024px) {
+  .control-panel {
+    grid-template-columns: 1fr;
+    max-width: 600px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .App-main {
+    padding: 15px;
+  }
+
+  .control-panel {
+    padding: 20px;
+    gap: 20px;
+  }
+
+  .App-header h1 {
+    font-size: 2rem;
+  }
+
+  .App-header p {
+    font-size: 1rem;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .App {
+    background-color: #121212;
+    color: #ffffff;
+  }
+
+  .control-panel {
+    background-color: #1e1e1e;
+    border-color: #333;
+  }
+
+  .message-display {
+    background-color: #2d2d2d;
+    border-color: #444;
+  }
+
+  .video-container {
+    background-color: #000;
+  }
+}
+
+/* Accessibility Enhancements */
+button:focus,
+input:focus,
+select:focus {
+  outline: 2px solid #2196f3;
+  outline-offset: 2px;
+}
+
+.status-text {
+  font-weight: 500;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .control-panel {
+    border: 2px solid #000;
+  }
+
+  button {
+    border: 2px solid #000;
+  }
+
+  .status-dot {
+    border: 2px solid #000;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .loading-spinner {
+    animation: none;
+  }
+}
+
+/* Simple Performance Monitor Styles */
+.performance-monitor-simple {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #e0e0e0;
+  margin-top: 15px;
+}
+
+.performance-monitor-simple h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.simple-metrics {
+  margin-bottom: 20px;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.metric-row:last-child {
+  border-bottom: none;
+}
+
+.metric-row span:first-child {
+  font-weight: 500;
+  color: #666;
+}
+
+.metric-row span:last-child {
+  font-weight: 600;
+  color: #333;
+}
+
+.status.connected {
+  color: #4caf50;
+}
+
+.status.disconnected {
+  color: #f44336;
+}
+
+.status.connecting {
+  color: #ff9800;
+}
+
+.performance-tips {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  border-left: 4px solid #2196f3;
+}
+
+.performance-tips h5 {
+  margin: 0 0 10px 0;
+  color: #1565c0;
+  font-size: 1rem;
+}
+
+.performance-tips ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.performance-tips li {
+  margin: 5px 0;
+  color: #666;
+  font-size: 0.9rem;
+}

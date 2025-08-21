@@ -14,61 +14,73 @@ import time
 
 from config import MediaPipeConfig, VideoConfig
 
+# Initialize logger first
+logger = logging.getLogger(__name__)
+
 # Try to import MediaPipe, fall back to mock if not available
 try:
     import mediapipe as mp
     MEDIAPIPE_AVAILABLE = True
+    logger.info("✅ Real MediaPipe imported successfully")
 except ImportError:
-    MEDIAPIPE_AVAILABLE = False
-    # Create mock MediaPipe classes for compatibility
-    class MockMediaPipe:
-        class solutions:
-            class holistic:
-                class Holistic:
-                    def __init__(self, **kwargs):
-                        pass
-                    def process(self, image):
-                        # Return mock results with no landmarks
-                        class MockResults:
-                            left_hand_landmarks = None
-                            right_hand_landmarks = None
-                            face_landmarks = None
-                            pose_landmarks = None
-                        return MockResults()
-                    def close(self):
+    logger.warning("⚠️ MediaPipe not available, importing mock implementation")
+    try:
+        import mock_mediapipe
+        import mediapipe as mp
+        MEDIAPIPE_AVAILABLE = False
+        logger.info("✅ Mock MediaPipe imported successfully")
+    except ImportError:
+        logger.error("❌ Failed to import mock MediaPipe")
+        MEDIAPIPE_AVAILABLE = False
+        # Create minimal mock MediaPipe classes for compatibility
+        class MockMediaPipe:
+            class solutions:
+                class holistic:
+                    class Holistic:
+                        def __init__(self, **kwargs):
+                            pass
+                        def process(self, image):
+                            # Return mock results with no landmarks
+                            class MockResults:
+                                left_hand_landmarks = None
+                                right_hand_landmarks = None
+                                face_landmarks = None
+                                pose_landmarks = None
+                            return MockResults()
+                        def close(self):
+                            pass
+                    
+                    FACEMESH_CONTOURS = []
+                    FACEMESH_TESSELATION = []
+                    POSE_CONNECTIONS = []
+                    HAND_CONNECTIONS = []
+                
+                class drawing_utils:
+                    @staticmethod
+                    def draw_landmarks(*args, **kwargs):
                         pass
                 
-                FACEMESH_CONTOURS = []
-                FACEMESH_TESSELATION = []
-                POSE_CONNECTIONS = []
-                HAND_CONNECTIONS = []
-            
-            class drawing_utils:
-                @staticmethod
-                def draw_landmarks(*args, **kwargs):
-                    pass
-            
-            class drawing_styles:
-                @staticmethod
-                def get_default_face_mesh_contours_style():
-                    return None
-                @staticmethod
-                def get_default_face_mesh_tesselation_style():
-                    return None
-                @staticmethod
-                def get_default_pose_landmarks_style():
-                    return None
-                @staticmethod
-                def get_default_pose_connections_style():
-                    return None
-                @staticmethod
-                def get_default_hand_landmarks_style():
-                    return None
-                @staticmethod
-                def get_default_hand_connections_style():
-                    return None
-    
-    mp = MockMediaPipe()
+                class drawing_styles:
+                    @staticmethod
+                    def get_default_face_mesh_contours_style():
+                        return None
+                    @staticmethod
+                    def get_default_face_mesh_tesselation_style():
+                        return None
+                    @staticmethod
+                    def get_default_pose_landmarks_style():
+                        return None
+                    @staticmethod
+                    def get_default_pose_connections_style():
+                        return None
+                    @staticmethod
+                    def get_default_hand_landmarks_style():
+                        return None
+                    @staticmethod
+                    def get_default_hand_connections_style():
+                        return None
+        
+        mp = MockMediaPipe()
 
 
 class MediaPipeProcessor:

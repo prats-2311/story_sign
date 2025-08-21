@@ -30,6 +30,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 from config import get_config, AppConfig
 from video_processor import FrameProcessor
+# Temporarily comment out performance optimizer
+# from performance_optimizer import initialize_performance_optimizer, get_performance_optimizer
 
 # Load application configuration
 try:
@@ -296,108 +298,6 @@ class ResourceMonitor:
             self.logger.error(f"Failed to log enforcement event for client {self.client_id}: {e}")
 
 
-class PerformanceOptimizer:
-    """
-    Performance optimizer that adjusts processing parameters based on system load
-    """
-    
-    def __init__(self, config: AppConfig):
-        self.config = config
-        self.logger = logging.getLogger(f"{__name__}.PerformanceOptimizer")
-        self.optimization_level = 0  # 0 = normal, 1 = light optimization, 2 = aggressive
-        self.last_optimization_time = 0
-        self.optimization_cooldown = 5.0  # Seconds between optimizations
-        
-    async def optimize_if_needed(self, resource_stats: dict, processing_stats: dict) -> bool:
-        """
-        Check if optimization is needed and apply if necessary
-        
-        Args:
-            resource_stats: Current resource usage statistics
-            processing_stats: Current processing performance statistics
-            
-        Returns:
-            True if optimization was applied, False otherwise
-        """
-        current_time = time.time()
-        
-        # Check cooldown period
-        if current_time - self.last_optimization_time < self.optimization_cooldown:
-            return False
-        
-        # Determine if optimization is needed
-        cpu_usage = resource_stats.get('cpu_percent', 0)
-        memory_usage = resource_stats.get('memory_percent', 0)
-        avg_processing_time = processing_stats.get('average_processing_time', 0)
-        frames_dropped = processing_stats.get('frames_dropped', 0)
-        
-        # Define optimization thresholds
-        high_cpu_threshold = 75.0
-        high_memory_threshold = 80.0
-        high_processing_time_threshold = 50.0  # ms
-        high_drop_rate_threshold = 10
-        
-        optimization_needed = False
-        new_optimization_level = self.optimization_level
-        
-        # Check if we need to increase optimization
-        if (cpu_usage > high_cpu_threshold or 
-            memory_usage > high_memory_threshold or
-            avg_processing_time > high_processing_time_threshold or
-            frames_dropped > high_drop_rate_threshold):
-            
-            if self.optimization_level < 2:
-                new_optimization_level = min(2, self.optimization_level + 1)
-                optimization_needed = True
-                
-        # Check if we can reduce optimization (system is performing well)
-        elif (cpu_usage < 50.0 and 
-              memory_usage < 60.0 and
-              avg_processing_time < 25.0 and
-              frames_dropped == 0):
-            
-            if self.optimization_level > 0:
-                new_optimization_level = max(0, self.optimization_level - 1)
-                optimization_needed = True
-        
-        # Apply optimization if needed
-        if optimization_needed:
-            await self._apply_optimization_level(new_optimization_level)
-            self.optimization_level = new_optimization_level
-            self.last_optimization_time = current_time
-            
-            self.logger.info(f"Performance optimization applied: level {self.optimization_level} "
-                           f"(CPU: {cpu_usage:.1f}%, Memory: {memory_usage:.1f}%, "
-                           f"Avg time: {avg_processing_time:.1f}ms, Dropped: {frames_dropped})")
-            return True
-        
-        return False
-    
-    async def _apply_optimization_level(self, level: int):
-        """
-        Apply specific optimization level
-        
-        Args:
-            level: Optimization level (0=normal, 1=light, 2=aggressive)
-        """
-        try:
-            if level == 0:
-                # Normal performance - no optimizations
-                self.logger.debug("Applying normal performance settings")
-                
-            elif level == 1:
-                # Light optimization - reduce quality slightly
-                self.logger.info("Applying light performance optimization")
-                # Could adjust MediaPipe model complexity or frame resolution
-                
-            elif level == 2:
-                # Aggressive optimization - significant quality reduction
-                self.logger.info("Applying aggressive performance optimization")
-                # Could skip frames, reduce resolution, or disable some features
-                
-        except Exception as e:
-            self.logger.error(f"Failed to apply optimization level {level}: {e}")
-
 
 class VideoProcessingService:
     """
@@ -418,6 +318,10 @@ class VideoProcessingService:
             video_config=config.video,
             mediapipe_config=config.mediapipe
         )
+        
+        # Get performance optimizer (temporarily disabled)
+        # self.performance_optimizer = get_performance_optimizer()
+        self.performance_optimizer = None
         
         # Frame processing queue management - optimized for low latency
         self.frame_queue = asyncio.Queue(maxsize=3)  # Reduced queue size for lower latency
@@ -442,7 +346,7 @@ class VideoProcessingService:
         
         # Resource monitoring
         self.resource_monitor = ResourceMonitor(client_id)
-        self.performance_optimizer = PerformanceOptimizer(config)
+        # self.performance_optimizer = PerformanceOptimizer(config)  # Removed duplicate
         
         # Processing loop control
         self._shutdown_event = asyncio.Event()
@@ -458,6 +362,10 @@ class VideoProcessingService:
         
         # Start resource monitoring
         await self.resource_monitor.start_monitoring()
+        
+        # Start performance optimization if available (temporarily disabled)
+        # if self.performance_optimizer and not self.performance_optimizer.optimization_active:
+        #     await self.performance_optimizer.start_optimization()
         
         self.logger.info(f"Processing loop and resource monitoring started for client {self.client_id}")
         
@@ -687,14 +595,14 @@ class VideoProcessingService:
             # Get current resource usage
             resource_stats = await self.resource_monitor.get_current_stats()
             
-            # Apply performance optimizations if needed
-            optimization_applied = await self.performance_optimizer.optimize_if_needed(
-                resource_stats, 
-                self.processing_stats
-            )
+            # Apply performance optimizations if needed (temporarily disabled)
+            # optimization_applied = await self.performance_optimizer.optimize_if_needed(
+            #     resource_stats, 
+            #     self.processing_stats
+            # )
             
-            if optimization_applied:
-                self.logger.info(f"Performance optimization applied for client {self.client_id}")
+            # if optimization_applied:
+            #     self.logger.info(f"Performance optimization applied for client {self.client_id}")
                 
         except Exception as e:
             self.logger.warning(f"Performance optimization check failed for client {self.client_id}: {e}")
