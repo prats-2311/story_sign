@@ -159,7 +159,7 @@
   - Add error handling and fallback behavior for service unavailability
   - _Requirements: 10.1, 10.6_
 
-- [ ] 13.2 Create Ollama LLM service integration
+- [x] 13.2 Create Ollama LLM service integration
 
   - Create backend/ollama_service.py for cloud LLM communication
   - Implement story generation functionality using identified objects as prompts

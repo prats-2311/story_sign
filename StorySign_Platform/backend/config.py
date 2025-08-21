@@ -111,6 +111,27 @@ class LocalVisionConfig(BaseModel):
         return v
 
 
+class OllamaConfig(BaseModel):
+    """Configuration for Ollama LLM service integration"""
+    
+    service_url: str = Field(default="http://localhost:11434", description="Ollama service URL")
+    story_model: str = Field(default="llama3.1", description="Model name for story generation")
+    analysis_model: str = Field(default="llama3.1", description="Model name for signing analysis")
+    timeout_seconds: int = Field(default=60, ge=10, le=300, description="Request timeout in seconds")
+    max_tokens: int = Field(default=1000, ge=100, le=4000, description="Maximum tokens for generation")
+    temperature: float = Field(default=0.7, ge=0.0, le=2.0, description="Generation temperature")
+    max_retries: int = Field(default=3, ge=1, le=10, description="Maximum retry attempts")
+    enabled: bool = Field(default=True, description="Enable/disable Ollama service")
+    
+    @field_validator('story_model', 'analysis_model')
+    @classmethod
+    def validate_model_name(cls, v):
+        """Validate model name is not empty"""
+        if not v or not v.strip():
+            raise ValueError("Model name cannot be empty")
+        return v.strip()
+
+
 class AppConfig(BaseModel):
     """Main application configuration containing all sub-configurations"""
     
@@ -118,6 +139,7 @@ class AppConfig(BaseModel):
     mediapipe: MediaPipeConfig = Field(default_factory=MediaPipeConfig)
     server: ServerConfig = Field(default_factory=ServerConfig)
     local_vision: LocalVisionConfig = Field(default_factory=LocalVisionConfig)
+    ollama: OllamaConfig = Field(default_factory=OllamaConfig)
     
     class Config:
         """Pydantic configuration"""
@@ -224,6 +246,24 @@ class ConfigManager:
         if os.getenv('STORYSIGN_LOCAL_VISION__ENABLED'):
             env_vars.setdefault('local_vision', {})['enabled'] = os.getenv('STORYSIGN_LOCAL_VISION__ENABLED').lower() == 'true'
         
+        # Ollama configuration from environment
+        if os.getenv('STORYSIGN_OLLAMA__SERVICE_URL'):
+            env_vars.setdefault('ollama', {})['service_url'] = os.getenv('STORYSIGN_OLLAMA__SERVICE_URL')
+        if os.getenv('STORYSIGN_OLLAMA__STORY_MODEL'):
+            env_vars.setdefault('ollama', {})['story_model'] = os.getenv('STORYSIGN_OLLAMA__STORY_MODEL')
+        if os.getenv('STORYSIGN_OLLAMA__ANALYSIS_MODEL'):
+            env_vars.setdefault('ollama', {})['analysis_model'] = os.getenv('STORYSIGN_OLLAMA__ANALYSIS_MODEL')
+        if os.getenv('STORYSIGN_OLLAMA__TIMEOUT_SECONDS'):
+            env_vars.setdefault('ollama', {})['timeout_seconds'] = int(os.getenv('STORYSIGN_OLLAMA__TIMEOUT_SECONDS'))
+        if os.getenv('STORYSIGN_OLLAMA__MAX_TOKENS'):
+            env_vars.setdefault('ollama', {})['max_tokens'] = int(os.getenv('STORYSIGN_OLLAMA__MAX_TOKENS'))
+        if os.getenv('STORYSIGN_OLLAMA__TEMPERATURE'):
+            env_vars.setdefault('ollama', {})['temperature'] = float(os.getenv('STORYSIGN_OLLAMA__TEMPERATURE'))
+        if os.getenv('STORYSIGN_OLLAMA__MAX_RETRIES'):
+            env_vars.setdefault('ollama', {})['max_retries'] = int(os.getenv('STORYSIGN_OLLAMA__MAX_RETRIES'))
+        if os.getenv('STORYSIGN_OLLAMA__ENABLED'):
+            env_vars.setdefault('ollama', {})['enabled'] = os.getenv('STORYSIGN_OLLAMA__ENABLED').lower() == 'true'
+        
         # Merge environment variables with file configuration (env vars take precedence)
         for section, values in env_vars.items():
             if section in config_data:
@@ -261,6 +301,7 @@ class ConfigManager:
             logger.debug(f"MediaPipe config: {self._config.mediapipe}")
             logger.debug(f"Server config: {self._config.server}")
             logger.debug(f"Local vision config: {self._config.local_vision}")
+            logger.debug(f"Ollama config: {self._config.ollama}")
             
             return self._config
             
