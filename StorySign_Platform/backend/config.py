@@ -16,13 +16,13 @@ logger = logging.getLogger(__name__)
 
 class VideoConfig(BaseModel):
     """Configuration for video capture and processing settings"""
-    
+
     width: int = Field(default=640, ge=240, le=1920, description="Video frame width in pixels")
     height: int = Field(default=480, ge=180, le=1080, description="Video frame height in pixels")
     fps: int = Field(default=30, ge=10, le=60, description="Target frames per second")
     format: str = Field(default="MJPG", description="Video format codec")
     quality: int = Field(default=50, ge=30, le=100, description="JPEG compression quality (optimized for low latency)")
-    
+
     @field_validator('format')
     @classmethod
     def validate_format(cls, v):
@@ -35,34 +35,34 @@ class VideoConfig(BaseModel):
 
 class MediaPipeConfig(BaseModel):
     """Configuration for MediaPipe Holistic model settings (optimized for low latency)"""
-    
+
     min_detection_confidence: float = Field(
-        default=0.3, 
-        ge=0.0, 
-        le=1.0, 
+        default=0.3,
+        ge=0.0,
+        le=1.0,
         description="Minimum confidence for person detection (optimized for speed)"
     )
     min_tracking_confidence: float = Field(
-        default=0.3, 
-        ge=0.0, 
-        le=1.0, 
+        default=0.3,
+        ge=0.0,
+        le=1.0,
         description="Minimum confidence for landmark tracking (optimized for speed)"
     )
     model_complexity: int = Field(
-        default=0, 
-        ge=0, 
-        le=2, 
+        default=0,
+        ge=0,
+        le=2,
         description="Model complexity (0=lite/fastest, 1=full, 2=heavy) - optimized for speed"
     )
     enable_segmentation: bool = Field(
-        default=False, 
+        default=False,
         description="Enable pose segmentation mask"
     )
     refine_face_landmarks: bool = Field(
-        default=True, 
+        default=True,
         description="Enable refined face landmark detection"
     )
-    
+
     @field_validator('model_complexity')
     @classmethod
     def validate_complexity(cls, v):
@@ -74,13 +74,13 @@ class MediaPipeConfig(BaseModel):
 
 class ServerConfig(BaseModel):
     """Configuration for server settings"""
-    
+
     host: str = Field(default="0.0.0.0", description="Server host address")
     port: int = Field(default=8000, ge=1024, le=65535, description="Server port number")
     reload: bool = Field(default=True, description="Enable auto-reload in development")
     log_level: str = Field(default="info", description="Logging level")
     max_connections: int = Field(default=10, ge=1, le=100, description="Maximum WebSocket connections")
-    
+
     @field_validator('log_level')
     @classmethod
     def validate_log_level(cls, v):
@@ -93,14 +93,14 @@ class ServerConfig(BaseModel):
 
 class LocalVisionConfig(BaseModel):
     """Configuration for local vision service integration"""
-    
+
     service_url: str = Field(default="http://localhost:1234", description="Local vision service URL")
     model_name: str = Field(default="google/gemma-3-4b", description="Vision model name")
     service_type: str = Field(default="lm_studio", description="Service type (ollama or lm_studio)")
     timeout_seconds: int = Field(default=30, ge=5, le=120, description="Request timeout in seconds")
     max_retries: int = Field(default=3, ge=1, le=10, description="Maximum retry attempts")
     enabled: bool = Field(default=True, description="Enable/disable local vision service")
-    
+
     @field_validator('service_type')
     @classmethod
     def validate_service_type(cls, v):
@@ -113,16 +113,17 @@ class LocalVisionConfig(BaseModel):
 
 class OllamaConfig(BaseModel):
     """Configuration for Ollama LLM service integration"""
-    
-    service_url: str = Field(default="http://localhost:11434", description="Ollama service URL")
-    story_model: str = Field(default="llama3.1", description="Model name for story generation")
-    analysis_model: str = Field(default="llama3.1", description="Model name for signing analysis")
+
+    service_url: str = Field(default="https://ollama.com", description="Ollama Cloud API URL")
+    api_key: Optional[str] = Field(default="f945208978394c218ef31ed075c6c232.ap5HadPbSpSHwURc6anBVAbz", description="API key for Ollama Cloud")
+    story_model: str = Field(default="gpt-oss:20b", description="Model name for story generation")
+    analysis_model: str = Field(default="gpt-oss:20b", description="Model name for signing analysis")
     timeout_seconds: int = Field(default=60, ge=10, le=300, description="Request timeout in seconds")
     max_tokens: int = Field(default=1000, ge=100, le=4000, description="Maximum tokens for generation")
     temperature: float = Field(default=0.7, ge=0.0, le=2.0, description="Generation temperature")
     max_retries: int = Field(default=3, ge=1, le=10, description="Maximum retry attempts")
     enabled: bool = Field(default=True, description="Enable/disable Ollama service")
-    
+
     @field_validator('story_model', 'analysis_model')
     @classmethod
     def validate_model_name(cls, v):
@@ -134,13 +135,13 @@ class OllamaConfig(BaseModel):
 
 class AppConfig(BaseModel):
     """Main application configuration containing all sub-configurations"""
-    
+
     video: VideoConfig = Field(default_factory=VideoConfig)
     mediapipe: MediaPipeConfig = Field(default_factory=MediaPipeConfig)
     server: ServerConfig = Field(default_factory=ServerConfig)
     local_vision: LocalVisionConfig = Field(default_factory=LocalVisionConfig)
     ollama: OllamaConfig = Field(default_factory=OllamaConfig)
-    
+
     class Config:
         """Pydantic configuration"""
         env_prefix = "STORYSIGN_"
@@ -149,41 +150,41 @@ class AppConfig(BaseModel):
 
 class ConfigManager:
     """Configuration manager for loading and validating application settings"""
-    
+
     def __init__(self, config_file: Optional[str] = None):
         """
         Initialize configuration manager
-        
+
         Args:
             config_file: Optional path to YAML configuration file
         """
         self.config_file = config_file or self._find_config_file()
         self._config: Optional[AppConfig] = None
-    
+
     def _find_config_file(self) -> Optional[str]:
         """Find configuration file in standard locations"""
         possible_paths = [
             "config.yaml",
-            "config.yml", 
+            "config.yml",
             "storysign_config.yaml",
             "storysign_config.yml",
             os.path.expanduser("~/.storysign/config.yaml"),
             "/etc/storysign/config.yaml"
         ]
-        
+
         for path in possible_paths:
             if Path(path).exists():
                 logger.info(f"Found configuration file: {path}")
                 return path
-        
+
         logger.info("No configuration file found, using defaults and environment variables")
         return None
-    
+
     def _load_yaml_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file"""
         if not self.config_file or not Path(self.config_file).exists():
             return {}
-        
+
         try:
             with open(self.config_file, 'r') as f:
                 config_data = yaml.safe_load(f) or {}
@@ -192,12 +193,12 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"Failed to load configuration file {self.config_file}: {e}")
             return {}
-    
+
     def _merge_env_vars(self, config_data: Dict[str, Any]) -> Dict[str, Any]:
         """Merge environment variables into configuration data"""
         # Environment variables take precedence over file configuration
         env_vars = {}
-        
+
         # Video configuration from environment
         if os.getenv('STORYSIGN_VIDEO__WIDTH'):
             env_vars.setdefault('video', {})['width'] = int(os.getenv('STORYSIGN_VIDEO__WIDTH'))
@@ -209,7 +210,7 @@ class ConfigManager:
             env_vars.setdefault('video', {})['format'] = os.getenv('STORYSIGN_VIDEO__FORMAT')
         if os.getenv('STORYSIGN_VIDEO__QUALITY'):
             env_vars.setdefault('video', {})['quality'] = int(os.getenv('STORYSIGN_VIDEO__QUALITY'))
-        
+
         # MediaPipe configuration from environment
         if os.getenv('STORYSIGN_MEDIAPIPE__MIN_DETECTION_CONFIDENCE'):
             env_vars.setdefault('mediapipe', {})['min_detection_confidence'] = float(os.getenv('STORYSIGN_MEDIAPIPE__MIN_DETECTION_CONFIDENCE'))
@@ -221,7 +222,7 @@ class ConfigManager:
             env_vars.setdefault('mediapipe', {})['enable_segmentation'] = os.getenv('STORYSIGN_MEDIAPIPE__ENABLE_SEGMENTATION').lower() == 'true'
         if os.getenv('STORYSIGN_MEDIAPIPE__REFINE_FACE_LANDMARKS'):
             env_vars.setdefault('mediapipe', {})['refine_face_landmarks'] = os.getenv('STORYSIGN_MEDIAPIPE__REFINE_FACE_LANDMARKS').lower() == 'true'
-        
+
         # Server configuration from environment
         if os.getenv('STORYSIGN_SERVER__HOST'):
             env_vars.setdefault('server', {})['host'] = os.getenv('STORYSIGN_SERVER__HOST')
@@ -233,7 +234,7 @@ class ConfigManager:
             env_vars.setdefault('server', {})['log_level'] = os.getenv('STORYSIGN_SERVER__LOG_LEVEL')
         if os.getenv('STORYSIGN_SERVER__MAX_CONNECTIONS'):
             env_vars.setdefault('server', {})['max_connections'] = int(os.getenv('STORYSIGN_SERVER__MAX_CONNECTIONS'))
-        
+
         # Local vision configuration from environment
         if os.getenv('STORYSIGN_LOCAL_VISION__SERVICE_URL'):
             env_vars.setdefault('local_vision', {})['service_url'] = os.getenv('STORYSIGN_LOCAL_VISION__SERVICE_URL')
@@ -245,7 +246,7 @@ class ConfigManager:
             env_vars.setdefault('local_vision', {})['max_retries'] = int(os.getenv('STORYSIGN_LOCAL_VISION__MAX_RETRIES'))
         if os.getenv('STORYSIGN_LOCAL_VISION__ENABLED'):
             env_vars.setdefault('local_vision', {})['enabled'] = os.getenv('STORYSIGN_LOCAL_VISION__ENABLED').lower() == 'true'
-        
+
         # Ollama configuration from environment
         if os.getenv('STORYSIGN_OLLAMA__SERVICE_URL'):
             env_vars.setdefault('ollama', {})['service_url'] = os.getenv('STORYSIGN_OLLAMA__SERVICE_URL')
@@ -263,58 +264,58 @@ class ConfigManager:
             env_vars.setdefault('ollama', {})['max_retries'] = int(os.getenv('STORYSIGN_OLLAMA__MAX_RETRIES'))
         if os.getenv('STORYSIGN_OLLAMA__ENABLED'):
             env_vars.setdefault('ollama', {})['enabled'] = os.getenv('STORYSIGN_OLLAMA__ENABLED').lower() == 'true'
-        
+
         # Merge environment variables with file configuration (env vars take precedence)
         for section, values in env_vars.items():
             if section in config_data:
                 config_data[section].update(values)
             else:
                 config_data[section] = values
-        
+
         return config_data
-    
+
     def load_config(self) -> AppConfig:
         """
         Load and validate application configuration
-        
+
         Returns:
             AppConfig: Validated configuration object
-            
+
         Raises:
             ValueError: If configuration validation fails
         """
         if self._config is not None:
             return self._config
-        
+
         try:
             # Load from YAML file
             config_data = self._load_yaml_config()
-            
+
             # Merge environment variables
             config_data = self._merge_env_vars(config_data)
-            
+
             # Create and validate configuration
             self._config = AppConfig(**config_data)
-            
+
             logger.info("Configuration loaded and validated successfully")
             logger.debug(f"Video config: {self._config.video}")
             logger.debug(f"MediaPipe config: {self._config.mediapipe}")
             logger.debug(f"Server config: {self._config.server}")
             logger.debug(f"Local vision config: {self._config.local_vision}")
             logger.debug(f"Ollama config: {self._config.ollama}")
-            
+
             return self._config
-            
+
         except Exception as e:
             logger.error(f"Configuration validation failed: {e}")
             raise ValueError(f"Invalid configuration: {e}")
-    
+
     def get_config(self) -> AppConfig:
         """Get current configuration, loading if necessary"""
         if self._config is None:
             return self.load_config()
         return self._config
-    
+
     def reload_config(self) -> AppConfig:
         """Reload configuration from file and environment"""
         self._config = None

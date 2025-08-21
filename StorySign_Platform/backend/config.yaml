@@ -35,12 +35,19 @@ local_vision:
   enabled: true # Enable/disable local vision service
 
 # Ollama LLM service configuration
-ollama:
-  service_url: "http://localhost:11434" # Ollama service URL (default port)
-  story_model: "llama3.1" # Model name for story generation
-  analysis_model: "llama3.1" # Model name for signing analysis
-  timeout_seconds: 60 # Request timeout in seconds
-  max_tokens: 1000 # Maximum tokens for generation
-  temperature: 0.7 # Generation temperature (0.0-2.0)
-  max_retries: 3 # Maximum retry attempts
-  enabled: true # Enable/disable Ollama service
+# backend/config.yaml
+
+ollama_config:
+  # Use the official Ollama Cloud API endpoint
+  service_url: "https://ollama.com"
+
+  # Specify the correct cloud model you want to use
+  story_model: "gpt-oss:20b"
+  analysis_model: "gpt-oss:20b"
+
+  # Add your API key here (keep it secret)
+  api_key: "f945208978394c218ef31ed075c6c232.ap5HadPbSpSHwURc6anBVAbz"
+
+  # Keep timeouts as they are, or adjust if needed
+  timeout_seconds: 60
+  max_tokens: 1500
