@@ -1362,8 +1362,13 @@ class PracticeSessionManager:
                 return self._try_again()
             elif action == "stop_session":
                 return self._stop_session()
+            elif action == "complete_story":
+                return self._complete_story()
             elif action == "set_feedback":
                 return self._set_feedback(data)
+            elif action == "start_session":
+                # Handle session start through control message
+                return self._handle_session_start(data)
             else:
                 return {
                     "success": False,
@@ -1453,6 +1458,40 @@ class PracticeSessionManager:
                 "success": False,
                 "error": "No feedback data provided"
             }
+    
+    def _complete_story(self) -> Dict[str, Any]:
+        """Complete the current story practice session"""
+        self.practice_mode = "completed"
+        self.last_feedback = None
+        
+        self.logger.info(f"Story practice completed: {self.session_id}")
+        
+        return {
+            "success": True,
+            "action": "story_completed",
+            "session_id": self.session_id,
+            "total_sentences": len(self.story_sentences),
+            "practice_mode": self.practice_mode
+        }
+    
+    def _handle_session_start(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle session start through control message"""
+        if not data:
+            return {
+                "success": False,
+                "error": "No session data provided"
+            }
+        
+        story_sentences = data.get("story_sentences", [])
+        session_id = data.get("session_id")
+        
+        if not story_sentences:
+            return {
+                "success": False,
+                "error": "No story sentences provided"
+            }
+        
+        return self.start_practice_session(story_sentences, session_id)
     
     def get_gesture_buffer_for_analysis(self) -> list:
         """

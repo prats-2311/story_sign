@@ -35,6 +35,7 @@ function App() {
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
   const [isProcessingFeedback, setIsProcessingFeedback] = useState(false);
   const [storyGenerationError, setStoryGenerationError] = useState("");
+  const [gestureState, setGestureState] = useState("listening");
 
   const videoStreamingRef = useRef(null);
 
@@ -146,14 +147,27 @@ function App() {
       setProcessedFrameData(message);
       // Clear any previous streaming errors on successful frame processing
       setStreamingError("");
+
+      // Check for practice session data in processed frames
+      if (message.practice_session) {
+        handlePracticeSessionUpdate(message.practice_session);
+      }
+
       console.log("Processed frame received:", {
         frameNumber: message.metadata?.frame_number,
         processingTime: message.metadata?.processing_time_ms,
         landmarks: message.metadata?.landmarks_detected,
+        gestureState: message.practice_session?.gesture_state,
       });
     } else if (message.type === "asl_feedback") {
       // Handle ASL feedback messages for practice sessions
       handleASLFeedback(message.data);
+    } else if (message.type === "control_response") {
+      // Handle practice control responses
+      handlePracticeControlResponse(message);
+    } else if (message.type === "practice_session_response") {
+      // Handle practice session responses
+      handlePracticeSessionResponse(message);
     } else {
       // Handle other message types as processed frames for backward compatibility
       setProcessedFrameData(message);
@@ -178,6 +192,37 @@ function App() {
 
     // Send optimization settings to backend if needed
     // This could be implemented as a WebSocket message or REST API call
+  };
+
+  // Practice session management functions
+  const startPracticeSession = async (story) => {
+    console.log("Starting practice session with story:", story.title);
+
+    try {
+      // Send practice session start message to backend via WebSocket
+      if (videoStreamingRef.current && streamingActive) {
+        const sessionData = {
+          story_sentences: story.sentences,
+          session_id: `session_${Date.now()}`,
+          story_title: story.title,
+        };
+
+        const success = videoStreamingRef.current.sendPracticeControl(
+          "start_session",
+          sessionData
+        );
+
+        if (success) {
+          console.log("Practice session started successfully");
+        } else {
+          console.error("Failed to start practice session");
+        }
+      } else {
+        console.warn("WebSocket not available for practice session start");
+      }
+    } catch (error) {
+      console.error("Error starting practice session:", error);
+    }
   };
 
   // Story generation workflow functions
@@ -216,6 +261,9 @@ function App() {
           setCurrentSentenceIndex(0);
           setLatestFeedback(null);
           setStoryGenerationError("");
+
+          // Start practice session with the generated story
+          await startPracticeSession(data.story);
         } else {
           const errorMessage =
             data.user_message || data.message || "Story generation failed";
@@ -261,22 +309,48 @@ function App() {
     );
 
     try {
+      // Send control message to backend via WebSocket
+      if (videoStreamingRef.current && streamingActive) {
+        const controlData = {
+          sentence_index: sentenceIndex,
+          target_sentence: storyData?.sentences?.[sentenceIndex] || "",
+          story_sentences: storyData?.sentences || [],
+        };
+
+        const success = videoStreamingRef.current.sendPracticeControl(
+          action,
+          controlData
+        );
+
+        if (!success) {
+          console.error("Failed to send practice control to backend");
+          return;
+        }
+      }
+
+      // Update local state based on action
       switch (action) {
         case "next_sentence":
           if (sentenceIndex < (storyData?.sentences?.length || 0) - 1) {
             setCurrentSentenceIndex(sentenceIndex + 1);
             setLatestFeedback(null);
+            setIsProcessingFeedback(false);
+            setGestureState("listening");
           }
           break;
 
         case "try_again":
           setLatestFeedback(null);
+          setIsProcessingFeedback(false);
+          setGestureState("listening");
           break;
 
         case "complete_story":
           // Story completed - could show completion message or reset
           console.log("Story practice completed!");
           setLatestFeedback(null);
+          setIsProcessingFeedback(false);
+          setGestureState("listening");
           break;
 
         default:
@@ -291,6 +365,66 @@ function App() {
     console.log("Received ASL feedback:", feedbackData);
     setLatestFeedback(feedbackData);
     setIsProcessingFeedback(false);
+  };
+
+  const handlePracticeSessionUpdate = (practiceData) => {
+    console.log("Practice session update:", practiceData);
+
+    // Update processing feedback state based on gesture state
+    if (practiceData.gesture_state) {
+      const currentGestureState = practiceData.gesture_state;
+      setGestureState(currentGestureState);
+
+      if (currentGestureState === "analyzing") {
+        setIsProcessingFeedback(true);
+      } else if (currentGestureState === "listening") {
+        setIsProcessingFeedback(false);
+      }
+    }
+  };
+
+  const handlePracticeControlResponse = (message) => {
+    console.log("Practice control response:", message);
+
+    if (message.result && message.result.success) {
+      const action = message.action;
+      const result = message.result;
+
+      // Update local state based on successful backend response
+      if (
+        action === "next_sentence" &&
+        result.current_sentence_index !== undefined
+      ) {
+        setCurrentSentenceIndex(result.current_sentence_index);
+        setLatestFeedback(null);
+        setIsProcessingFeedback(false);
+      } else if (action === "try_again") {
+        setLatestFeedback(null);
+        setIsProcessingFeedback(false);
+      } else if (action === "complete_story") {
+        setLatestFeedback(null);
+        setIsProcessingFeedback(false);
+      }
+    } else {
+      console.error("Practice control failed:", message.result?.error);
+    }
+  };
+
+  const handlePracticeSessionResponse = (message) => {
+    console.log("Practice session response:", message);
+
+    if (message.result && message.result.success) {
+      const action = message.action;
+
+      if (action === "session_started") {
+        console.log("Practice session started successfully on backend");
+      }
+    } else {
+      console.error(
+        "Practice session operation failed:",
+        message.result?.error
+      );
+    }
   };
 
   const handleWebcamError = (error) => {
@@ -360,6 +494,7 @@ function App() {
       setIsGeneratingStory(false);
       setIsProcessingFeedback(false);
       setStoryGenerationError("");
+      setGestureState("listening");
     }
   };
 
@@ -387,6 +522,7 @@ function App() {
               isProcessingFeedback={isProcessingFeedback}
               connectionStatus={connectionStatus}
               onFrameCapture={handleFrameCapture}
+              gestureState={gestureState}
             />
             {storyGenerationError && (
               <div className="story-generation-error">

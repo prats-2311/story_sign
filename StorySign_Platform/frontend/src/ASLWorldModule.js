@@ -11,6 +11,7 @@ const ASLWorldModule = ({
   isProcessingFeedback = false,
   connectionStatus = "disconnected",
   onFrameCapture,
+  gestureState = "listening", // New prop for gesture state
 }) => {
   const [mode, setMode] = useState("story_generation"); // 'story_generation' or 'practice'
   const [showFeedback, setShowFeedback] = useState(false);
@@ -246,6 +247,7 @@ const ASLWorldModule = ({
                   <>
                     <div className="loading-spinner"></div>
                     <p>Analyzing your signing...</p>
+                    <small>Please wait while AI analyzes your gesture</small>
                   </>
                 ) : (
                   <>
@@ -255,6 +257,19 @@ const ASLWorldModule = ({
                       The system will automatically detect when you begin and
                       end your gesture
                     </small>
+                    <div className="gesture-status">
+                      <div className={`status-indicator ${gestureState}`}>
+                        <span className="status-dot"></span>
+                        <span>
+                          {gestureState === "listening" &&
+                            "Listening for gestures"}
+                          {gestureState === "detecting" &&
+                            "Gesture detected - keep signing"}
+                          {gestureState === "analyzing" &&
+                            "Analyzing your gesture"}
+                        </span>
+                      </div>
+                    </div>
                   </>
                 )}
               </div>

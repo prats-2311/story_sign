@@ -226,7 +226,7 @@
   - _Requirements: 8.3, 8.4_
 
 - [ ] 17. Create interactive practice session workflow
-- [ ] 17.1 Implement practice session controls and state management
+- [x] 17.1 Implement practice session controls and state management
 
   - Add practice session WebSocket message handling (control messages)
   - Implement sentence progression logic ("Next Sentence" functionality)
