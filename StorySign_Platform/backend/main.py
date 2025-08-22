@@ -316,10 +316,11 @@ class VideoProcessingService:
         self.frame_count = 0
         self.logger = logging.getLogger(f"{__name__}.VideoProcessingService.{client_id}")
 
-        # Initialize frame processor with MediaPipe
+        # Initialize frame processor with MediaPipe and gesture detection
         self.frame_processor = FrameProcessor(
             video_config=config.video,
-            mediapipe_config=config.mediapipe
+            mediapipe_config=config.mediapipe,
+            gesture_config=config.gesture_detection
         )
 
         # Get performance optimizer (temporarily disabled)
@@ -471,6 +472,9 @@ class VideoProcessingService:
             # Update performance statistics
             self._update_processing_stats(processing_time, fallback_used)
 
+            # Check for pending analysis tasks and process them
+            await self._check_and_process_analysis_tasks()
+
             # Send response to client if websocket is still active
             if self.websocket and response:
                 try:
@@ -589,6 +593,140 @@ class VideoProcessingService:
                 "requires_reconnection": True
             }
         }
+
+    async def _check_and_process_analysis_tasks(self):
+        """
+        Check for pending signing analysis tasks and process them asynchronously
+        """
+        try:
+            # Get pending analysis task from frame processor
+            analysis_task = self.frame_processor.get_pending_analysis_task()
+            
+            if analysis_task:
+                self.logger.info(f"Processing signing analysis task for client {self.client_id}")
+                
+                # Process analysis asynchronously to avoid blocking video stream
+                asyncio.create_task(self._process_signing_analysis(analysis_task))
+                
+        except Exception as e:
+            self.logger.error(f"Error checking analysis tasks for client {self.client_id}: {e}")
+    
+    async def _process_signing_analysis(self, analysis_task: Dict[str, Any]):
+        """
+        Process signing analysis task asynchronously
+        
+        Args:
+            analysis_task: Dictionary containing landmark buffer and target sentence
+        """
+        try:
+            # Get Ollama service
+            ollama_service = await get_ollama_service()
+            
+            # Extract task data
+            landmark_buffer = analysis_task.get("landmark_buffer", [])
+            target_sentence = analysis_task.get("target_sentence", "")
+            
+            self.logger.info(f"Analyzing signing attempt for client {self.client_id}: '{target_sentence}' "
+                           f"with {len(landmark_buffer)} frames")
+            
+            # Perform signing analysis
+            analysis_result = await ollama_service.analyze_signing_attempt(
+                landmark_buffer, target_sentence
+            )
+            
+            if analysis_result:
+                # Set analysis result in frame processor
+                result_status = self.frame_processor.set_analysis_result(analysis_result)
+                
+                # Send ASL feedback message to client
+                feedback_message = {
+                    "type": "asl_feedback",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "data": {
+                        "target_sentence": target_sentence,
+                        "feedback": analysis_result.get("feedback", "Analysis completed"),
+                        "confidence_score": analysis_result.get("confidence_score", 0.0),
+                        "suggestions": analysis_result.get("suggestions", []),
+                        "analysis_summary": analysis_result.get("analysis_summary", "")
+                    },
+                    "metadata": {
+                        "client_id": self.client_id,
+                        "analysis_success": result_status.get("success", False)
+                    }
+                }
+                
+                # Send feedback to client
+                if self.websocket:
+                    try:
+                        await self.websocket.send_text(json.dumps(feedback_message))
+                        self.logger.info(f"ASL feedback sent to client {self.client_id}")
+                    except Exception as send_error:
+                        self.logger.error(f"Failed to send ASL feedback to client {self.client_id}: {send_error}")
+                
+            else:
+                # Analysis failed, set error result
+                error_result = {
+                    "feedback": "Analysis service is currently unavailable. Please try again.",
+                    "confidence_score": 0.0,
+                    "suggestions": ["Try signing again with clear movements", "Ensure good lighting"],
+                    "analysis_summary": "Analysis service error",
+                    "error": True
+                }
+                
+                self.frame_processor.set_analysis_result(error_result)
+                
+                # Send error feedback to client
+                error_message = {
+                    "type": "asl_feedback",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "data": {
+                        "target_sentence": target_sentence,
+                        "feedback": error_result["feedback"],
+                        "confidence_score": 0.0,
+                        "suggestions": error_result["suggestions"],
+                        "analysis_summary": error_result["analysis_summary"],
+                        "error": True
+                    },
+                    "metadata": {
+                        "client_id": self.client_id,
+                        "analysis_success": False
+                    }
+                }
+                
+                if self.websocket:
+                    try:
+                        await self.websocket.send_text(json.dumps(error_message))
+                        self.logger.warning(f"ASL error feedback sent to client {self.client_id}")
+                    except Exception as send_error:
+                        self.logger.error(f"Failed to send ASL error feedback to client {self.client_id}: {send_error}")
+                
+        except Exception as e:
+            self.logger.error(f"Error processing signing analysis for client {self.client_id}: {e}", exc_info=True)
+            
+            # Send error feedback to client
+            try:
+                error_message = {
+                    "type": "asl_feedback",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "data": {
+                        "target_sentence": analysis_task.get("target_sentence", ""),
+                        "feedback": f"Analysis error: {str(e)}. Please try again.",
+                        "confidence_score": 0.0,
+                        "suggestions": ["Try signing again", "Check your internet connection"],
+                        "analysis_summary": "Analysis processing error",
+                        "error": True
+                    },
+                    "metadata": {
+                        "client_id": self.client_id,
+                        "analysis_success": False
+                    }
+                }
+                
+                if self.websocket:
+                    await self.websocket.send_text(json.dumps(error_message))
+                    
+            except Exception as send_error:
+                self.logger.error(f"Failed to send analysis error message to client {self.client_id}: {send_error}")
 
     async def _check_and_optimize_performance(self):
         """
@@ -736,6 +874,14 @@ class VideoProcessingService:
                 # Response will be sent by processing loop
                 return None
 
+            elif message_type == "control":
+                # Handle practice session control messages
+                return await self._handle_control_message(message_data)
+
+            elif message_type == "practice_session_start":
+                # Handle practice session start
+                return await self._handle_practice_session_start(message_data)
+
             else:
                 self.logger.warning(f"Unknown message type: {message_type}")
                 return {
@@ -749,6 +895,98 @@ class VideoProcessingService:
             return {
                 "type": "error",
                 "message": "Failed to process message",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+    
+    async def _handle_control_message(self, message_data: dict) -> dict:
+        """
+        Handle practice session control messages
+        
+        Args:
+            message_data: Control message data
+            
+        Returns:
+            Response message
+        """
+        try:
+            action = message_data.get("action")
+            data = message_data.get("data", {})
+            
+            if not action:
+                return {
+                    "type": "error",
+                    "message": "Control message missing 'action' field",
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            
+            # Handle control action through frame processor
+            result = self.frame_processor.handle_practice_control(action, data)
+            
+            # Create response message
+            response = {
+                "type": "control_response",
+                "timestamp": datetime.utcnow().isoformat(),
+                "action": action,
+                "result": result,
+                "metadata": {
+                    "client_id": self.client_id
+                }
+            }
+            
+            self.logger.info(f"Control action '{action}' processed for client {self.client_id}: {result.get('success', False)}")
+            return response
+            
+        except Exception as e:
+            self.logger.error(f"Error handling control message for client {self.client_id}: {e}")
+            return {
+                "type": "error",
+                "message": f"Control message processing failed: {str(e)}",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+    
+    async def _handle_practice_session_start(self, message_data: dict) -> dict:
+        """
+        Handle practice session start message
+        
+        Args:
+            message_data: Session start message data
+            
+        Returns:
+            Response message
+        """
+        try:
+            story_sentences = message_data.get("story_sentences", [])
+            session_id = message_data.get("session_id")
+            
+            if not story_sentences:
+                return {
+                    "type": "error",
+                    "message": "Practice session start missing 'story_sentences'",
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            
+            # Start practice session through frame processor
+            result = self.frame_processor.start_practice_session(story_sentences, session_id)
+            
+            # Create response message
+            response = {
+                "type": "practice_session_response",
+                "timestamp": datetime.utcnow().isoformat(),
+                "action": "session_started",
+                "result": result,
+                "metadata": {
+                    "client_id": self.client_id
+                }
+            }
+            
+            self.logger.info(f"Practice session started for client {self.client_id}: {result.get('success', False)}")
+            return response
+            
+        except Exception as e:
+            self.logger.error(f"Error starting practice session for client {self.client_id}: {e}")
+            return {
+                "type": "error",
+                "message": f"Practice session start failed: {str(e)}",
                 "timestamp": datetime.utcnow().isoformat()
             }
 
@@ -835,7 +1073,7 @@ class VideoProcessingService:
         Returns:
             Formatted streaming response message
         """
-        return {
+        response = {
             "type": "processed_frame",
             "timestamp": datetime.utcnow().isoformat(),
             "frame_data": processing_result["frame_data"],
@@ -851,6 +1089,22 @@ class VideoProcessingService:
                 "success": True
             }
         }
+        
+        # Add practice session data if available
+        practice_session_data = processing_result.get("practice_session")
+        if practice_session_data:
+            response["practice_session"] = practice_session_data
+            
+            # Add gesture detection state indicators to metadata
+            gesture_state = practice_session_data.get("gesture_state", {})
+            response["metadata"]["gesture_detection"] = {
+                "is_detecting": gesture_state.get("is_detecting", False),
+                "practice_mode": practice_session_data.get("practice_mode", "listening"),
+                "analysis_in_progress": practice_session_data.get("analysis_in_progress", False),
+                "buffer_size": gesture_state.get("buffer_size", 0)
+            }
+        
+        return response
 
     def _create_degraded_streaming_response(self, processing_result: dict, client_metadata: dict) -> dict:
         """

@@ -795,6 +795,36 @@ class FrameProcessor:
         state["gesture_detection_enabled"] = True
         return state
     
+    def get_pending_analysis_task(self) -> Optional[Dict[str, Any]]:
+        """
+        Get pending analysis task from practice session manager
+        
+        Returns:
+            Pending analysis task or None
+        """
+        if not self.practice_session_manager:
+            return None
+        
+        return self.practice_session_manager.get_pending_analysis_task()
+    
+    def set_analysis_result(self, analysis_result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Set analysis result in practice session manager
+        
+        Args:
+            analysis_result: Result from signing analysis
+            
+        Returns:
+            Dictionary containing result status
+        """
+        if not self.practice_session_manager:
+            return {
+                "success": False,
+                "error": "Gesture detection not enabled"
+            }
+        
+        return self.practice_session_manager.set_analysis_result(analysis_result)
+    
     def close(self):
         """Clean up resources"""
         if hasattr(self, 'mediapipe_processor'):
@@ -1086,6 +1116,10 @@ class PracticeSessionManager:
         self.practice_mode = "listening"  # "listening", "detecting", "analyzing", "feedback"
         self.last_feedback = None
         
+        # Analysis state
+        self.analysis_in_progress = False
+        self.pending_analysis_task = None
+        
         self.logger.info("Practice session manager initialized")
     
     def start_practice_session(self, story_sentences: list, session_id: str = None) -> Dict[str, Any]:
@@ -1151,7 +1185,8 @@ class PracticeSessionManager:
                 "current_sentence": self.current_sentence,
                 "current_sentence_index": self.current_sentence_index,
                 "practice_mode": self.practice_mode,
-                "gesture_state": self.gesture_detector.get_detection_state()
+                "gesture_state": self.gesture_detector.get_detection_state(),
+                "analysis_in_progress": self.analysis_in_progress
             }
             
             # Handle gesture detection based on current mode
@@ -1161,6 +1196,7 @@ class PracticeSessionManager:
                     self.practice_mode = "detecting"
                     result["practice_mode"] = self.practice_mode
                     result["gesture_started"] = True
+                    self.logger.info(f"Gesture detection started for sentence: '{self.current_sentence}'")
                     
             elif self.practice_mode == "detecting":
                 # Collect landmark data during gesture
@@ -1172,6 +1208,20 @@ class PracticeSessionManager:
                     result["practice_mode"] = self.practice_mode
                     result["gesture_completed"] = True
                     result["landmark_buffer_size"] = len(self.gesture_detector.get_gesture_buffer())
+                    
+                    # Trigger analysis workflow
+                    self._trigger_signing_analysis()
+                    result["analysis_triggered"] = True
+                    self.logger.info(f"Gesture completed, analysis triggered for sentence: '{self.current_sentence}'")
+            
+            elif self.practice_mode == "analyzing":
+                # Show analyzing state while waiting for results
+                result["analyzing"] = True
+                
+            elif self.practice_mode == "feedback":
+                # Include feedback in result
+                if self.last_feedback:
+                    result["feedback"] = self.last_feedback
             
             return result
             
@@ -1181,6 +1231,118 @@ class PracticeSessionManager:
                 "practice_active": True,
                 "error": str(e)
             }
+    
+    def _trigger_signing_analysis(self) -> None:
+        """
+        Trigger asynchronous signing analysis for the completed gesture
+        """
+        try:
+            if self.analysis_in_progress:
+                self.logger.warning("Analysis already in progress, skipping new analysis")
+                return
+            
+            # Get the landmark buffer for analysis
+            landmark_buffer = self.gesture_detector.get_gesture_buffer()
+            
+            if not landmark_buffer:
+                self.logger.warning("No landmark data available for analysis")
+                self._set_analysis_error("No gesture data captured")
+                return
+            
+            if not self.current_sentence:
+                self.logger.warning("No target sentence available for analysis")
+                self._set_analysis_error("No target sentence available")
+                return
+            
+            # Mark analysis as in progress
+            self.analysis_in_progress = True
+            
+            # Create analysis task (this will be handled by the WebSocket handler)
+            self.pending_analysis_task = {
+                "landmark_buffer": landmark_buffer.copy(),
+                "target_sentence": self.current_sentence,
+                "timestamp": time.time()
+            }
+            
+            self.logger.info(f"Analysis task created for {len(landmark_buffer)} frames")
+            
+        except Exception as e:
+            self.logger.error(f"Error triggering signing analysis: {e}")
+            self._set_analysis_error(f"Analysis error: {str(e)}")
+    
+    def _set_analysis_error(self, error_message: str) -> None:
+        """
+        Set analysis error and return to listening mode
+        
+        Args:
+            error_message: Error message to display
+        """
+        self.analysis_in_progress = False
+        self.practice_mode = "feedback"
+        self.last_feedback = {
+            "feedback": f"Analysis error: {error_message}. Please try signing again.",
+            "confidence_score": 0.0,
+            "suggestions": ["Try signing again with clear movements", "Ensure good lighting"],
+            "analysis_summary": "Analysis failed",
+            "error": True
+        }
+        self.logger.warning(f"Analysis error set: {error_message}")
+    
+    def set_analysis_result(self, analysis_result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Set the result of signing analysis and transition to feedback mode
+        
+        Args:
+            analysis_result: Result from Ollama signing analysis
+            
+        Returns:
+            Dictionary containing the result status
+        """
+        try:
+            self.analysis_in_progress = False
+            self.pending_analysis_task = None
+            
+            if analysis_result and analysis_result.get("feedback"):
+                self.practice_mode = "feedback"
+                self.last_feedback = analysis_result
+                
+                self.logger.info(f"Analysis result set with confidence: {analysis_result.get('confidence_score', 'N/A')}")
+                
+                return {
+                    "success": True,
+                    "practice_mode": self.practice_mode,
+                    "feedback": self.last_feedback
+                }
+            else:
+                # Analysis failed, set error feedback
+                self._set_analysis_error("Analysis service returned no feedback")
+                return {
+                    "success": False,
+                    "error": "Analysis failed",
+                    "practice_mode": self.practice_mode,
+                    "feedback": self.last_feedback
+                }
+                
+        except Exception as e:
+            self.logger.error(f"Error setting analysis result: {e}")
+            self._set_analysis_error(f"Error processing analysis result: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "practice_mode": self.practice_mode,
+                "feedback": self.last_feedback
+            }
+    
+    def get_pending_analysis_task(self) -> Optional[Dict[str, Any]]:
+        """
+        Get and clear the pending analysis task
+        
+        Returns:
+            Pending analysis task data or None
+        """
+        task = self.pending_analysis_task
+        self.pending_analysis_task = None
+        return task
     
     def handle_control_message(self, action: str, data: Dict[str, Any] = None) -> Dict[str, Any]:
         """
