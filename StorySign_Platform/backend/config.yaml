@@ -30,7 +30,7 @@ local_vision:
   service_url: "http://localhost:1234" # LM Studio service URL (default port)
   model_name: "google/gemma-3-4b" # Model name as loaded in LM Studio
   service_type: "lm_studio" # Service type: "ollama" or "lm_studio"
-  timeout_seconds: 30 # Request timeout in seconds
+  timeout_seconds: 60 # Request timeout in seconds
   max_retries: 3 # Maximum retry attempts
   enabled: true # Enable/disable local vision service
 

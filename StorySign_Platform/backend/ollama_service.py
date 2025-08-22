@@ -130,6 +130,52 @@ class OllamaService:
             self.session = None
             logger.info("Ollama service session stopped")
 
+    async def generate_story(self, object_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Generate a short, simple story based on the identified object using the Ollama Cloud API.
+        Returns a dict with keys: title (str) and sentences (list[str]), or None on failure.
+        """
+        if not self.client:
+            logger.error("Ollama client is not initialized. Cannot generate story.")
+            return None
+
+        prompt = (
+            f"Generate a very simple, 3-sentence story for a child about a '{object_name}'. "
+            f"The story must use basic words suitable for learning American Sign Language. "
+            f"VERY IMPORTANT: Respond ONLY with a valid JSON object in the format: "
+            f'{{"title": "The Story of the {object_name}", "sentences": ["sentence 1", "sentence 2", "sentence 3"]}}'
+        )
+
+        messages = [{"role": "user", "content": prompt}]
+        logger.info(f"Generating story for object: '{object_name}' with model '{self.story_model}'")
+
+        try:
+            # The Ollama Python client is synchronous; run it in a thread to avoid blocking
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: self.client.chat(
+                    model=self.story_model,
+                    messages=messages,
+                    format="json"
+                )
+            )
+
+            story_content = response.get('message', {}).get('content', '{}')
+            story_json = json.loads(story_content)
+            logger.info(f"Successfully generated story: {story_json.get('title')}")
+            return story_json
+
+        except ResponseError as e:
+            logger.error(f"Ollama Cloud API error during story generation: {e}")
+            return None
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to decode JSON response from Ollama: {e}. Response was: {story_content}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error during story generation: {e}")
+            return None
+
     async def _make_request(self, endpoint: str, payload: Dict[str, Any], model: str) -> Tuple[bool, Optional[Dict], Optional[str]]:
         """
         Make async request to Ollama service with retry logic
