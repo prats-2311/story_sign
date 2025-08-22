@@ -133,6 +133,25 @@ class OllamaConfig(BaseModel):
         return v.strip()
 
 
+class GestureDetectionConfig(BaseModel):
+    """Configuration for gesture detection and analysis"""
+
+    velocity_threshold: float = Field(default=0.02, ge=0.001, le=0.1, description="Minimum hand movement velocity to detect gesture start")
+    pause_duration_ms: int = Field(default=1000, ge=500, le=3000, description="Duration of pause to detect gesture end (milliseconds)")
+    min_gesture_duration_ms: int = Field(default=500, ge=200, le=2000, description="Minimum gesture duration to be considered valid (milliseconds)")
+    landmark_buffer_size: int = Field(default=100, ge=30, le=300, description="Maximum number of landmark frames to buffer during gesture")
+    smoothing_window: int = Field(default=5, ge=3, le=15, description="Number of frames for velocity smoothing")
+    enabled: bool = Field(default=True, description="Enable/disable gesture detection")
+
+    @field_validator('velocity_threshold')
+    @classmethod
+    def validate_velocity_threshold(cls, v):
+        """Validate velocity threshold is reasonable"""
+        if v <= 0:
+            raise ValueError("Velocity threshold must be positive")
+        return v
+
+
 class AppConfig(BaseModel):
     """Main application configuration containing all sub-configurations"""
 
@@ -141,6 +160,7 @@ class AppConfig(BaseModel):
     server: ServerConfig = Field(default_factory=ServerConfig)
     local_vision: LocalVisionConfig = Field(default_factory=LocalVisionConfig)
     ollama: OllamaConfig = Field(default_factory=OllamaConfig)
+    gesture_detection: GestureDetectionConfig = Field(default_factory=GestureDetectionConfig)
 
     class Config:
         """Pydantic configuration"""
@@ -265,6 +285,20 @@ class ConfigManager:
         if os.getenv('STORYSIGN_OLLAMA__ENABLED'):
             env_vars.setdefault('ollama', {})['enabled'] = os.getenv('STORYSIGN_OLLAMA__ENABLED').lower() == 'true'
 
+        # Gesture detection configuration from environment
+        if os.getenv('STORYSIGN_GESTURE_DETECTION__VELOCITY_THRESHOLD'):
+            env_vars.setdefault('gesture_detection', {})['velocity_threshold'] = float(os.getenv('STORYSIGN_GESTURE_DETECTION__VELOCITY_THRESHOLD'))
+        if os.getenv('STORYSIGN_GESTURE_DETECTION__PAUSE_DURATION_MS'):
+            env_vars.setdefault('gesture_detection', {})['pause_duration_ms'] = int(os.getenv('STORYSIGN_GESTURE_DETECTION__PAUSE_DURATION_MS'))
+        if os.getenv('STORYSIGN_GESTURE_DETECTION__MIN_GESTURE_DURATION_MS'):
+            env_vars.setdefault('gesture_detection', {})['min_gesture_duration_ms'] = int(os.getenv('STORYSIGN_GESTURE_DETECTION__MIN_GESTURE_DURATION_MS'))
+        if os.getenv('STORYSIGN_GESTURE_DETECTION__LANDMARK_BUFFER_SIZE'):
+            env_vars.setdefault('gesture_detection', {})['landmark_buffer_size'] = int(os.getenv('STORYSIGN_GESTURE_DETECTION__LANDMARK_BUFFER_SIZE'))
+        if os.getenv('STORYSIGN_GESTURE_DETECTION__SMOOTHING_WINDOW'):
+            env_vars.setdefault('gesture_detection', {})['smoothing_window'] = int(os.getenv('STORYSIGN_GESTURE_DETECTION__SMOOTHING_WINDOW'))
+        if os.getenv('STORYSIGN_GESTURE_DETECTION__ENABLED'):
+            env_vars.setdefault('gesture_detection', {})['enabled'] = os.getenv('STORYSIGN_GESTURE_DETECTION__ENABLED').lower() == 'true'
+
         # Merge environment variables with file configuration (env vars take precedence)
         for section, values in env_vars.items():
             if section in config_data:
@@ -303,6 +337,7 @@ class ConfigManager:
             logger.debug(f"Server config: {self._config.server}")
             logger.debug(f"Local vision config: {self._config.local_vision}")
             logger.debug(f"Ollama config: {self._config.ollama}")
+            logger.debug(f"Gesture detection config: {self._config.gesture_detection}")
 
             return self._config
 

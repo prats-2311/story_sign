@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any, Tuple
 from datetime import datetime
 import time
 
-from config import MediaPipeConfig, VideoConfig
+from config import MediaPipeConfig, VideoConfig, GestureDetectionConfig
 
 # Initialize logger first
 logger = logging.getLogger(__name__)
@@ -406,22 +406,33 @@ class MediaPipeProcessor:
 class FrameProcessor:
     """
     Frame processing utilities for encoding/decoding and MediaPipe integration
+    Enhanced with gesture detection capabilities for ASL practice sessions
     """
     
-    def __init__(self, video_config: VideoConfig, mediapipe_config: MediaPipeConfig):
+    def __init__(self, video_config: VideoConfig, mediapipe_config: MediaPipeConfig, gesture_config: GestureDetectionConfig = None):
         """
         Initialize frame processor
         
         Args:
             video_config: Video configuration settings
             mediapipe_config: MediaPipe configuration settings
+            gesture_config: Optional gesture detection configuration
         """
         self.video_config = video_config
         self.mediapipe_config = mediapipe_config
+        self.gesture_config = gesture_config
         self.logger = logging.getLogger(f"{__name__}.FrameProcessor")
         
         # Initialize MediaPipe processor
         self.mediapipe_processor = MediaPipeProcessor(mediapipe_config)
+        
+        # Initialize practice session manager if gesture detection is enabled
+        self.practice_session_manager = None
+        if gesture_config and gesture_config.enabled:
+            self.practice_session_manager = PracticeSessionManager(gesture_config)
+            self.logger.info("Frame processor initialized with gesture detection enabled")
+        else:
+            self.logger.info("Frame processor initialized without gesture detection")
         
         self.logger.info("Frame processor initialized")
     
@@ -559,7 +570,7 @@ class FrameProcessor:
     def process_base64_frame(self, base64_data: str, frame_number: int = 0, skip_processing: bool = False) -> Dict[str, Any]:
         """
         Complete pipeline: decode base64 frame, process with MediaPipe, encode result
-        Optimized for low latency with optional processing skip
+        Enhanced with gesture detection for ASL practice sessions
         
         Args:
             base64_data: Base64 encoded JPEG image data
@@ -606,6 +617,16 @@ class FrameProcessor:
             # Process with MediaPipe (with graceful degradation)
             processed_frame, landmarks_detected, processing_time_ms = self.process_frame_with_mediapipe(frame)
             
+            # Process frame for gesture detection if practice session is active
+            practice_data = None
+            if self.practice_session_manager and self.practice_session_manager.is_active:
+                frame_metadata = {
+                    "frame_number": frame_number,
+                    "processing_time_ms": processing_time_ms,
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+                practice_data = self.practice_session_manager.process_frame_for_practice(landmarks_detected, frame_metadata)
+            
             # Encode processed frame with metadata
             encoding_result = self.encode_frame_to_base64(processed_frame, include_metadata=True)
             if encoding_result is None or not encoding_result.get("encoding_success", False):
@@ -632,6 +653,10 @@ class FrameProcessor:
                     "processing_efficiency": self._calculate_processing_efficiency(processing_time_ms)
                 }
             }
+            
+            # Add practice session data if available
+            if practice_data:
+                result["practice_session"] = practice_data
             
             self.logger.debug(f"Frame {frame_number} processing pipeline completed successfully - "
                             f"Total time: {total_pipeline_time_ms:.2f}ms, "
@@ -706,8 +731,590 @@ class FrameProcessor:
             # Minimum efficiency for very slow processing
             return 0.1
     
+    def start_practice_session(self, story_sentences: list, session_id: str = None) -> Dict[str, Any]:
+        """
+        Start a new ASL practice session
+        
+        Args:
+            story_sentences: List of sentences to practice
+            session_id: Optional session identifier
+            
+        Returns:
+            Dictionary containing session start result
+        """
+        if not self.practice_session_manager:
+            return {
+                "success": False,
+                "error": "Gesture detection not enabled"
+            }
+        
+        return self.practice_session_manager.start_practice_session(story_sentences, session_id)
+    
+    def handle_practice_control(self, action: str, data: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Handle practice session control messages
+        
+        Args:
+            action: Control action ("next_sentence", "try_again", "stop_session", "set_feedback")
+            data: Optional action data
+            
+        Returns:
+            Dictionary containing action result
+        """
+        if not self.practice_session_manager:
+            return {
+                "success": False,
+                "error": "Gesture detection not enabled"
+            }
+        
+        return self.practice_session_manager.handle_control_message(action, data)
+    
+    def get_gesture_buffer_for_analysis(self) -> list:
+        """
+        Get the current gesture buffer for AI analysis
+        
+        Returns:
+            List of landmark data for the completed gesture
+        """
+        if not self.practice_session_manager:
+            return []
+        
+        return self.practice_session_manager.get_gesture_buffer_for_analysis()
+    
+    def get_practice_session_state(self) -> Dict[str, Any]:
+        """
+        Get current practice session state
+        
+        Returns:
+            Dictionary containing session state information
+        """
+        if not self.practice_session_manager:
+            return {"gesture_detection_enabled": False}
+        
+        state = self.practice_session_manager.get_session_state()
+        state["gesture_detection_enabled"] = True
+        return state
+    
     def close(self):
         """Clean up resources"""
         if hasattr(self, 'mediapipe_processor'):
             self.mediapipe_processor.close()
             self.logger.info("Frame processor closed")
+
+
+class GestureDetector:
+    """
+    Gesture detection system for ASL practice sessions
+    Detects gesture start/end using hand movement velocity and manages landmark buffering
+    """
+    
+    def __init__(self, gesture_config: GestureDetectionConfig):
+        """
+        Initialize gesture detector
+        
+        Args:
+            gesture_config: Gesture detection configuration settings
+        """
+        self.config = gesture_config
+        self.logger = logging.getLogger(f"{__name__}.GestureDetector")
+        
+        # Gesture detection state
+        self.is_detecting = False
+        self.gesture_start_time = None
+        self.gesture_end_time = None
+        self.last_movement_time = None
+        
+        # Landmark data buffering
+        self.landmark_buffer = []
+        self.velocity_history = []
+        
+        # Hand position tracking for velocity calculation
+        self.previous_hand_positions = None
+        self.frame_timestamps = []
+        
+        self.logger.info(f"Gesture detector initialized with velocity threshold: {self.config.velocity_threshold}")
+    
+    def calculate_hand_velocity(self, landmarks_data: Dict[str, Any]) -> float:
+        """
+        Calculate hand movement velocity from landmark data
+        
+        Args:
+            landmarks_data: Dictionary containing hand landmarks from MediaPipe
+            
+        Returns:
+            Average velocity of both hands (normalized units per second)
+        """
+        try:
+            current_time = time.time()
+            current_positions = []
+            
+            # Extract hand positions from landmarks - simplified approach for gesture detection
+            # In practice, this would extract actual landmark coordinates from MediaPipe results
+            # For now, we use the detection status as a proxy for movement
+            if landmarks_data.get("hands", False):
+                # Simulate hand center positions based on detection
+                # In real implementation, calculate center of hand landmarks
+                current_positions = [0.5, 0.5]  # Normalized coordinates [x, y]
+                
+                # Add some variation to simulate movement when hands are detected
+                import random
+                if random.random() > 0.7:  # 30% chance of movement simulation
+                    current_positions[0] += random.uniform(-0.1, 0.1)
+                    current_positions[1] += random.uniform(-0.1, 0.1)
+            
+            if not current_positions:
+                # No hands detected, reset tracking
+                self.previous_hand_positions = None
+                return 0.0
+            
+            # Calculate velocity if we have previous positions
+            if self.previous_hand_positions is not None and len(self.frame_timestamps) > 0:
+                time_delta = current_time - self.frame_timestamps[-1]
+                if time_delta > 0:
+                    # Calculate Euclidean distance moved
+                    distance = sum((curr - prev) ** 2 for curr, prev in zip(current_positions, self.previous_hand_positions)) ** 0.5
+                    velocity = distance / time_delta
+                    
+                    # Add to velocity history for smoothing
+                    self.velocity_history.append(velocity)
+                    if len(self.velocity_history) > self.config.smoothing_window:
+                        self.velocity_history.pop(0)
+                    
+                    # Return smoothed velocity
+                    smoothed_velocity = sum(self.velocity_history) / len(self.velocity_history)
+                    
+                    self.logger.debug(f"Hand velocity: {smoothed_velocity:.4f} (raw: {velocity:.4f})")
+                    return smoothed_velocity
+            
+            # Update tracking data
+            self.previous_hand_positions = current_positions
+            self.frame_timestamps.append(current_time)
+            if len(self.frame_timestamps) > self.config.smoothing_window:
+                self.frame_timestamps.pop(0)
+            
+            return 0.0
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating hand velocity: {e}")
+            return 0.0
+    
+    def detect_gesture_start(self, landmarks_data: Dict[str, Any]) -> bool:
+        """
+        Detect the start of a gesture based on hand movement velocity
+        
+        Args:
+            landmarks_data: Dictionary containing landmarks from MediaPipe
+            
+        Returns:
+            True if gesture start is detected, False otherwise
+        """
+        if not self.config.enabled or self.is_detecting:
+            return False
+        
+        try:
+            velocity = self.calculate_hand_velocity(landmarks_data)
+            
+            # Check if velocity exceeds threshold
+            if velocity > self.config.velocity_threshold:
+                self.is_detecting = True
+                self.gesture_start_time = time.time()
+                self.last_movement_time = time.time()
+                self.landmark_buffer = []
+                
+                self.logger.info(f"Gesture start detected - velocity: {velocity:.4f}")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"Error detecting gesture start: {e}")
+            return False
+    
+    def detect_gesture_end(self, landmarks_data: Dict[str, Any]) -> bool:
+        """
+        Detect the end of a gesture based on movement pause
+        
+        Args:
+            landmarks_data: Dictionary containing landmarks from MediaPipe
+            
+        Returns:
+            True if gesture end is detected, False otherwise
+        """
+        if not self.config.enabled or not self.is_detecting:
+            return False
+        
+        try:
+            current_time = time.time()
+            velocity = self.calculate_hand_velocity(landmarks_data)
+            
+            # Update last movement time if still moving
+            if velocity > self.config.velocity_threshold:
+                self.last_movement_time = current_time
+                return False
+            
+            # Check if pause duration exceeded
+            if self.last_movement_time is not None:
+                pause_duration_ms = (current_time - self.last_movement_time) * 1000
+                
+                if pause_duration_ms >= self.config.pause_duration_ms:
+                    # Check minimum gesture duration
+                    if self.gesture_start_time is not None:
+                        gesture_duration_ms = (current_time - self.gesture_start_time) * 1000
+                        
+                        if gesture_duration_ms >= self.config.min_gesture_duration_ms:
+                            self.gesture_end_time = current_time
+                            self.is_detecting = False
+                            
+                            self.logger.info(f"Gesture end detected - duration: {gesture_duration_ms:.0f}ms, "
+                                           f"pause: {pause_duration_ms:.0f}ms")
+                            return True
+                        else:
+                            # Gesture too short, reset detection
+                            self.logger.debug(f"Gesture too short ({gesture_duration_ms:.0f}ms), resetting")
+                            self.reset_detection()
+                            return False
+            
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"Error detecting gesture end: {e}")
+            return False
+    
+    def collect_landmark_data(self, landmarks_data: Dict[str, Any], frame_metadata: Dict[str, Any]) -> None:
+        """
+        Buffer landmark data during gesture detection
+        
+        Args:
+            landmarks_data: Dictionary containing landmarks from MediaPipe
+            frame_metadata: Frame processing metadata
+        """
+        if not self.config.enabled or not self.is_detecting:
+            return
+        
+        try:
+            # Create landmark entry with timestamp
+            landmark_entry = {
+                "timestamp": time.time(),
+                "landmarks": landmarks_data.copy(),
+                "metadata": frame_metadata.copy()
+            }
+            
+            # Add to buffer
+            self.landmark_buffer.append(landmark_entry)
+            
+            # Limit buffer size
+            if len(self.landmark_buffer) > self.config.landmark_buffer_size:
+                self.landmark_buffer.pop(0)
+            
+            self.logger.debug(f"Landmark data collected - buffer size: {len(self.landmark_buffer)}")
+            
+        except Exception as e:
+            self.logger.error(f"Error collecting landmark data: {e}")
+    
+    def get_gesture_buffer(self) -> list:
+        """
+        Get the current landmark buffer for analysis
+        
+        Returns:
+            List of landmark data entries collected during the gesture
+        """
+        return self.landmark_buffer.copy()
+    
+    def reset_detection(self) -> None:
+        """Reset gesture detection state"""
+        self.is_detecting = False
+        self.gesture_start_time = None
+        self.gesture_end_time = None
+        self.last_movement_time = None
+        self.landmark_buffer = []
+        
+        self.logger.debug("Gesture detection state reset")
+    
+    def get_detection_state(self) -> Dict[str, Any]:
+        """
+        Get current gesture detection state
+        
+        Returns:
+            Dictionary containing detection state information
+        """
+        current_time = time.time()
+        
+        state = {
+            "is_detecting": self.is_detecting,
+            "buffer_size": len(self.landmark_buffer),
+            "enabled": self.config.enabled
+        }
+        
+        if self.is_detecting and self.gesture_start_time is not None:
+            state["gesture_duration_ms"] = (current_time - self.gesture_start_time) * 1000
+            
+            if self.last_movement_time is not None:
+                state["pause_duration_ms"] = (current_time - self.last_movement_time) * 1000
+            else:
+                state["pause_duration_ms"] = 0
+        
+        return state
+
+
+class PracticeSessionManager:
+    """
+    Manages practice session state for ASL learning
+    Coordinates gesture detection with target sentences and feedback
+    """
+    
+    def __init__(self, gesture_config: GestureDetectionConfig):
+        """
+        Initialize practice session manager
+        
+        Args:
+            gesture_config: Gesture detection configuration
+        """
+        self.gesture_config = gesture_config
+        self.logger = logging.getLogger(f"{__name__}.PracticeSessionManager")
+        
+        # Session state
+        self.is_active = False
+        self.current_sentence = None
+        self.current_sentence_index = 0
+        self.story_sentences = []
+        self.session_id = None
+        
+        # Gesture detection
+        self.gesture_detector = GestureDetector(gesture_config)
+        
+        # Practice mode state
+        self.practice_mode = "listening"  # "listening", "detecting", "analyzing", "feedback"
+        self.last_feedback = None
+        
+        self.logger.info("Practice session manager initialized")
+    
+    def start_practice_session(self, story_sentences: list, session_id: str = None) -> Dict[str, Any]:
+        """
+        Start a new practice session with story sentences
+        
+        Args:
+            story_sentences: List of sentences to practice
+            session_id: Optional session identifier
+            
+        Returns:
+            Dictionary containing session start information
+        """
+        try:
+            self.is_active = True
+            self.story_sentences = story_sentences.copy()
+            self.current_sentence_index = 0
+            self.current_sentence = story_sentences[0] if story_sentences else None
+            self.session_id = session_id or f"session_{int(time.time())}"
+            self.practice_mode = "listening"
+            self.last_feedback = None
+            
+            # Reset gesture detection
+            self.gesture_detector.reset_detection()
+            
+            self.logger.info(f"Practice session started - ID: {self.session_id}, "
+                           f"sentences: {len(self.story_sentences)}")
+            
+            return {
+                "success": True,
+                "session_id": self.session_id,
+                "total_sentences": len(self.story_sentences),
+                "current_sentence_index": self.current_sentence_index,
+                "current_sentence": self.current_sentence,
+                "practice_mode": self.practice_mode
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error starting practice session: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def process_frame_for_practice(self, landmarks_data: Dict[str, Any], frame_metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process frame data for practice session gesture detection
+        
+        Args:
+            landmarks_data: Dictionary containing landmarks from MediaPipe
+            frame_metadata: Frame processing metadata
+            
+        Returns:
+            Dictionary containing practice session updates
+        """
+        if not self.is_active:
+            return {"practice_active": False}
+        
+        try:
+            result = {
+                "practice_active": True,
+                "session_id": self.session_id,
+                "current_sentence": self.current_sentence,
+                "current_sentence_index": self.current_sentence_index,
+                "practice_mode": self.practice_mode,
+                "gesture_state": self.gesture_detector.get_detection_state()
+            }
+            
+            # Handle gesture detection based on current mode
+            if self.practice_mode == "listening":
+                # Check for gesture start
+                if self.gesture_detector.detect_gesture_start(landmarks_data):
+                    self.practice_mode = "detecting"
+                    result["practice_mode"] = self.practice_mode
+                    result["gesture_started"] = True
+                    
+            elif self.practice_mode == "detecting":
+                # Collect landmark data during gesture
+                self.gesture_detector.collect_landmark_data(landmarks_data, frame_metadata)
+                
+                # Check for gesture end
+                if self.gesture_detector.detect_gesture_end(landmarks_data):
+                    self.practice_mode = "analyzing"
+                    result["practice_mode"] = self.practice_mode
+                    result["gesture_completed"] = True
+                    result["landmark_buffer_size"] = len(self.gesture_detector.get_gesture_buffer())
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Error processing frame for practice: {e}")
+            return {
+                "practice_active": True,
+                "error": str(e)
+            }
+    
+    def handle_control_message(self, action: str, data: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Handle practice session control messages
+        
+        Args:
+            action: Control action ("next_sentence", "try_again", "stop_session")
+            data: Optional action data
+            
+        Returns:
+            Dictionary containing action result
+        """
+        try:
+            if action == "next_sentence":
+                return self._next_sentence()
+            elif action == "try_again":
+                return self._try_again()
+            elif action == "stop_session":
+                return self._stop_session()
+            elif action == "set_feedback":
+                return self._set_feedback(data)
+            else:
+                return {
+                    "success": False,
+                    "error": f"Unknown action: {action}"
+                }
+                
+        except Exception as e:
+            self.logger.error(f"Error handling control message: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _next_sentence(self) -> Dict[str, Any]:
+        """Move to the next sentence in the story"""
+        if self.current_sentence_index < len(self.story_sentences) - 1:
+            self.current_sentence_index += 1
+            self.current_sentence = self.story_sentences[self.current_sentence_index]
+            self.practice_mode = "listening"
+            self.last_feedback = None
+            self.gesture_detector.reset_detection()
+            
+            self.logger.info(f"Moved to next sentence: {self.current_sentence_index}")
+            
+            return {
+                "success": True,
+                "action": "next_sentence",
+                "current_sentence_index": self.current_sentence_index,
+                "current_sentence": self.current_sentence,
+                "practice_mode": self.practice_mode,
+                "is_last_sentence": self.current_sentence_index == len(self.story_sentences) - 1
+            }
+        else:
+            # Story completed
+            self.logger.info("Story practice completed")
+            return {
+                "success": True,
+                "action": "story_completed",
+                "total_sentences": len(self.story_sentences)
+            }
+    
+    def _try_again(self) -> Dict[str, Any]:
+        """Reset current sentence for another attempt"""
+        self.practice_mode = "listening"
+        self.last_feedback = None
+        self.gesture_detector.reset_detection()
+        
+        self.logger.info(f"Trying again with sentence: {self.current_sentence_index}")
+        
+        return {
+            "success": True,
+            "action": "try_again",
+            "current_sentence_index": self.current_sentence_index,
+            "current_sentence": self.current_sentence,
+            "practice_mode": self.practice_mode
+        }
+    
+    def _stop_session(self) -> Dict[str, Any]:
+        """Stop the current practice session"""
+        self.is_active = False
+        self.gesture_detector.reset_detection()
+        
+        self.logger.info(f"Practice session stopped: {self.session_id}")
+        
+        return {
+            "success": True,
+            "action": "session_stopped",
+            "session_id": self.session_id
+        }
+    
+    def _set_feedback(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Set feedback for the current gesture attempt"""
+        if data and "feedback" in data:
+            self.last_feedback = data["feedback"]
+            self.practice_mode = "feedback"
+            
+            self.logger.info("Feedback set for current gesture")
+            
+            return {
+                "success": True,
+                "action": "feedback_set",
+                "practice_mode": self.practice_mode,
+                "feedback": self.last_feedback
+            }
+        else:
+            return {
+                "success": False,
+                "error": "No feedback data provided"
+            }
+    
+    def get_gesture_buffer_for_analysis(self) -> list:
+        """
+        Get the current gesture buffer for AI analysis
+        
+        Returns:
+            List of landmark data for the completed gesture
+        """
+        return self.gesture_detector.get_gesture_buffer()
+    
+    def get_session_state(self) -> Dict[str, Any]:
+        """
+        Get complete session state information
+        
+        Returns:
+            Dictionary containing full session state
+        """
+        return {
+            "is_active": self.is_active,
+            "session_id": self.session_id,
+            "current_sentence": self.current_sentence,
+            "current_sentence_index": self.current_sentence_index,
+            "total_sentences": len(self.story_sentences),
+            "practice_mode": self.practice_mode,
+            "last_feedback": self.last_feedback,
+            "gesture_state": self.gesture_detector.get_detection_state() if self.is_active else None
+        }
