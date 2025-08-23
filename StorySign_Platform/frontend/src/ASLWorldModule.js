@@ -172,6 +172,23 @@ const ASLWorldModule = ({
 
       <div className="practice-controls">
         <div className="current-sentence">
+          <div className="sentence-progress">
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${
+                    ((currentSentenceIndex + 1) /
+                      (storyData?.sentences?.length || 1)) *
+                    100
+                  }%`,
+                }}
+              ></div>
+            </div>
+            <span className="progress-text">
+              {currentSentenceIndex + 1} of {storyData?.sentences?.length || 0}
+            </span>
+          </div>
           <h3>Practice This Sentence:</h3>
           <div className="highlighted-sentence">
             {storyData?.sentences?.[currentSentenceIndex] ||
@@ -183,21 +200,95 @@ const ASLWorldModule = ({
           {showFeedback && latestFeedback ? (
             <div className="feedback-section">
               <div className="feedback-display">
-                <h4>AI Feedback</h4>
+                <h4>
+                  {latestFeedback?.completed
+                    ? "🎉 Story Complete!"
+                    : "AI Feedback"}
+                </h4>
                 <div className="feedback-content">
                   <p className="feedback-text">{latestFeedback.feedback}</p>
-                  {latestFeedback.confidence_score && (
+
+                  {/* Confidence Score Display */}
+                  {latestFeedback.confidence_score !== undefined && (
                     <div className="confidence-score">
                       <span>
-                        Confidence:{" "}
-                        {Math.round(latestFeedback.confidence_score * 100)}%
+                        {latestFeedback?.completed
+                          ? "Overall Score"
+                          : "Confidence"}
+                        : {Math.round(latestFeedback.confidence_score * 100)}%
                       </span>
                     </div>
                   )}
+
+                  {/* Story Statistics for Completion */}
+                  {latestFeedback?.completed && latestFeedback?.story_stats && (
+                    <div className="story-stats">
+                      <h5>Practice Summary:</h5>
+                      <div className="stats-grid">
+                        <div className="stat-item">
+                          <span className="stat-label">Sentences:</span>
+                          <span className="stat-value">
+                            {latestFeedback.story_stats.total_sentences}
+                          </span>
+                        </div>
+                        {latestFeedback.story_stats.completion_time > 0 && (
+                          <div className="stat-item">
+                            <span className="stat-label">Time:</span>
+                            <span className="stat-value">
+                              {Math.round(
+                                latestFeedback.story_stats.completion_time /
+                                  1000
+                              )}
+                              s
+                            </span>
+                          </div>
+                        )}
+                        {latestFeedback.story_stats.average_confidence > 0 && (
+                          <div className="stat-item">
+                            <span className="stat-label">Avg. Score:</span>
+                            <span className="stat-value">
+                              {Math.round(
+                                latestFeedback.story_stats.average_confidence *
+                                  100
+                              )}
+                              %
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Processing Information */}
+                  {latestFeedback.processing_time > 0 &&
+                    !latestFeedback?.completed && (
+                      <div className="processing-info">
+                        <small>
+                          Analysis completed in {latestFeedback.processing_time}
+                          ms
+                        </small>
+                      </div>
+                    )}
+
+                  {/* Error Handling */}
+                  {latestFeedback?.error && (
+                    <div className="feedback-error">
+                      <p>
+                        ⚠️ There was an issue processing your signing. Please
+                        try again.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Suggestions */}
                   {latestFeedback.suggestions &&
                     latestFeedback.suggestions.length > 0 && (
                       <div className="suggestions">
-                        <h5>Suggestions:</h5>
+                        <h5>
+                          {latestFeedback?.completed
+                            ? "Next Steps:"
+                            : "Suggestions:"}
+                        </h5>
                         <ul>
                           {latestFeedback.suggestions.map(
                             (suggestion, index) => (
@@ -211,32 +302,55 @@ const ASLWorldModule = ({
               </div>
 
               <div className="control-buttons">
-                <button
-                  className="try-again-btn"
-                  onClick={() => handlePracticeControl("try_again")}
-                  disabled={isProcessingFeedback}
-                >
-                  Try Again
-                </button>
-                {currentSentenceIndex <
-                  (storyData?.sentences?.length || 0) - 1 && (
-                  <button
-                    className="next-sentence-btn"
-                    onClick={() => handlePracticeControl("next_sentence")}
-                    disabled={isProcessingFeedback}
-                  >
-                    Next Sentence
-                  </button>
-                )}
-                {currentSentenceIndex ===
-                  (storyData?.sentences?.length || 0) - 1 && (
-                  <button
-                    className="complete-story-btn"
-                    onClick={() => handlePracticeControl("complete_story")}
-                    disabled={isProcessingFeedback}
-                  >
-                    Complete Story
-                  </button>
+                {!latestFeedback?.completed ? (
+                  <>
+                    <button
+                      className="try-again-btn"
+                      onClick={() => handlePracticeControl("try_again")}
+                      disabled={isProcessingFeedback}
+                    >
+                      Try Again
+                    </button>
+                    {currentSentenceIndex <
+                      (storyData?.sentences?.length || 0) - 1 && (
+                      <button
+                        className="next-sentence-btn"
+                        onClick={() => handlePracticeControl("next_sentence")}
+                        disabled={isProcessingFeedback}
+                      >
+                        Next Sentence ({currentSentenceIndex + 2}/
+                        {storyData?.sentences?.length})
+                      </button>
+                    )}
+                    {currentSentenceIndex ===
+                      (storyData?.sentences?.length || 0) - 1 && (
+                      <button
+                        className="complete-story-btn"
+                        onClick={() => handlePracticeControl("complete_story")}
+                        disabled={isProcessingFeedback}
+                      >
+                        Complete Story
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  // Story completion controls
+                  <div className="completion-controls">
+                    <button
+                      className="restart-story-btn"
+                      onClick={() => handlePracticeControl("restart_story")}
+                      disabled={isProcessingFeedback}
+                    >
+                      Practice Again
+                    </button>
+                    <button
+                      className="new-story-btn"
+                      onClick={() => handlePracticeControl("new_story")}
+                      disabled={isProcessingFeedback}
+                    >
+                      New Story
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -267,6 +381,7 @@ const ASLWorldModule = ({
                             "Gesture detected - keep signing"}
                           {gestureState === "analyzing" &&
                             "Analyzing your gesture"}
+                          {gestureState === "completed" && "Story completed!"}
                         </span>
                       </div>
                     </div>

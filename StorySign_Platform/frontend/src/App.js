@@ -161,13 +161,16 @@ function App() {
       });
     } else if (message.type === "asl_feedback") {
       // Handle ASL feedback messages for practice sessions
-      handleASLFeedback(message.data);
+      handleASLFeedback(message.data, message.enhanced);
     } else if (message.type === "control_response") {
       // Handle practice control responses
       handlePracticeControlResponse(message);
     } else if (message.type === "practice_session_response") {
       // Handle practice session responses
       handlePracticeSessionResponse(message);
+    } else if (message.type === "session_complete") {
+      // Handle story completion notifications
+      handleSessionComplete(message);
     } else {
       // Handle other message types as processed frames for backward compatibility
       setProcessedFrameData(message);
@@ -309,14 +312,23 @@ function App() {
     );
 
     try {
+      // Prepare control data with enhanced information
+      const controlData = {
+        sentence_index: sentenceIndex,
+        target_sentence: storyData?.sentences?.[sentenceIndex] || "",
+        story_sentences: storyData?.sentences || [],
+        story_title: storyData?.title || "Unknown Story",
+        session_timestamp: new Date().toISOString(),
+        previous_feedback: latestFeedback
+          ? {
+              confidence: latestFeedback.confidence_score,
+              had_suggestions: latestFeedback.suggestions?.length > 0,
+            }
+          : null,
+      };
+
       // Send control message to backend via WebSocket
       if (videoStreamingRef.current && streamingActive) {
-        const controlData = {
-          sentence_index: sentenceIndex,
-          target_sentence: storyData?.sentences?.[sentenceIndex] || "",
-          story_sentences: storyData?.sentences || [],
-        };
-
         const success = videoStreamingRef.current.sendPracticeControl(
           action,
           controlData
@@ -328,14 +340,25 @@ function App() {
         }
       }
 
-      // Update local state based on action
+      // Update local state based on action with enhanced handling
       switch (action) {
         case "next_sentence":
           if (sentenceIndex < (storyData?.sentences?.length || 0) - 1) {
-            setCurrentSentenceIndex(sentenceIndex + 1);
+            const nextIndex = sentenceIndex + 1;
+            setCurrentSentenceIndex(nextIndex);
             setLatestFeedback(null);
             setIsProcessingFeedback(false);
             setGestureState("listening");
+
+            console.log(
+              `Advanced to sentence ${nextIndex + 1}/${
+                storyData?.sentences?.length
+              }`
+            );
+          } else {
+            // This is the last sentence, trigger completion
+            console.log("Attempting to complete story from last sentence");
+            handlePracticeControl("complete_story", sentenceIndex);
           }
           break;
 
@@ -343,14 +366,38 @@ function App() {
           setLatestFeedback(null);
           setIsProcessingFeedback(false);
           setGestureState("listening");
+          console.log(
+            `Retrying sentence ${sentenceIndex + 1}: "${
+              storyData?.sentences?.[sentenceIndex]
+            }"`
+          );
           break;
 
         case "complete_story":
-          // Story completed - could show completion message or reset
+          // Story completed - show completion state
           console.log("Story practice completed!");
+          setGestureState("completed");
+          // Keep current feedback to show completion message
+          // The backend should send a session_complete message with final feedback
+          break;
+
+        case "restart_story":
+          // Restart the current story from the beginning
+          setCurrentSentenceIndex(0);
           setLatestFeedback(null);
           setIsProcessingFeedback(false);
           setGestureState("listening");
+          console.log("Restarting story from beginning");
+          break;
+
+        case "new_story":
+          // Reset all story-related state for new story generation
+          setStoryData(null);
+          setCurrentSentenceIndex(0);
+          setLatestFeedback(null);
+          setIsProcessingFeedback(false);
+          setGestureState("listening");
+          console.log("Preparing for new story generation");
           break;
 
         default:
@@ -358,13 +405,65 @@ function App() {
       }
     } catch (error) {
       console.error("Error handling practice control:", error);
+      // Reset to safe state on error
+      setIsProcessingFeedback(false);
+      setGestureState("listening");
     }
   };
 
-  const handleASLFeedback = (feedbackData) => {
-    console.log("Received ASL feedback:", feedbackData);
-    setLatestFeedback(feedbackData);
-    setIsProcessingFeedback(false);
+  const handleASLFeedback = (feedbackData, isEnhanced = false) => {
+    console.log(
+      "Received ASL feedback:",
+      feedbackData,
+      "Enhanced:",
+      isEnhanced
+    );
+
+    // Validate and enhance feedback data
+    if (feedbackData && typeof feedbackData === "object") {
+      const enhancedFeedback = {
+        ...feedbackData,
+        // Ensure required fields exist
+        feedback: feedbackData.feedback || "No feedback available",
+        confidence_score: feedbackData.confidence_score || 0,
+        suggestions: feedbackData.suggestions || [],
+        target_sentence:
+          feedbackData.target_sentence ||
+          storyData?.sentences?.[currentSentenceIndex] ||
+          "",
+        // Add metadata
+        received_at: new Date().toISOString(),
+        sentence_index: currentSentenceIndex,
+        story_title: storyData?.title || "Unknown Story",
+        // Processing information
+        processing_time: feedbackData.processing_time || 0,
+        session_id: feedbackData.session_id || "unknown",
+      };
+
+      setLatestFeedback(enhancedFeedback);
+      setIsProcessingFeedback(false);
+      setGestureState("listening"); // Reset gesture state after feedback
+
+      // Log feedback for debugging
+      console.log("Enhanced feedback set:", {
+        sentence: enhancedFeedback.target_sentence,
+        confidence: enhancedFeedback.confidence_score,
+        suggestionsCount: enhancedFeedback.suggestions.length,
+        processingTime: enhancedFeedback.processing_time,
+      });
+    } else {
+      console.error("Invalid feedback data received:", feedbackData);
+      setLatestFeedback({
+        feedback: "Error: Invalid feedback received from server",
+        confidence_score: 0,
+        suggestions: ["Please try signing again"],
+        target_sentence: storyData?.sentences?.[currentSentenceIndex] || "",
+        error: true,
+        received_at: new Date().toISOString(),
+      });
+      setIsProcessingFeedback(false);
+      setGestureState("listening");
+    }
   };
 
   const handlePracticeSessionUpdate = (practiceData) => {
@@ -418,12 +517,52 @@ function App() {
 
       if (action === "session_started") {
         console.log("Practice session started successfully on backend");
+        // Reset practice state for new session
+        setCurrentSentenceIndex(0);
+        setLatestFeedback(null);
+        setIsProcessingFeedback(false);
+        setGestureState("listening");
       }
     } else {
       console.error(
         "Practice session operation failed:",
         message.result?.error
       );
+    }
+  };
+
+  const handleSessionComplete = (message) => {
+    console.log("Session complete:", message);
+
+    // Handle story completion
+    if (message.data) {
+      const completionData = message.data;
+
+      // Create completion feedback
+      const completionFeedback = {
+        feedback:
+          completionData.completion_message ||
+          "Congratulations! You've completed the story!",
+        confidence_score: completionData.overall_score || 1.0,
+        suggestions: completionData.final_suggestions || [
+          "Great job completing the story!",
+          "Try generating a new story to continue practicing",
+        ],
+        target_sentence: "Story Complete",
+        completed: true,
+        story_stats: {
+          total_sentences: storyData?.sentences?.length || 0,
+          completion_time: completionData.completion_time || 0,
+          average_confidence: completionData.average_confidence || 0,
+        },
+        received_at: new Date().toISOString(),
+      };
+
+      setLatestFeedback(completionFeedback);
+      setIsProcessingFeedback(false);
+      setGestureState("completed");
+
+      console.log("Story completion feedback set:", completionFeedback);
     }
   };
 

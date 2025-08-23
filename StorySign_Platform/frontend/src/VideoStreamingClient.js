@@ -104,9 +104,54 @@ const VideoStreamingClient = forwardRef(
             break;
 
           case "asl_feedback":
-            // Handle ASL feedback messages for practice sessions
+            // Enhanced ASL feedback handling for practice sessions
             console.log("Received ASL feedback:", message.data);
-            onProcessedFrame?.(message); // Pass to parent for handling
+
+            // Validate feedback data structure
+            if (message.data && typeof message.data === "object") {
+              // Add timestamp if not present
+              if (!message.data.timestamp) {
+                message.data.timestamp = new Date().toISOString();
+              }
+
+              // Ensure feedback has required fields
+              const enhancedFeedback = {
+                ...message.data,
+                message_id: message.message_id || `feedback_${Date.now()}`,
+                session_id: message.session_id || "unknown",
+                processing_time: message.metadata?.processing_time_ms || 0,
+              };
+
+              // Create enhanced message for parent handling
+              const enhancedMessage = {
+                ...message,
+                data: enhancedFeedback,
+                enhanced: true,
+              };
+
+              onProcessedFrame?.(enhancedMessage);
+            } else {
+              console.error("Invalid ASL feedback data structure:", message);
+              setLastError("Received invalid feedback data from server");
+            }
+            break;
+
+          case "control_response":
+            // Handle practice control responses (next_sentence, try_again, etc.)
+            console.log("Received control response:", message);
+            onProcessedFrame?.(message);
+            break;
+
+          case "practice_session_response":
+            // Handle practice session management responses
+            console.log("Received practice session response:", message);
+            onProcessedFrame?.(message);
+            break;
+
+          case "session_complete":
+            // Handle story completion notifications
+            console.log("Received session complete:", message);
+            onProcessedFrame?.(message);
             break;
 
           case "error":
@@ -127,7 +172,9 @@ const VideoStreamingClient = forwardRef(
             break;
 
           default:
-            console.warn("Unknown message type:", message.type);
+            console.warn("Unknown message type:", message.type, message);
+            // Still pass unknown messages to parent for potential handling
+            onProcessedFrame?.(message);
         }
       },
       [onProcessedFrame, onError]
