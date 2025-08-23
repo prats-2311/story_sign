@@ -1,9 +1,7 @@
 import React, { useState, useRef } from "react";
 import "./App.css";
 import "./PerformanceMonitor.css";
-import WebcamCapture from "./WebcamCapture";
-import VideoStreamingClient from "./VideoStreamingClient";
-import ProcessedVideoDisplay from "./ProcessedVideoDisplay";
+import VideoStream from "./VideoStream";
 import PerformanceMonitorSimple from "./PerformanceMonitorSimple";
 import ASLWorldModule from "./ASLWorldModule";
 
@@ -38,6 +36,38 @@ function App() {
   const [gestureState, setGestureState] = useState("listening");
 
   const videoStreamingRef = useRef(null);
+  const hasStartedPracticeRef = useRef(false);
+
+  // Effect 1: When a story is generated, ensure webcam/streaming are active
+  React.useEffect(() => {
+    if (storyData) {
+      // Reset practice session start flag for new story
+      hasStartedPracticeRef.current = false;
+
+      if (!webcamActive) {
+        setWebcamActive(true);
+      }
+      if (!streamingActive) {
+        setStreamingActive(true);
+      }
+      // Reset sentence index for the new story
+      setCurrentSentenceIndex(0);
+    }
+  }, [storyData]); // Runs when a new story is loaded
+
+  // Effect 2: When the streaming connection is established, start the session
+  React.useEffect(() => {
+    if (
+      storyData &&
+      streamingConnectionStatus === "connected" &&
+      videoStreamingRef.current &&
+      !hasStartedPracticeRef.current
+    ) {
+      hasStartedPracticeRef.current = true;
+      // Start practice session safely after WS is connected
+      startPracticeSession(storyData);
+    }
+  }, [storyData, streamingConnectionStatus]);
 
   const testBackendConnection = async () => {
     setIsLoading(true);
@@ -662,7 +692,24 @@ function App() {
               connectionStatus={connectionStatus}
               onFrameCapture={handleFrameCapture}
               gestureState={gestureState}
-            />
+            >
+              <VideoStream
+                webcamActive={webcamActive}
+                streamingActive={streamingActive}
+                onFrameCapture={handleFrameCapture}
+                videoStreamingRef={videoStreamingRef}
+                onConnectionChange={handleStreamingConnectionChange}
+                onProcessedFrame={handleProcessedFrame}
+                onError={handleStreamingError}
+                processedFrameData={processedFrameData}
+                streamingConnectionStatus={streamingConnectionStatus}
+                streamingStats={{
+                  framesSent: videoStreamingRef.current?.framesSent || 0,
+                  framesReceived: videoStreamingRef.current?.framesReceived || 0,
+                }}
+                onRetryConnection={retryStreaming}
+              />
+            </ASLWorldModule>
             {storyGenerationError && (
               <div className="story-generation-error">
                 <p className="error-text">
@@ -771,67 +818,10 @@ function App() {
                   </div>
                 </div>
               )}
-              <WebcamCapture
-                isActive={webcamActive}
-                onFrameCapture={handleFrameCapture}
-                onError={handleWebcamError}
-              />
+              {/* Video components moved into ASLWorldModule via <VideoStream /> */}
             </div>
 
-            <div className="streaming-area">
-              <h3>Processed Video Stream</h3>
-
-              {streamingError && (
-                <div className="streaming-error">
-                  <p className="error-text">
-                    Streaming Error: {streamingError}
-                  </p>
-                  <div className="error-actions">
-                    <button className="retry-btn" onClick={retryStreaming}>
-                      Retry Streaming
-                    </button>
-                    <div className="error-help">
-                      <p>Troubleshooting steps:</p>
-                      <ul>
-                        <li>
-                          Check that the backend server is running and
-                          responsive
-                        </li>
-                        <li>
-                          Verify WebSocket connection at
-                          ws://localhost:8000/ws/video
-                        </li>
-                        <li>Ensure webcam is active and working properly</li>
-                        <li>
-                          Check browser console for additional error details
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <VideoStreamingClient
-                ref={videoStreamingRef}
-                isActive={streamingActive}
-                onConnectionChange={handleStreamingConnectionChange}
-                onProcessedFrame={handleProcessedFrame}
-                onError={handleStreamingError}
-              />
-
-              <ProcessedVideoDisplay
-                processedFrameData={processedFrameData}
-                connectionStatus={streamingConnectionStatus}
-                streamingStats={{
-                  framesSent: videoStreamingRef.current?.framesSent || 0,
-                  framesReceived:
-                    videoStreamingRef.current?.framesReceived || 0,
-                  droppedFrames: 0, // This would come from WebcamCapture performance stats
-                }}
-                onRetryConnection={retryStreaming}
-                isActive={streamingActive}
-              />
-            </div>
+            {/* Streaming area moved into ASLWorldModule via <VideoStream /> */}
 
             {/* Performance Monitor */}
             {showPerformanceMonitor && (

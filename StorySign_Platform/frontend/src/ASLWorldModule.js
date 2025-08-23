@@ -12,6 +12,7 @@ const ASLWorldModule = ({
   connectionStatus = "disconnected",
   onFrameCapture,
   gestureState = "listening", // New prop for gesture state
+  children,
 }) => {
   const [mode, setMode] = useState("story_generation"); // 'story_generation' or 'practice'
   const [showFeedback, setShowFeedback] = useState(false);
@@ -196,17 +197,23 @@ const ASLWorldModule = ({
           </div>
         </div>
 
-        <div className="practice-actions">
-          {showFeedback && latestFeedback ? (
-            <div className="feedback-section">
-              <div className="feedback-display">
-                <h4>
-                  {latestFeedback?.completed
-                    ? "🎉 Story Complete!"
-                    : "AI Feedback"}
-                </h4>
-                <div className="feedback-content">
-                  <p className="feedback-text">{latestFeedback.feedback}</p>
+        {/* Video + Feedback area */}
+        <div className="video-and-feedback">
+          <div className="video-container-asl">
+            {children}
+          </div>
+
+          <div className="practice-actions">
+            {showFeedback && latestFeedback ? (
+              <div className="feedback-section">
+                <div className="feedback-display">
+                  <h4>
+                    {latestFeedback?.completed
+                      ? "🎉 Story Complete!"
+                      : "AI Feedback"}
+                  </h4>
+                  <div className="feedback-content">
+                    <p className="feedback-text">{latestFeedback.feedback}</p>
 
                   {/* Confidence Score Display */}
                   {latestFeedback.confidence_score !== undefined && (
@@ -405,6 +412,7 @@ const ASLWorldModule = ({
         </button>
       </div>
     </div>
+    </div>
   );
 
   return (
@@ -427,9 +435,11 @@ const ASLWorldModule = ({
       </div>
 
       <div className="module-content">
-        {mode === "story_generation"
-          ? renderStoryGenerationMode()
-          : renderPracticeMode()}
+        {mode === "story_generation" ? (
+          renderStoryGenerationMode()
+        ) : (
+          renderPracticeMode()
+        )}
       </div>
     </div>
   );
