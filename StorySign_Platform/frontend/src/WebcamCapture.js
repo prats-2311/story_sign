@@ -3,6 +3,7 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 const WebcamCapture = ({ onFrameCapture, onError, isActive = false }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const downscaleCanvasRef = useRef(null);
   const streamRef = useRef(null);
   const animationFrameRef = useRef(null);
 
@@ -215,7 +216,7 @@ const WebcamCapture = ({ onFrameCapture, onError, isActive = false }) => {
 
   // Capture frame from video and convert to base64 JPEG with performance monitoring
   const captureFrame = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current || webcamStatus !== "active") {
+    if (!videoRef.current || !downscaleCanvasRef.current || webcamStatus !== "active") {
       return null;
     }
 
@@ -227,42 +228,23 @@ const WebcamCapture = ({ onFrameCapture, onError, isActive = false }) => {
     }
 
     const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
+    const downscaleCanvas = downscaleCanvasRef.current;
+    const ctx = downscaleCanvas.getContext("2d");
 
-    // Use full resolution for processing
-    const metrics = performanceMetricsRef.current;
+    // Target backend resolution
+    const backendWidth = 320;
+    const backendHeight = 240;
 
-    // Reset to full 640x480 resolution for processing
-    const baseWidth = 640;
-    const baseHeight = 480;
+    downscaleCanvas.width = backendWidth;
+    downscaleCanvas.height = backendHeight;
 
-    // Use full resolution without scaling
-    const maxWidth = baseWidth;
-    const maxHeight = baseHeight;
-
-    const videoWidth = video.videoWidth || 640;
-    const videoHeight = video.videoHeight || 480;
-
-    const aspectRatio = videoWidth / videoHeight;
-    let canvasWidth = maxWidth;
-    let canvasHeight = maxWidth / aspectRatio;
-
-    if (canvasHeight > maxHeight) {
-      canvasHeight = maxHeight;
-      canvasWidth = maxHeight * aspectRatio;
-    }
-
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-
-    // Draw current video frame to canvas with adaptive size
-    ctx.drawImage(video, 0, 0, canvasWidth, canvasHeight);
+    // Draw full-res video onto smaller canvas (browser handles downscaling)
+    ctx.drawImage(video, 0, 0, backendWidth, backendHeight);
 
     try {
-      // Use higher quality for full resolution processing
+      const metrics = performanceMetricsRef.current;
       const quality = Math.max(0.7, 0.85 * metrics.processingCapability);
-      const base64Data = canvas.toDataURL("image/jpeg", quality);
+      const base64Data = downscaleCanvas.toDataURL("image/jpeg", quality);
 
       // Update performance metrics
       const frameEndTime = performance.now();
@@ -278,8 +260,8 @@ const WebcamCapture = ({ onFrameCapture, onError, isActive = false }) => {
         frameData: base64Data,
         timestamp: new Date().toISOString(),
         frameNumber: frameCount + 1,
-        width: canvas.width,
-        height: canvas.height,
+        width: backendWidth,
+        height: backendHeight,
         processingTime: processingTime,
         quality: quality,
       };
@@ -492,8 +474,9 @@ const WebcamCapture = ({ onFrameCapture, onError, isActive = false }) => {
         </div>
       )}
 
-      {/* Hidden canvas for frame capture */}
+      {/* Hidden canvases for frame capture */}
       <canvas ref={canvasRef} style={{ display: "none" }} />
+      <canvas ref={downscaleCanvasRef} style={{ display: "none" }} />
     </div>
   );
 };

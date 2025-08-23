@@ -27,7 +27,7 @@ class VideoConfig(BaseModel):
     @classmethod
     def validate_format(cls, v):
         """Validate video format is supported"""
-        supported_formats = ['MJPG', 'YUYV', 'H264']
+        supported_formats = ['MJPG', 'YUYV', 'H264', 'JPEG']
         if v not in supported_formats:
             raise ValueError(f"Video format must be one of {supported_formats}")
         return v

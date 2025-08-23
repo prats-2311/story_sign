@@ -194,6 +194,49 @@ class MediaPipeProcessor:
                 # Track which landmarks were detected with enhanced null safety
                 landmarks_detected = self._extract_landmarks_safely(results)
 
+                # Build serializable landmark coordinates inline (avoid separate helper)
+                landmarks_data = dict(landmarks_detected)
+                try:
+                    if hasattr(results, 'left_hand_landmarks') and results.left_hand_landmarks:
+                        landmarks_data['left_hand'] = [
+                            {"x": lm.x, "y": lm.y, "z": getattr(lm, 'z', 0.0)}
+                            for lm in results.left_hand_landmarks.landmark
+                        ]
+                except Exception as e:
+                    self.logger.debug(f"Left hand coord extract error: {e}")
+                try:
+                    if hasattr(results, 'right_hand_landmarks') and results.right_hand_landmarks:
+                        landmarks_data['right_hand'] = [
+                            {"x": lm.x, "y": lm.y, "z": getattr(lm, 'z', 0.0)}
+                            for lm in results.right_hand_landmarks.landmark
+                        ]
+                except Exception as e:
+                    self.logger.debug(f"Right hand coord extract error: {e}")
+                try:
+                    if hasattr(results, 'face_landmarks') and results.face_landmarks:
+                        landmarks_data['face'] = [
+                            {"x": lm.x, "y": lm.y, "z": getattr(lm, 'z', 0.0)}
+                            for lm in results.face_landmarks.landmark
+                        ]
+                except Exception as e:
+                    self.logger.debug(f"Face coord extract error: {e}")
+                try:
+                    if hasattr(results, 'pose_landmarks') and results.pose_landmarks:
+                        landmarks_data['pose'] = [
+                            {"x": lm.x, "y": lm.y, "z": getattr(lm, 'z', 0.0)}
+                            for lm in results.pose_landmarks.landmark
+                        ]
+                except Exception as e:
+                    self.logger.debug(f"Pose coord extract error: {e}")
+                try:
+                    if hasattr(results, 'pose_world_landmarks') and results.pose_world_landmarks:
+                        landmarks_data['pose_world'] = [
+                            {"x": lm.x, "y": lm.y, "z": getattr(lm, 'z', 0.0)}
+                            for lm in results.pose_world_landmarks.landmark
+                        ]
+                except Exception as e:
+                    self.logger.debug(f"Pose world coord extract error: {e}")
+
                 # Draw landmarks on the frame with error handling
                 try:
                     processed_frame = self._draw_landmarks(processed_frame, results)
@@ -205,7 +248,7 @@ class MediaPipeProcessor:
                 if processing_attempts > 1:
                     self.logger.info(f"MediaPipe processing succeeded on attempt {processing_attempts}")
 
-                return processed_frame, landmarks_detected
+                return processed_frame, landmarks_data
 
             except Exception as e:
                 self.logger.error(f"Critical error in MediaPipe frame processing (attempt {processing_attempts}): {e}", exc_info=True)

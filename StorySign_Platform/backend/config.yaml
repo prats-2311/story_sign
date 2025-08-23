@@ -3,11 +3,11 @@
 
 # Video capture and processing settings
 video:
-  width: 640 # Video frame width in pixels (320-1920)
-  height: 480 # Video frame height in pixels (240-1080)
+  width: 320 # Video frame width in pixels (320-1920)
+  height: 240 # Video frame height in pixels (240-1080)
   fps: 30 # Target frames per second (10-60)
-  format: "MJPG" # Video format codec (MJPG, YUYV, H264)
-  quality: 50 # JPEG compression quality (optimized for low latency)
+  format: "JPEG" # Video format codec (MJPG, YUYV, H264)
+  quality: 70 # JPEG compression quality (optimized for low latency)
 
 # MediaPipe Holistic model settings
 mediapipe:

@@ -275,6 +275,15 @@ class OllamaService:
                 logger.warning(f"Could not log raw Ollama response: {log_err}")
 
             analysis_content = response.get('message', {}).get('content', '{}')
+
+            # --- START: NEW CLEANUP CODE ---
+            # Clean the response string by removing markdown code blocks and stripping whitespace
+            if analysis_content.strip().startswith("```json"):
+                analysis_content = analysis_content.strip()[7:-3].strip()
+            elif analysis_content.strip().startswith("```"):
+                 analysis_content = analysis_content.strip()[3:-3].strip()
+            # --- END: NEW CLEANUP CODE ---
+
             analysis_result = json.loads(analysis_content)
 
             logger.info(f"Successfully analyzed signing attempt with confidence: {analysis_result.get('confidence_score', 'N/A')}")
