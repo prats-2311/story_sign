@@ -94,6 +94,25 @@ const VideoStreamingClient = forwardRef(
       }
     }, []);
 
+    // Backward-compatible generic control sender exposed to parent via ref
+    // Accepts a full message object and sends as-is over WebSocket
+    const sendControlMessage = useCallback((message) => {
+      if (wsRef.current?.readyState !== WebSocket.OPEN) {
+        console.warn("WebSocket not connected, cannot send control message");
+        return false;
+      }
+      try {
+        const msg =
+          typeof message === "string" ? message : JSON.stringify(message);
+        wsRef.current.send(msg);
+        return true;
+      } catch (error) {
+        console.error("Error sending control message:", error);
+        setLastError(`Failed to send control message: ${error.message}`);
+        return false;
+      }
+    }, []);
+
     // Handle incoming messages from server
     const handleIncomingMessage = useCallback(
       (message) => {
@@ -330,20 +349,26 @@ const VideoStreamingClient = forwardRef(
       onConnectionChange?.("disconnected");
     }, [onConnectionChange]);
 
-    // Expose sendFrame method and stats to parent component
+    // Expose methods and stats to parent component
     useImperativeHandle(
       ref,
       () => ({
+        connect,
+        disconnect,
         sendFrame,
         sendPracticeControl,
+        sendControlMessage,
         framesSent,
         framesReceived,
         connectionStatus,
         lastError,
       }),
       [
+        connect,
+        disconnect,
         sendFrame,
         sendPracticeControl,
+        sendControlMessage,
         framesSent,
         framesReceived,
         connectionStatus,

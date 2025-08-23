@@ -1,0 +1,1302 @@
+[
+  {
+    "timestamp": 1755959881.2884312,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1490,
+      "processing_time_ms": 81.40206336975098,
+      "timestamp": "2025-08-23T14:38:01.288403"
+    }
+  },
+  {
+    "timestamp": 1755959881.40683,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1491,
+      "processing_time_ms": 113.41500282287598,
+      "timestamp": "2025-08-23T14:38:01.406814"
+    }
+  },
+  {
+    "timestamp": 1755959881.470583,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1492,
+      "processing_time_ms": 57.21402168273926,
+      "timestamp": "2025-08-23T14:38:01.470561"
+    }
+  },
+  {
+    "timestamp": 1755959881.527327,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1493,
+      "processing_time_ms": 48.93803596496582,
+      "timestamp": "2025-08-23T14:38:01.527314"
+    }
+  },
+  {
+    "timestamp": 1755959881.575588,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1494,
+      "processing_time_ms": 43.22409629821777,
+      "timestamp": "2025-08-23T14:38:01.575579"
+    }
+  },
+  {
+    "timestamp": 1755959881.624875,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1495,
+      "processing_time_ms": 43.91288757324219,
+      "timestamp": "2025-08-23T14:38:01.624866"
+    }
+  },
+  {
+    "timestamp": 1755959881.673814,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1496,
+      "processing_time_ms": 43.33376884460449,
+      "timestamp": "2025-08-23T14:38:01.673806"
+    }
+  },
+  {
+    "timestamp": 1755959881.7163992,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1497,
+      "processing_time_ms": 38.616180419921875,
+      "timestamp": "2025-08-23T14:38:01.716389"
+    }
+  },
+  {
+    "timestamp": 1755959881.765173,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1498,
+      "processing_time_ms": 41.8548583984375,
+      "timestamp": "2025-08-23T14:38:01.765161"
+    }
+  },
+  {
+    "timestamp": 1755959881.861094,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1499,
+      "processing_time_ms": 39.17980194091797,
+      "timestamp": "2025-08-23T14:38:01.861030"
+    }
+  },
+  {
+    "timestamp": 1755959881.908324,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1500,
+      "processing_time_ms": 34.06500816345215,
+      "timestamp": "2025-08-23T14:38:01.908313"
+    }
+  },
+  {
+    "timestamp": 1755959881.998268,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1501,
+      "processing_time_ms": 41.03207588195801,
+      "timestamp": "2025-08-23T14:38:01.998260"
+    }
+  },
+  {
+    "timestamp": 1755959882.085176,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1502,
+      "processing_time_ms": 30.366897583007812,
+      "timestamp": "2025-08-23T14:38:02.085168"
+    }
+  },
+  {
+    "timestamp": 1755959882.189248,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1503,
+      "processing_time_ms": 49.92794990539551,
+      "timestamp": "2025-08-23T14:38:02.189218"
+    }
+  },
+  {
+    "timestamp": 1755959882.256572,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1504,
+      "processing_time_ms": 64.28098678588867,
+      "timestamp": "2025-08-23T14:38:02.256561"
+    }
+  },
+  {
+    "timestamp": 1755959882.364038,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1505,
+      "processing_time_ms": 103.27506065368652,
+      "timestamp": "2025-08-23T14:38:02.364026"
+    }
+  },
+  {
+    "timestamp": 1755959882.4488199,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1506,
+      "processing_time_ms": 80.93619346618652,
+      "timestamp": "2025-08-23T14:38:02.448789"
+    }
+  },
+  {
+    "timestamp": 1755959882.5043619,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1507,
+      "processing_time_ms": 51.66888236999512,
+      "timestamp": "2025-08-23T14:38:02.504343"
+    }
+  },
+  {
+    "timestamp": 1755959882.560501,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1508,
+      "processing_time_ms": 52.412986755371094,
+      "timestamp": "2025-08-23T14:38:02.560489"
+    }
+  },
+  {
+    "timestamp": 1755959882.6167932,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1509,
+      "processing_time_ms": 50.42886734008789,
+      "timestamp": "2025-08-23T14:38:02.616781"
+    }
+  },
+  {
+    "timestamp": 1755959882.6489851,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1510,
+      "processing_time_ms": 28.911828994750977,
+      "timestamp": "2025-08-23T14:38:02.648976"
+    }
+  },
+  {
+    "timestamp": 1755959882.7447228,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1511,
+      "processing_time_ms": 36.83924674987793,
+      "timestamp": "2025-08-23T14:38:02.744700"
+    }
+  },
+  {
+    "timestamp": 1755959883.0160809,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1512,
+      "processing_time_ms": 218.82104873657227,
+      "timestamp": "2025-08-23T14:38:03.015999"
+    }
+  },
+  {
+    "timestamp": 1755959883.66752,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1513,
+      "processing_time_ms": 154.2661190032959,
+      "timestamp": "2025-08-23T14:38:03.667189"
+    }
+  },
+  {
+    "timestamp": 1755959883.766848,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1514,
+      "processing_time_ms": 83.17184448242188,
+      "timestamp": "2025-08-23T14:38:03.766738"
+    }
+  },
+  {
+    "timestamp": 1755959884.05459,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1515,
+      "processing_time_ms": 283.14876556396484,
+      "timestamp": "2025-08-23T14:38:04.054428"
+    }
+  },
+  {
+    "timestamp": 1755959884.2797508,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1516,
+      "processing_time_ms": 205.9011459350586,
+      "timestamp": "2025-08-23T14:38:04.279695"
+    }
+  },
+  {
+    "timestamp": 1755959884.354251,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1517,
+      "processing_time_ms": 67.14439392089844,
+      "timestamp": "2025-08-23T14:38:04.354241"
+    }
+  },
+  {
+    "timestamp": 1755959884.430361,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1518,
+      "processing_time_ms": 72.70503044128418,
+      "timestamp": "2025-08-23T14:38:04.430342"
+    }
+  },
+  {
+    "timestamp": 1755959884.4912379,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1519,
+      "processing_time_ms": 55.26113510131836,
+      "timestamp": "2025-08-23T14:38:04.491185"
+    }
+  },
+  {
+    "timestamp": 1755959884.5701902,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1520,
+      "processing_time_ms": 74.71919059753418,
+      "timestamp": "2025-08-23T14:38:04.570180"
+    }
+  },
+  {
+    "timestamp": 1755959884.636369,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1521,
+      "processing_time_ms": 61.86389923095703,
+      "timestamp": "2025-08-23T14:38:04.636184"
+    }
+  },
+  {
+    "timestamp": 1755959884.695827,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1522,
+      "processing_time_ms": 54.29410934448242,
+      "timestamp": "2025-08-23T14:38:04.695816"
+    }
+  },
+  {
+    "timestamp": 1755959884.791163,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1523,
+      "processing_time_ms": 87.46480941772461,
+      "timestamp": "2025-08-23T14:38:04.791154"
+    }
+  },
+  {
+    "timestamp": 1755959884.834611,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1524,
+      "processing_time_ms": 40.21787643432617,
+      "timestamp": "2025-08-23T14:38:04.834597"
+    }
+  },
+  {
+    "timestamp": 1755959884.875467,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1525,
+      "processing_time_ms": 34.95502471923828,
+      "timestamp": "2025-08-23T14:38:04.875446"
+    }
+  },
+  {
+    "timestamp": 1755959884.915236,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1526,
+      "processing_time_ms": 36.27800941467285,
+      "timestamp": "2025-08-23T14:38:04.915208"
+    }
+  },
+  {
+    "timestamp": 1755959884.961385,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1527,
+      "processing_time_ms": 40.77625274658203,
+      "timestamp": "2025-08-23T14:38:04.961376"
+    }
+  },
+  {
+    "timestamp": 1755959885.000266,
+    "landmarks": {
+      "hands": true,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1528,
+      "processing_time_ms": 35.436153411865234,
+      "timestamp": "2025-08-23T14:38:05.000253"
+    }
+  },
+  {
+    "timestamp": 1755959885.0440729,
+    "landmarks": {
+      "hands": true,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1529,
+      "processing_time_ms": 39.38889503479004,
+      "timestamp": "2025-08-23T14:38:05.044062"
+    }
+  },
+  {
+    "timestamp": 1755959885.142118,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1530,
+      "processing_time_ms": 51.42688751220703,
+      "timestamp": "2025-08-23T14:38:05.142109"
+    }
+  },
+  {
+    "timestamp": 1755959885.203573,
+    "landmarks": {
+      "hands": true,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1531,
+      "processing_time_ms": 56.179046630859375,
+      "timestamp": "2025-08-23T14:38:05.203562"
+    }
+  },
+  {
+    "timestamp": 1755959885.261937,
+    "landmarks": {
+      "hands": true,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1532,
+      "processing_time_ms": 54.95929718017578,
+      "timestamp": "2025-08-23T14:38:05.261908"
+    }
+  },
+  {
+    "timestamp": 1755959885.3051379,
+    "landmarks": {
+      "hands": false,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1533,
+      "processing_time_ms": 38.74087333679199,
+      "timestamp": "2025-08-23T14:38:05.305127"
+    }
+  },
+  {
+    "timestamp": 1755959885.4075751,
+    "landmarks": {
+      "hands": false,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1534,
+      "processing_time_ms": 50.2471923828125,
+      "timestamp": "2025-08-23T14:38:05.407556"
+    }
+  },
+  {
+    "timestamp": 1755959885.4441128,
+    "landmarks": {
+      "hands": true,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1535,
+      "processing_time_ms": 32.41395950317383,
+      "timestamp": "2025-08-23T14:38:05.444103"
+    }
+  },
+  {
+    "timestamp": 1755959885.5479739,
+    "landmarks": {
+      "hands": true,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1536,
+      "processing_time_ms": 56.047916412353516,
+      "timestamp": "2025-08-23T14:38:05.547937"
+    }
+  },
+  {
+    "timestamp": 1755959885.6018538,
+    "landmarks": {
+      "hands": true,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1537,
+      "processing_time_ms": 45.71795463562012,
+      "timestamp": "2025-08-23T14:38:05.601845"
+    }
+  },
+  {
+    "timestamp": 1755959885.6756322,
+    "landmarks": {
+      "hands": false,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1538,
+      "processing_time_ms": 65.43207168579102,
+      "timestamp": "2025-08-23T14:38:05.675623"
+    }
+  },
+  {
+    "timestamp": 1755959885.726917,
+    "landmarks": {
+      "hands": false,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1539,
+      "processing_time_ms": 47.58095741271973,
+      "timestamp": "2025-08-23T14:38:05.726903"
+    }
+  },
+  {
+    "timestamp": 1755959885.792462,
+    "landmarks": {
+      "hands": false,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1540,
+      "processing_time_ms": 62.07895278930664,
+      "timestamp": "2025-08-23T14:38:05.792420"
+    }
+  },
+  {
+    "timestamp": 1755959885.8271449,
+    "landmarks": {
+      "hands": false,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1541,
+      "processing_time_ms": 31.548261642456055,
+      "timestamp": "2025-08-23T14:38:05.827136"
+    }
+  },
+  {
+    "timestamp": 1755959885.941674,
+    "landmarks": {
+      "hands": false,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1542,
+      "processing_time_ms": 56.336164474487305,
+      "timestamp": "2025-08-23T14:38:05.941663"
+    }
+  },
+  {
+    "timestamp": 1755959886.0354428,
+    "landmarks": {
+      "hands": false,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1543,
+      "processing_time_ms": 85.73126792907715,
+      "timestamp": "2025-08-23T14:38:06.035380"
+    }
+  },
+  {
+    "timestamp": 1755959886.120069,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1544,
+      "processing_time_ms": 81.82907104492188,
+      "timestamp": "2025-08-23T14:38:06.120044"
+    }
+  },
+  {
+    "timestamp": 1755959886.305324,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1545,
+      "processing_time_ms": 142.5468921661377,
+      "timestamp": "2025-08-23T14:38:06.305257"
+    }
+  },
+  {
+    "timestamp": 1755959886.387573,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1546,
+      "processing_time_ms": 60.588836669921875,
+      "timestamp": "2025-08-23T14:38:06.387564"
+    }
+  },
+  {
+    "timestamp": 1755959886.43985,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1547,
+      "processing_time_ms": 49.57318305969238,
+      "timestamp": "2025-08-23T14:38:06.439840"
+    }
+  },
+  {
+    "timestamp": 1755959886.548598,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1548,
+      "processing_time_ms": 100.22401809692383,
+      "timestamp": "2025-08-23T14:38:06.548542"
+    }
+  },
+  {
+    "timestamp": 1755959886.622245,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1549,
+      "processing_time_ms": 69.78678703308105,
+      "timestamp": "2025-08-23T14:38:06.622235"
+    }
+  },
+  {
+    "timestamp": 1755959886.698426,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1550,
+      "processing_time_ms": 72.00074195861816,
+      "timestamp": "2025-08-23T14:38:06.698414"
+    }
+  },
+  {
+    "timestamp": 1755959886.750092,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1551,
+      "processing_time_ms": 44.35086250305176,
+      "timestamp": "2025-08-23T14:38:06.750082"
+    }
+  },
+  {
+    "timestamp": 1755959886.806871,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1552,
+      "processing_time_ms": 52.61588096618652,
+      "timestamp": "2025-08-23T14:38:06.806839"
+    }
+  },
+  {
+    "timestamp": 1755959886.8416152,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1553,
+      "processing_time_ms": 31.171083450317383,
+      "timestamp": "2025-08-23T14:38:06.841606"
+    }
+  },
+  {
+    "timestamp": 1755959886.8804429,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1554,
+      "processing_time_ms": 34.83915328979492,
+      "timestamp": "2025-08-23T14:38:06.880433"
+    }
+  },
+  {
+    "timestamp": 1755959886.991298,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1555,
+      "processing_time_ms": 44.96884346008301,
+      "timestamp": "2025-08-23T14:38:06.991289"
+    }
+  },
+  {
+    "timestamp": 1755959887.096617,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1556,
+      "processing_time_ms": 50.46200752258301,
+      "timestamp": "2025-08-23T14:38:07.096589"
+    }
+  },
+  {
+    "timestamp": 1755959887.194391,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1557,
+      "processing_time_ms": 36.624908447265625,
+      "timestamp": "2025-08-23T14:38:07.194381"
+    }
+  },
+  {
+    "timestamp": 1755959887.271518,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1558,
+      "processing_time_ms": 31.41617774963379,
+      "timestamp": "2025-08-23T14:38:07.271507"
+    }
+  },
+  {
+    "timestamp": 1755959887.3592682,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1559,
+      "processing_time_ms": 32.70983695983887,
+      "timestamp": "2025-08-23T14:38:07.359259"
+    }
+  },
+  {
+    "timestamp": 1755959887.4377642,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1560,
+      "processing_time_ms": 31.8448543548584,
+      "timestamp": "2025-08-23T14:38:07.437754"
+    }
+  },
+  {
+    "timestamp": 1755959887.526483,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1561,
+      "processing_time_ms": 37.16683387756348,
+      "timestamp": "2025-08-23T14:38:07.526467"
+    }
+  },
+  {
+    "timestamp": 1755959887.6283379,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1562,
+      "processing_time_ms": 51.64909362792969,
+      "timestamp": "2025-08-23T14:38:07.628162"
+    }
+  },
+  {
+    "timestamp": 1755959887.740638,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1563,
+      "processing_time_ms": 49.42011833190918,
+      "timestamp": "2025-08-23T14:38:07.740619"
+    }
+  },
+  {
+    "timestamp": 1755959887.792756,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1564,
+      "processing_time_ms": 47.86181449890137,
+      "timestamp": "2025-08-23T14:38:07.792747"
+    }
+  },
+  {
+    "timestamp": 1755959887.842848,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1565,
+      "processing_time_ms": 45.22204399108887,
+      "timestamp": "2025-08-23T14:38:07.842836"
+    }
+  },
+  {
+    "timestamp": 1755959887.8806798,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1566,
+      "processing_time_ms": 34.77215766906738,
+      "timestamp": "2025-08-23T14:38:07.880672"
+    }
+  },
+  {
+    "timestamp": 1755959887.982293,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1567,
+      "processing_time_ms": 42.13976860046387,
+      "timestamp": "2025-08-23T14:38:07.982235"
+    }
+  },
+  {
+    "timestamp": 1755959888.027262,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1568,
+      "processing_time_ms": 37.542104721069336,
+      "timestamp": "2025-08-23T14:38:08.027249"
+    }
+  },
+  {
+    "timestamp": 1755959888.1064792,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1569,
+      "processing_time_ms": 33.15401077270508,
+      "timestamp": "2025-08-23T14:38:08.106471"
+    }
+  },
+  {
+    "timestamp": 1755959888.196183,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1570,
+      "processing_time_ms": 42.18602180480957,
+      "timestamp": "2025-08-23T14:38:08.196175"
+    }
+  },
+  {
+    "timestamp": 1755959888.295609,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1571,
+      "processing_time_ms": 38.594961166381836,
+      "timestamp": "2025-08-23T14:38:08.295586"
+    }
+  },
+  {
+    "timestamp": 1755959888.395481,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1572,
+      "processing_time_ms": 36.96799278259277,
+      "timestamp": "2025-08-23T14:38:08.395472"
+    }
+  },
+  {
+    "timestamp": 1755959888.489057,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1573,
+      "processing_time_ms": 32.850027084350586,
+      "timestamp": "2025-08-23T14:38:08.489048"
+    }
+  },
+  {
+    "timestamp": 1755959888.584953,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1574,
+      "processing_time_ms": 43.95604133605957,
+      "timestamp": "2025-08-23T14:38:08.584931"
+    }
+  },
+  {
+    "timestamp": 1755959888.628642,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1575,
+      "processing_time_ms": 36.511898040771484,
+      "timestamp": "2025-08-23T14:38:08.628628"
+    }
+  },
+  {
+    "timestamp": 1755959888.707129,
+    "landmarks": {
+      "hands": false,
+      "face": false,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1576,
+      "processing_time_ms": 31.30483627319336,
+      "timestamp": "2025-08-23T14:38:08.707118"
+    }
+  },
+  {
+    "timestamp": 1755959888.7944372,
+    "landmarks": {
+      "hands": true,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1577,
+      "processing_time_ms": 37.87589073181152,
+      "timestamp": "2025-08-23T14:38:08.794428"
+    }
+  },
+  {
+    "timestamp": 1755959888.887094,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1578,
+      "processing_time_ms": 31.39805793762207,
+      "timestamp": "2025-08-23T14:38:08.887085"
+    }
+  },
+  {
+    "timestamp": 1755959888.9804869,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1579,
+      "processing_time_ms": 39.83283042907715,
+      "timestamp": "2025-08-23T14:38:08.980460"
+    }
+  },
+  {
+    "timestamp": 1755959889.036702,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1580,
+      "processing_time_ms": 42.06705093383789,
+      "timestamp": "2025-08-23T14:38:09.036689"
+    }
+  },
+  {
+    "timestamp": 1755959889.1315079,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1581,
+      "processing_time_ms": 40.52591323852539,
+      "timestamp": "2025-08-23T14:38:09.131494"
+    }
+  },
+  {
+    "timestamp": 1755959889.1811929,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1582,
+      "processing_time_ms": 37.25075721740723,
+      "timestamp": "2025-08-23T14:38:09.181181"
+    }
+  },
+  {
+    "timestamp": 1755959889.231808,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1583,
+      "processing_time_ms": 36.69285774230957,
+      "timestamp": "2025-08-23T14:38:09.231784"
+    }
+  },
+  {
+    "timestamp": 1755959889.276931,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1584,
+      "processing_time_ms": 35.05420684814453,
+      "timestamp": "2025-08-23T14:38:09.276802"
+    }
+  },
+  {
+    "timestamp": 1755959889.38023,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1585,
+      "processing_time_ms": 40.03500938415527,
+      "timestamp": "2025-08-23T14:38:09.380209"
+    }
+  },
+  {
+    "timestamp": 1755959889.429496,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1586,
+      "processing_time_ms": 38.313865661621094,
+      "timestamp": "2025-08-23T14:38:09.429483"
+    }
+  },
+  {
+    "timestamp": 1755959889.485156,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1587,
+      "processing_time_ms": 36.888837814331055,
+      "timestamp": "2025-08-23T14:38:09.485144"
+    }
+  },
+  {
+    "timestamp": 1755959889.5760949,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1588,
+      "processing_time_ms": 34.928083419799805,
+      "timestamp": "2025-08-23T14:38:09.576084"
+    }
+  },
+  {
+    "timestamp": 1755959889.682614,
+    "landmarks": {
+      "hands": false,
+      "face": true,
+      "pose": true
+    },
+    "metadata": {
+      "frame_number": 1589,
+      "processing_time_ms": 40.04478454589844,
+      "timestamp": "2025-08-23T14:38:09.682604"
+    }
+  }
+]
