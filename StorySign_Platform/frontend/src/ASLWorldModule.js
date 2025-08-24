@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
+import PerformanceMonitorSimple from "./PerformanceMonitorSimple"; // NEW: import performance monitor
 import "./ASLWorldModule.css";
 
 const ASLWorldModule = ({
@@ -12,6 +13,13 @@ const ASLWorldModule = ({
   connectionStatus = "disconnected",
   onFrameCapture,
   gestureState = "listening", // New prop for gesture state
+  practiceStarted = false,
+  onStartPractice,
+  streamingStats,
+  processedFrameData,
+  streamingConnectionStatus,
+  optimizationSettings,
+  onOptimizationChange,
   children,
 }) => {
   const [mode, setMode] = useState("story_generation"); // 'story_generation' or 'practice'
@@ -95,7 +103,10 @@ const ASLWorldModule = ({
       }
     };
 
-    initializeWebcam();
+    // Only initialize when in story generation mode
+    if (mode === 'story_generation') {
+      initializeWebcam();
+    }
 
     // Cleanup function
     return () => {
@@ -104,7 +115,7 @@ const ASLWorldModule = ({
         tracks.forEach((track) => track.stop());
       }
     };
-  }, []);
+  }, [mode]);
 
   const renderStoryGenerationMode = () => (
     <div className="story-generation-mode">
@@ -198,209 +209,231 @@ const ASLWorldModule = ({
         </div>
 
         {/* Video + Feedback area */}
-        <div className="video-and-feedback">
-          <div className="video-container-asl">
-            {children}
+        {!practiceStarted ? (
+          <div className="start-practice-container">
+            <h3>Ready to Practice?</h3>
+            <p>Your story is generated. Click the button below to start your webcam and begin signing.</p>
+            <button className="start-practice-btn" onClick={onStartPractice} disabled={isGeneratingStory || connectionStatus !== "connected"}>
+              Start Practice Session
+            </button>
           </div>
+        ) : (
+          <div className="video-and-feedback">
+            <div className="video-container-asl">
+              {children}
+            </div>
 
-          <div className="practice-actions">
-            {showFeedback && latestFeedback ? (
-              <div className="feedback-section">
-                <div className="feedback-display">
-                  <h4>
-                    {latestFeedback?.completed
-                      ? "🎉 Story Complete!"
-                      : "AI Feedback"}
-                  </h4>
-                  <div className="feedback-content">
-                    <p className="feedback-text">{latestFeedback.feedback}</p>
+            <div className="practice-actions">
+              {showFeedback && latestFeedback ? (
+                <div className="feedback-section">
+                  <div className="feedback-display">
+                    <h4>
+                      {latestFeedback?.completed
+                        ? "🎉 Story Complete!"
+                        : "AI Feedback"}
+                    </h4>
+                    <div className="feedback-content">
+                      <p className="feedback-text">{latestFeedback.feedback}</p>
 
-                  {/* Confidence Score Display */}
-                  {latestFeedback.confidence_score !== undefined && (
-                    <div className="confidence-score">
-                      <span>
-                        {latestFeedback?.completed
-                          ? "Overall Score"
-                          : "Confidence"}
-                        : {Math.round(latestFeedback.confidence_score * 100)}%
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Story Statistics for Completion */}
-                  {latestFeedback?.completed && latestFeedback?.story_stats && (
-                    <div className="story-stats">
-                      <h5>Practice Summary:</h5>
-                      <div className="stats-grid">
-                        <div className="stat-item">
-                          <span className="stat-label">Sentences:</span>
-                          <span className="stat-value">
-                            {latestFeedback.story_stats.total_sentences}
+                      {/* Confidence Score Display */}
+                      {latestFeedback.confidence_score !== undefined && (
+                        <div className="confidence-score">
+                          <span>
+                            {latestFeedback?.completed
+                              ? "Overall Score"
+                              : "Confidence"}
+                            : {Math.round(latestFeedback.confidence_score * 100)}%
                           </span>
                         </div>
-                        {latestFeedback.story_stats.completion_time > 0 && (
-                          <div className="stat-item">
-                            <span className="stat-label">Time:</span>
-                            <span className="stat-value">
-                              {Math.round(
-                                latestFeedback.story_stats.completion_time /
-                                  1000
-                              )}
-                              s
-                            </span>
+                      )}
+
+                      {/* Story Statistics for Completion */}
+                      {latestFeedback?.completed && latestFeedback?.story_stats && (
+                        <div className="story-stats">
+                          <h5>Practice Summary:</h5>
+                          <div className="stats-grid">
+                            <div className="stat-item">
+                              <span className="stat-label">Sentences:</span>
+                              <span className="stat-value">
+                                {latestFeedback.story_stats.total_sentences}
+                              </span>
+                            </div>
+                            {latestFeedback.story_stats.completion_time > 0 && (
+                              <div className="stat-item">
+                                <span className="stat-label">Time:</span>
+                                <span className="stat-value">
+                                  {Math.round(
+                                    latestFeedback.story_stats.completion_time /
+                                      1000
+                                  )}
+                                  s
+                                </span>
+                              </div>
+                            )}
+                            {latestFeedback.story_stats.average_confidence > 0 && (
+                              <div className="stat-item">
+                                <span className="stat-label">Avg. Score:</span>
+                                <span className="stat-value">
+                                  {Math.round(
+                                    latestFeedback.story_stats.average_confidence *
+                                      100
+                                  )}
+                                  %
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Processing Information */}
+                      {latestFeedback.processing_time > 0 &&
+                        !latestFeedback?.completed && (
+                          <div className="processing-info">
+                            <small>
+                              Analysis completed in {latestFeedback.processing_time}
+                              ms
+                            </small>
                           </div>
                         )}
-                        {latestFeedback.story_stats.average_confidence > 0 && (
-                          <div className="stat-item">
-                            <span className="stat-label">Avg. Score:</span>
-                            <span className="stat-value">
-                              {Math.round(
-                                latestFeedback.story_stats.average_confidence *
-                                  100
+
+                      {/* Error Handling */}
+                      {latestFeedback?.error && (
+                        <div className="feedback-error">
+                          <p>
+                            ⚠️ There was an issue processing your signing. Please
+                            try again.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Suggestions */}
+                      {latestFeedback.suggestions &&
+                        latestFeedback.suggestions.length > 0 && (
+                          <div className="suggestions">
+                            <h5>
+                              {latestFeedback?.completed
+                                ? "Next Steps:"
+                                : "Suggestions:"}
+                            </h5>
+                            <ul>
+                              {latestFeedback.suggestions.map(
+                                (suggestion, index) => (
+                                  <li key={index}>{suggestion}</li>
+                                )
                               )}
-                              %
-                            </span>
+                            </ul>
                           </div>
                         )}
-                      </div>
                     </div>
-                  )}
-
-                  {/* Processing Information */}
-                  {latestFeedback.processing_time > 0 &&
-                    !latestFeedback?.completed && (
-                      <div className="processing-info">
-                        <small>
-                          Analysis completed in {latestFeedback.processing_time}
-                          ms
-                        </small>
-                      </div>
-                    )}
-
-                  {/* Error Handling */}
-                  {latestFeedback?.error && (
-                    <div className="feedback-error">
-                      <p>
-                        ⚠️ There was an issue processing your signing. Please
-                        try again.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Suggestions */}
-                  {latestFeedback.suggestions &&
-                    latestFeedback.suggestions.length > 0 && (
-                      <div className="suggestions">
-                        <h5>
-                          {latestFeedback?.completed
-                            ? "Next Steps:"
-                            : "Suggestions:"}
-                        </h5>
-                        <ul>
-                          {latestFeedback.suggestions.map(
-                            (suggestion, index) => (
-                              <li key={index}>{suggestion}</li>
-                            )
-                          )}
-                        </ul>
-                      </div>
-                    )}
-                </div>
-              </div>
-
-              <div className="control-buttons">
-                {!latestFeedback?.completed ? (
-                  <>
-                    <button
-                      className="try-again-btn"
-                      onClick={() => handlePracticeControl("try_again")}
-                      disabled={isProcessingFeedback}
-                    >
-                      Try Again
-                    </button>
-                    {currentSentenceIndex <
-                      (storyData?.sentences?.length || 0) - 1 && (
-                      <button
-                        className="next-sentence-btn"
-                        onClick={() => handlePracticeControl("next_sentence")}
-                        disabled={isProcessingFeedback}
-                      >
-                        Next Sentence ({currentSentenceIndex + 2}/
-                        {storyData?.sentences?.length})
-                      </button>
-                    )}
-                    {currentSentenceIndex ===
-                      (storyData?.sentences?.length || 0) - 1 && (
-                      <button
-                        className="complete-story-btn"
-                        onClick={() => handlePracticeControl("complete_story")}
-                        disabled={isProcessingFeedback}
-                      >
-                        Complete Story
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  // Story completion controls
-                  <div className="completion-controls">
-                    <button
-                      className="restart-story-btn"
-                      onClick={() => handlePracticeControl("restart_story")}
-                      disabled={isProcessingFeedback}
-                    >
-                      Practice Again
-                    </button>
-                    <button
-                      className="new-story-btn"
-                      onClick={() => handlePracticeControl("new_story")}
-                      disabled={isProcessingFeedback}
-                    >
-                      New Story
-                    </button>
                   </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="waiting-for-signing">
-              <div className="signing-indicator">
-                {isProcessingFeedback ? (
-                  <>
-                    <div className="loading-spinner"></div>
-                    <p>Analyzing your signing...</p>
-                    <small>Please wait while AI analyzes your gesture</small>
-                  </>
-                ) : (
-                  <>
-                    <div className="gesture-icon">👋</div>
-                    <p>Start signing the sentence above</p>
-                    <small>
-                      The system will automatically detect when you begin and
-                      end your gesture
-                    </small>
-                    <div className="gesture-status">
-                      <div className={`status-indicator ${gestureState}`}>
-                        <span className="status-dot"></span>
-                        <span>
-                          {gestureState === "listening" &&
-                            "Listening for gestures"}
-                          {gestureState === "detecting" &&
-                            "Gesture detected - keep signing"}
-                          {gestureState === "analyzing" &&
-                            "Analyzing your gesture"}
-                          {gestureState === "completed" && "Story completed!"}
-                        </span>
+
+                  <div className="control-buttons">
+                    {!latestFeedback?.completed ? (
+                      <>
+                        <button
+                          className="try-again-btn"
+                          onClick={() => handlePracticeControl("try_again")}
+                          disabled={isProcessingFeedback}
+                        >
+                          Try Again
+                        </button>
+                        {currentSentenceIndex <
+                          (storyData?.sentences?.length || 0) - 1 && (
+                          <button
+                            className="next-sentence-btn"
+                            onClick={() => handlePracticeControl("next_sentence")}
+                            disabled={isProcessingFeedback}
+                          >
+                            Next Sentence ({currentSentenceIndex + 2}/
+                            {storyData?.sentences?.length})
+                          </button>
+                        )}
+                        {currentSentenceIndex ===
+                          (storyData?.sentences?.length || 0) - 1 && (
+                          <button
+                            className="complete-story-btn"
+                            onClick={() => handlePracticeControl("complete_story")}
+                            disabled={isProcessingFeedback}
+                          >
+                            Complete Story
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      // Story completion controls
+                      <div className="completion-controls">
+                        <button
+                          className="restart-story-btn"
+                          onClick={() => handlePracticeControl("restart_story")}
+                          disabled={isProcessingFeedback}
+                        >
+                          Practice Again
+                        </button>
+                        <button
+                          className="new-story-btn"
+                          onClick={() => handlePracticeControl("new_story")}
+                          disabled={isProcessingFeedback}
+                        >
+                          New Story
+                        </button>
                       </div>
-                    </div>
-                  </>
-                )}
-              </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="waiting-for-signing">
+                  <div className="signing-indicator">
+                    {isProcessingFeedback ? (
+                      <>
+                        <div className="loading-spinner"></div>
+                        <p>Analyzing your signing...</p>
+                        <small>Please wait while AI analyzes your gesture</small>
+                      </>
+                    ) : (
+                      <>
+                        <div className="gesture-icon">👋</div>
+                        <p>Start signing the sentence above</p>
+                        <small>
+                          The system will automatically detect when you begin and
+                          end your gesture
+                        </small>
+                        <div className="gesture-status">
+                          <div className={`status-indicator ${gestureState}`}>
+                            <span className="status-dot"></span>
+                            <span>
+                              {gestureState === "listening" &&
+                                "Listening for gestures"}
+                              {gestureState === "detecting" &&
+                                "Gesture detected - keep signing"}
+                              {gestureState === "analyzing" &&
+                                "Analyzing your gesture"}
+                              {gestureState === "completed" && "Story completed!"}
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="practice-footer">
+        {/* Collapsible performance monitor */}
+        <details className="performance-monitor-details">
+          <summary>Show/Hide Performance Metrics</summary>
+          <PerformanceMonitorSimple
+            streamingStats={streamingStats}
+            processedFrameData={processedFrameData}
+            connectionStatus={streamingConnectionStatus}
+            optimizationSettings={optimizationSettings}
+            onOptimizationChange={onOptimizationChange}
+          />
+        </details>
         <button
           className="new-story-btn"
           onClick={() => {
@@ -411,7 +444,6 @@ const ASLWorldModule = ({
           Generate New Story
         </button>
       </div>
-    </div>
     </div>
   );
 
@@ -444,5 +476,4 @@ const ASLWorldModule = ({
     </div>
   );
 };
-
 export default ASLWorldModule;

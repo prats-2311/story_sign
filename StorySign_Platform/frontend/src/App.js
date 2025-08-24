@@ -2,7 +2,6 @@ import React, { useState, useRef } from "react";
 import "./App.css";
 import "./PerformanceMonitor.css";
 import VideoStream from "./VideoStream";
-import PerformanceMonitorSimple from "./PerformanceMonitorSimple";
 import ASLWorldModule from "./ASLWorldModule";
 
 function App() {
@@ -28,6 +27,7 @@ function App() {
   // ASL World Module state management
   const [showASLWorld, setShowASLWorld] = useState(false);
   const [storyData, setStoryData] = useState(null);
+  const [practiceStarted, setPracticeStarted] = useState(false); // NEW: user-controlled practice start
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
   const [latestFeedback, setLatestFeedback] = useState(null);
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
@@ -38,27 +38,22 @@ function App() {
   const videoStreamingRef = useRef(null);
   const hasStartedPracticeRef = useRef(false);
 
-  // Effect 1: When a story is generated, ensure webcam/streaming are active
+  // Effect 1: When a story is generated, do NOT auto-start webcam/streaming
   React.useEffect(() => {
     if (storyData) {
       // Reset practice session start flag for new story
       hasStartedPracticeRef.current = false;
-
-      if (!webcamActive) {
-        setWebcamActive(true);
-      }
-      if (!streamingActive) {
-        setStreamingActive(true);
-      }
-      // Reset sentence index for the new story
+      // Do not auto-start webcam/streaming here anymore
       setCurrentSentenceIndex(0);
+      setPracticeStarted(false);
     }
   }, [storyData]); // Runs when a new story is loaded
 
-  // Effect 2: When the streaming connection is established, start the session
+  // Effect 2: When the streaming connection is established, start the session (only if user started practice)
   React.useEffect(() => {
     if (
       storyData &&
+      practiceStarted &&
       streamingConnectionStatus === "connected" &&
       videoStreamingRef.current &&
       !hasStartedPracticeRef.current
@@ -67,7 +62,7 @@ function App() {
       // Start practice session safely after WS is connected
       startPracticeSession(storyData);
     }
-  }, [storyData, streamingConnectionStatus]);
+  }, [storyData, practiceStarted, streamingConnectionStatus]);
 
   const testBackendConnection = async () => {
     setIsLoading(true);
@@ -692,6 +687,20 @@ function App() {
               connectionStatus={connectionStatus}
               onFrameCapture={handleFrameCapture}
               gestureState={gestureState}
+              practiceStarted={practiceStarted}
+              onStartPractice={() => {
+                if (!webcamActive) setWebcamActive(true);
+                if (!streamingActive) setStreamingActive(true);
+                setPracticeStarted(true);
+              }}
+              streamingStats={{
+                framesSent: videoStreamingRef.current?.framesSent || 0,
+                framesReceived: videoStreamingRef.current?.framesReceived || 0,
+              }}
+              processedFrameData={processedFrameData}
+              streamingConnectionStatus={streamingConnectionStatus}
+              optimizationSettings={optimizationSettings}
+              onOptimizationChange={handleOptimizationChange}
             >
               <VideoStream
                 webcamActive={webcamActive}
@@ -703,10 +712,6 @@ function App() {
                 onError={handleStreamingError}
                 processedFrameData={processedFrameData}
                 streamingConnectionStatus={streamingConnectionStatus}
-                streamingStats={{
-                  framesSent: videoStreamingRef.current?.framesSent || 0,
-                  framesReceived: videoStreamingRef.current?.framesReceived || 0,
-                }}
                 onRetryConnection={retryStreaming}
               />
             </ASLWorldModule>
@@ -823,33 +828,7 @@ function App() {
 
             {/* Streaming area moved into ASLWorldModule via <VideoStream /> */}
 
-            {/* Performance Monitor */}
-            {showPerformanceMonitor && (
-              <div className="performance-section">
-                <div className="section-header">
-                  <h3>Performance Monitor</h3>
-                  <button
-                    className="toggle-monitor-btn"
-                    onClick={() =>
-                      setShowPerformanceMonitor(!showPerformanceMonitor)
-                    }
-                  >
-                    {showPerformanceMonitor ? "Hide Monitor" : "Show Monitor"}
-                  </button>
-                </div>
-                <PerformanceMonitorSimple
-                  streamingStats={{
-                    framesSent: videoStreamingRef.current?.framesSent || 0,
-                    framesReceived:
-                      videoStreamingRef.current?.framesReceived || 0,
-                  }}
-                  processedFrameData={processedFrameData}
-                  connectionStatus={streamingConnectionStatus}
-                  optimizationSettings={optimizationSettings}
-                  onOptimizationChange={handleOptimizationChange}
-                />
-              </div>
-            )}
+
           </div>
         )}
 
