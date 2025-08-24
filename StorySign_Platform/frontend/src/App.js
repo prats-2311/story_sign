@@ -64,6 +64,13 @@ function App() {
     }
   }, [storyData, practiceStarted, streamingConnectionStatus]);
 
+  // Named handler for starting practice session
+  const handleStartPractice = () => {
+    if (!webcamActive) setWebcamActive(true);
+    if (!streamingActive) setStreamingActive(true);
+    setPracticeStarted(true);
+  };
+
   const testBackendConnection = async () => {
     setIsLoading(true);
     setConnectionStatus("testing");
@@ -688,11 +695,7 @@ function App() {
               onFrameCapture={handleFrameCapture}
               gestureState={gestureState}
               practiceStarted={practiceStarted}
-              onStartPractice={() => {
-                if (!webcamActive) setWebcamActive(true);
-                if (!streamingActive) setStreamingActive(true);
-                setPracticeStarted(true);
-              }}
+              onStartPractice={handleStartPractice}
               streamingStats={{
                 framesSent: videoStreamingRef.current?.framesSent || 0,
                 framesReceived: videoStreamingRef.current?.framesReceived || 0,

@@ -219,9 +219,12 @@ const ASLWorldModule = ({
           </div>
         ) : (
           <div className="video-and-feedback">
-            <div className="video-container-asl">
-              {children}
-            </div>
+            <details className="video-stream-details" open>
+              <summary>Show/Hide Live Video Feed</summary>
+              <div className="video-container-asl">
+                {children}
+              </div>
+            </details>
 
             <div className="practice-actions">
               {showFeedback && latestFeedback ? (

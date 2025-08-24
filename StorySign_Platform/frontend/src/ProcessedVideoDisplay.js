@@ -292,52 +292,57 @@ const ProcessedVideoDisplay = ({
       </div>
 
       {/* Video Display Area */}
-      <div className="video-display-container">
-        {processedFrameData?.frame_data ? (
-          <div className="video-canvas-container">
-            <canvas
-              ref={canvasRef}
-              className="processed-video-canvas"
-              style={{
-                maxWidth: "100%",
-                height: "auto",
-                border: `2px solid ${statusInfo.color}`,
-                borderRadius: "8px",
-              }}
-            />
-            <div className="video-overlay-controls">
-              <button
-                className="toggle-overlay-btn"
-                onClick={() => renderFrameToCanvas()}
-                title="Refresh display"
-              >
-                🔄
-              </button>
+      <details className="processed-video-details" open>
+        <summary>Show/Hide Processed Video Stream</summary>
+        <div className="video-display-container">
+          {processedFrameData?.frame_data ? (
+            <div className="video-canvas-container">
+              <canvas
+                ref={canvasRef}
+                className="processed-video-canvas"
+                style={{
+                  maxWidth: "100%",
+                  height: "auto",
+                  border: `2px solid ${statusInfo.color}`,
+                  borderRadius: "8px",
+                }}
+              />
+              <div className="video-overlay-controls">
+                <button
+                  className="toggle-overlay-btn"
+                  onClick={() => renderFrameToCanvas()}
+                  title="Refresh display"
+                >
+                  🔄
+                </button>
+              </div>
             </div>
-          </div>
-        ) : connectionStatus === "connected" ? (
-          <div className="video-placeholder waiting">
-            <div className="loading-spinner"></div>
-            <p>Waiting for processed frames...</p>
-            <small>MediaPipe processing in progress</small>
-          </div>
-        ) : connectionStatus === "connecting" ? (
-          <div className="video-placeholder connecting">
-            <div className="loading-spinner"></div>
-            <p>Connecting to video processor...</p>
-            <small>Establishing WebSocket connection</small>
-          </div>
-        ) : (
-          <div className="video-placeholder disconnected">
-            <div className="placeholder-icon">📹</div>
-            <p>Processed video will appear here</p>
-            <small>Start streaming to see MediaPipe overlays</small>
-          </div>
-        )}
-      </div>
+          ) : connectionStatus === "connected" ? (
+            <div className="video-placeholder waiting">
+              <div className="loading-spinner"></div>
+              <p>Waiting for processed frames...</p>
+              <small>MediaPipe processing in progress</small>
+            </div>
+          ) : connectionStatus === "connecting" ? (
+            <div className="video-placeholder connecting">
+              <div className="loading-spinner"></div>
+              <p>Connecting to video processor...</p>
+              <small>Establishing WebSocket connection</small>
+            </div>
+          ) : (
+            <div className="video-placeholder disconnected">
+              <div className="placeholder-icon">📹</div>
+              <p>Processed video will appear here</p>
+              <small>Start streaming to see MediaPipe overlays</small>
+            </div>
+          )}
+        </div>
+      </details>
 
       {/* Performance Metrics Dashboard */}
-      <div className="performance-dashboard">
+      <details className="video-quality-details">
+        <summary>Show/Hide Video Quality & Performance</summary>
+        <div className="performance-dashboard">
         <h4>Video Quality & Performance</h4>
 
         <div className="metrics-grid">
@@ -518,6 +523,7 @@ const ProcessedVideoDisplay = ({
           </div>
         )}
       </div>
+      </details>
 
       {/* System Health Indicators */}
       <div className="system-health">
