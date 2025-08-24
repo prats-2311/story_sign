@@ -1,10 +1,12 @@
 import React, { useState, useRef } from "react";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import "./App.css";
-import "./PerformanceMonitor.css";
-import VideoStream from "./VideoStream";
-import ASLWorldModule from "./ASLWorldModule";
+import "./components/performance/PerformanceMonitor.css";
+import { MainDashboard, ASLWorldPage } from "./pages";
 
 function App() {
+  const navigate = useNavigate();
+
   const [backendMessage, setBackendMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("not_tested");
@@ -16,7 +18,6 @@ function App() {
   const [streamingConnectionStatus, setStreamingConnectionStatus] =
     useState("disconnected");
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
-  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(true);
   const [optimizationSettings, setOptimizationSettings] = useState({
     adaptiveQuality: true,
     targetFPS: 30,
@@ -25,7 +26,6 @@ function App() {
   });
 
   // ASL World Module state management
-  const [showASLWorld, setShowASLWorld] = useState(false);
   const [storyData, setStoryData] = useState(null); // Now holds StoryLevels
   const [selectedStory, setSelectedStory] = useState(null); // User's chosen story
   const [practiceStarted, setPracticeStarted] = useState(false); // NEW: user-controlled practice start
@@ -120,32 +120,6 @@ function App() {
       setShowTroubleshooting(true);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const getStatusColor = () => {
-    switch (connectionStatus) {
-      case "connected":
-        return "#4CAF50";
-      case "error":
-        return "#f44336";
-      case "testing":
-        return "#ff9800";
-      default:
-        return "#9e9e9e";
-    }
-  };
-
-  const getStatusText = () => {
-    switch (connectionStatus) {
-      case "connected":
-        return "Connected";
-      case "error":
-        return "Connection Failed";
-      case "testing":
-        return "Testing...";
-      default:
-        return "Not Tested";
     }
   };
 
@@ -599,14 +573,6 @@ function App() {
     }
   };
 
-  const handleWebcamError = (error) => {
-    setWebcamError(error);
-    // Auto-stop streaming if webcam fails
-    if (streamingActive) {
-      setStreamingActive(false);
-    }
-  };
-
   const toggleWebcam = () => {
     setWebcamActive(!webcamActive);
     if (webcamActive) {
@@ -655,20 +621,8 @@ function App() {
     }, 500);
   };
 
-  const toggleASLWorld = () => {
-    setShowASLWorld(!showASLWorld);
-
-    // Reset ASL World state when closing
-    if (showASLWorld) {
-      setStoryData(null);
-      setSelectedStory(null);
-      setCurrentSentenceIndex(0);
-      setLatestFeedback(null);
-      setIsGeneratingStory(false);
-      setIsProcessingFeedback(false);
-      setStoryGenerationError("");
-      setGestureState("listening");
-    }
+  const handleNavigateToASLWorld = () => {
+    navigate("/asl-world");
   };
 
   return (
@@ -678,181 +632,65 @@ function App() {
         <p>Real-time American Sign Language Recognition System</p>
       </header>
       <main className="App-main">
-        {showASLWorld ? (
-          <div className="asl-world-container">
-            <div className="asl-world-header">
-              <button className="back-to-main-btn" onClick={toggleASLWorld}>
-                ← Back to Main
-              </button>
-            </div>
-            <ASLWorldModule
-              storyData={storyData}
-              selectedStory={selectedStory}
-              onStorySelect={handleStorySelect}
-              currentSentenceIndex={currentSentenceIndex}
-              latestFeedback={latestFeedback}
-              onStoryGenerate={handleStoryGenerate}
-              onPracticeControl={handlePracticeControl}
-              isGeneratingStory={isGeneratingStory}
-              isProcessingFeedback={isProcessingFeedback}
-              connectionStatus={connectionStatus}
-              onFrameCapture={handleFrameCapture}
-              gestureState={gestureState}
-              practiceStarted={practiceStarted}
-              onStartPractice={handleStartPractice}
-              streamingStats={{
-                framesSent: videoStreamingRef.current?.framesSent || 0,
-                framesReceived: videoStreamingRef.current?.framesReceived || 0,
-              }}
-              processedFrameData={processedFrameData}
-              streamingConnectionStatus={streamingConnectionStatus}
-              optimizationSettings={optimizationSettings}
-              onOptimizationChange={handleOptimizationChange}
-            >
-              <VideoStream
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <MainDashboard
+                backendMessage={backendMessage}
+                isLoading={isLoading}
+                connectionStatus={connectionStatus}
+                webcamActive={webcamActive}
+                webcamError={webcamError}
+                streamingActive={streamingActive}
+                streamingError={streamingError}
+                showTroubleshooting={showTroubleshooting}
+                testBackendConnection={testBackendConnection}
+                toggleWebcam={toggleWebcam}
+                toggleStreaming={toggleStreaming}
+                retryWebcam={retryWebcam}
+                retryStreaming={retryStreaming}
+                onNavigateToASLWorld={handleNavigateToASLWorld}
+              />
+            }
+          />
+          <Route
+            path="/asl-world"
+            element={
+              <ASLWorldPage
+                storyData={storyData}
+                selectedStory={selectedStory}
+                onStorySelect={handleStorySelect}
+                currentSentenceIndex={currentSentenceIndex}
+                latestFeedback={latestFeedback}
+                onStoryGenerate={handleStoryGenerate}
+                onPracticeControl={handlePracticeControl}
+                isGeneratingStory={isGeneratingStory}
+                isProcessingFeedback={isProcessingFeedback}
+                connectionStatus={connectionStatus}
+                onFrameCapture={handleFrameCapture}
+                gestureState={gestureState}
+                practiceStarted={practiceStarted}
+                onStartPractice={handleStartPractice}
+                videoStreamingRef={videoStreamingRef}
+                processedFrameData={processedFrameData}
+                streamingConnectionStatus={streamingConnectionStatus}
+                optimizationSettings={optimizationSettings}
+                onOptimizationChange={handleOptimizationChange}
                 webcamActive={webcamActive}
                 streamingActive={streamingActive}
-                onFrameCapture={handleFrameCapture}
-                videoStreamingRef={videoStreamingRef}
                 onConnectionChange={handleStreamingConnectionChange}
                 onProcessedFrame={handleProcessedFrame}
                 onError={handleStreamingError}
-                processedFrameData={processedFrameData}
-                streamingConnectionStatus={streamingConnectionStatus}
                 onRetryConnection={retryStreaming}
-                hideWebcamPreview={practiceStarted} // Hide webcam preview when practice is started
+                storyGenerationError={storyGenerationError}
+                setStoryGenerationError={setStoryGenerationError}
               />
-            </ASLWorldModule>
-            {storyGenerationError && (
-              <div className="story-generation-error">
-                <p className="error-text">
-                  Story Generation Error: {storyGenerationError}
-                </p>
-                <button
-                  className="retry-btn"
-                  onClick={() => setStoryGenerationError("")}
-                >
-                  Dismiss
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="control-panel">
-            <div className="connection-section">
-              <h2>Backend Connectivity</h2>
-              <div className="status-indicator">
-                <span
-                  className="status-dot"
-                  style={{ backgroundColor: getStatusColor() }}
-                ></span>
-                <span className="status-text">{getStatusText()}</span>
-              </div>
-              <button
-                className="test-backend-btn"
-                onClick={testBackendConnection}
-                disabled={isLoading}
-              >
-                {isLoading ? "Testing..." : "Test Backend"}
-              </button>
-            </div>
-
-            <div className="message-area">
-              <h3>System Messages</h3>
-              <div className="message-display">
-                {backendMessage ? (
-                  <p className={`message ${connectionStatus}`}>
-                    {backendMessage}
-                  </p>
-                ) : (
-                  <p className="message placeholder">
-                    Click "Test Backend" to verify connectivity
-                  </p>
-                )}
-              </div>
-
-              {showTroubleshooting && connectionStatus === "error" && (
-                <div className="troubleshooting-panel">
-                  <h4>Troubleshooting Steps:</h4>
-                  <ul>
-                    <li>
-                      Ensure the backend server is running:{" "}
-                      <code>python main.py</code>
-                    </li>
-                    <li>
-                      Check that the backend is accessible at{" "}
-                      <code>http://localhost:8000</code>
-                    </li>
-                    <li>Verify no firewall is blocking the connection</li>
-                    <li>Check the backend console for error messages</li>
-                    <li>Try restarting the backend server</li>
-                  </ul>
-                  <button
-                    className="retry-btn"
-                    onClick={testBackendConnection}
-                    disabled={isLoading}
-                  >
-                    Retry Connection
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="video-area">
-              <h3>Video Feed</h3>
-              <div className="video-controls">
-                <button className="webcam-toggle-btn" onClick={toggleWebcam}>
-                  {webcamActive ? "Stop Webcam" : "Start Webcam"}
-                </button>
-                <button
-                  className="streaming-toggle-btn"
-                  onClick={toggleStreaming}
-                  disabled={!webcamActive}
-                >
-                  {streamingActive ? "Stop Streaming" : "Start Streaming"}
-                </button>
-              </div>
-              {webcamError && (
-                <div className="webcam-error">
-                  <p className="error-text">{webcamError}</p>
-                  <div className="error-actions">
-                    <button className="retry-btn" onClick={retryWebcam}>
-                      Retry Webcam
-                    </button>
-                    <div className="error-help">
-                      <p>Common solutions:</p>
-                      <ul>
-                        <li>Check camera permissions in browser settings</li>
-                        <li>Close other applications using the camera</li>
-                        <li>Try refreshing the page</li>
-                        <li>Ensure camera is properly connected</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {/* Video components moved into ASLWorldModule via <VideoStream /> */}
-            </div>
-
-            {/* Streaming area moved into ASLWorldModule via <VideoStream /> */}
-          </div>
-        )}
-
-        {/* ASL World Toggle Button - Always visible */}
-        <div className="asl-world-toggle">
-          <button
-            className="asl-world-toggle-btn"
-            onClick={toggleASLWorld}
-            disabled={connectionStatus !== "connected"}
-          >
-            {showASLWorld ? "Exit ASL World" : "Enter ASL World"}
-          </button>
-          {connectionStatus !== "connected" && (
-            <p className="toggle-help">
-              Connect to backend first to use ASL World
-            </p>
-          )}
-        </div>
+            }
+          />
+          {/* Default redirect to main dashboard */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
     </div>
   );
