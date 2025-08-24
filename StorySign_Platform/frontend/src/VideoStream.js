@@ -1,8 +1,8 @@
 // src/VideoStream.js
-import React from 'react';
-import WebcamCapture from './WebcamCapture';
-import VideoStreamingClient from './VideoStreamingClient';
-import ProcessedVideoDisplay from './ProcessedVideoDisplay';
+import React from "react";
+import WebcamCapture from "./WebcamCapture";
+import VideoStreamingClient from "./VideoStreamingClient";
+import ProcessedVideoDisplay from "./ProcessedVideoDisplay";
 
 const VideoStream = ({
   webcamActive,
@@ -16,15 +16,18 @@ const VideoStream = ({
   streamingConnectionStatus,
   streamingStats,
   onRetryConnection,
+  hideWebcamPreview = false, // New prop to hide webcam preview video
 }) => {
   return (
     <div className="video-stream-container">
       {/* Webcam Capture Component (sends frames) */}
-      <WebcamCapture
-        isActive={webcamActive}
-        onFrameCapture={onFrameCapture}
-        onError={onError}
-      />
+      <div style={{ display: hideWebcamPreview ? "none" : "block" }}>
+        <WebcamCapture
+          isActive={webcamActive}
+          onFrameCapture={onFrameCapture}
+          onError={onError}
+        />
+      </div>
 
       {/* WebSocket Client (manages connection) */}
       <VideoStreamingClient

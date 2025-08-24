@@ -301,8 +301,10 @@ const ProcessedVideoDisplay = ({
                 ref={canvasRef}
                 className="processed-video-canvas"
                 style={{
-                  maxWidth: "100%",
+                  width: "100%",
+                  maxWidth: "800px",
                   height: "auto",
+                  minHeight: "400px",
                   border: `2px solid ${statusInfo.color}`,
                   borderRadius: "8px",
                 }}
@@ -343,186 +345,186 @@ const ProcessedVideoDisplay = ({
       <details className="video-quality-details">
         <summary>Show/Hide Video Quality & Performance</summary>
         <div className="performance-dashboard">
-        <h4>Video Quality & Performance</h4>
+          <h4>Video Quality & Performance</h4>
 
-        <div className="metrics-grid">
-          {/* Real-time Stats */}
-          <div className="metric-group">
-            <h5>Real-time Stats</h5>
-            <div className="metric-item">
-              <span className="metric-label">Frame Rate:</span>
-              <span
-                className={`metric-value ${
-                  displayStats.frameRate > 20
-                    ? "good"
-                    : displayStats.frameRate > 10
-                    ? "warning"
-                    : "poor"
-                }`}
-              >
-                {displayStats.frameRate} FPS
-              </span>
-            </div>
-            <div className="metric-item">
-              <span className="metric-label">Latency:</span>
-              <span
-                className={`metric-value ${
-                  displayStats.latency < 100
-                    ? "good"
-                    : displayStats.latency < 200
-                    ? "warning"
-                    : "poor"
-                }`}
-              >
-                {displayStats.latency}ms
-              </span>
-            </div>
-            <div className="metric-item">
-              <span className="metric-label">Quality:</span>
-              <span
-                className={`metric-value ${
-                  displayStats.quality === "Excellent"
-                    ? "good"
-                    : displayStats.quality === "Good"
-                    ? "warning"
-                    : "poor"
-                }`}
-              >
-                {displayStats.quality}
-              </span>
-            </div>
-            <div className="metric-item">
-              <span className="metric-label">Resolution:</span>
-              <span className="metric-value">{displayStats.resolution}</span>
-            </div>
-          </div>
-
-          {/* Processing Stats */}
-          <div className="metric-group">
-            <h5>Processing Stats</h5>
-            <div className="metric-item">
-              <span className="metric-label">Total Frames:</span>
-              <span className="metric-value">{displayStats.totalFrames}</span>
-            </div>
-            <div className="metric-item">
-              <span className="metric-label">Dropped Frames:</span>
-              <span
-                className={`metric-value ${
-                  displayStats.droppedFrames === 0 ? "good" : "warning"
-                }`}
-              >
-                {displayStats.droppedFrames}
-              </span>
-            </div>
-            <div className="metric-item">
-              <span className="metric-label">Avg Latency:</span>
-              <span
-                className={`metric-value ${
-                  performanceMetrics.avgLatency < 100 ? "good" : "warning"
-                }`}
-              >
-                {performanceMetrics.avgLatency}ms
-              </span>
-            </div>
-            <div className="metric-item">
-              <span className="metric-label">Max Latency:</span>
-              <span className="metric-value">
-                {performanceMetrics.maxLatency}ms
-              </span>
-            </div>
-          </div>
-
-          {/* Connection Stats */}
-          <div className="metric-group">
-            <h5>Connection Health</h5>
-            <div className="metric-item">
-              <span className="metric-label">Status:</span>
-              <span
-                className={`metric-value ${
-                  connectionStatus === "connected" ? "good" : "poor"
-                }`}
-              >
-                {statusInfo.text}
-              </span>
-            </div>
-            <div className="metric-item">
-              <span className="metric-label">Uptime:</span>
-              <span className="metric-value">
-                {performanceMetrics.connectionUptime > 0
-                  ? `${Math.floor(performanceMetrics.connectionUptime / 60)}:${(
-                      performanceMetrics.connectionUptime % 60
-                    )
-                      .toString()
-                      .padStart(2, "0")}`
-                  : "0:00"}
-              </span>
-            </div>
-            <div className="metric-item">
-              <span className="metric-label">Last Frame:</span>
-              <span className="metric-value">
-                {displayStats.lastFrameTime
-                  ? displayStats.lastFrameTime.toLocaleTimeString()
-                  : "Never"}
-              </span>
-            </div>
-            <div className="metric-item">
-              <span className="metric-label">Stream Health:</span>
-              <span
-                className={`metric-value ${
-                  getConnectionQualityColor() === "#4CAF50"
-                    ? "good"
-                    : getConnectionQualityColor() === "#ff9800"
-                    ? "warning"
-                    : "poor"
-                }`}
-              >
-                {getConnectionQualityColor() === "#4CAF50"
-                  ? "Excellent"
-                  : getConnectionQualityColor() === "#ff9800"
-                  ? "Good"
-                  : "Poor"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* MediaPipe Landmarks Status */}
-        {processedFrameData?.metadata?.landmarks_detected && (
-          <div className="landmarks-status">
-            <h5>MediaPipe Detection Status</h5>
-            <div className="landmarks-grid">
-              {Object.entries(
-                processedFrameData.metadata.landmarks_detected
-              ).map(([landmark, detected]) => (
-                <div
-                  key={landmark}
-                  className={`landmark-status ${
-                    detected ? "detected" : "not-detected"
+          <div className="metrics-grid">
+            {/* Real-time Stats */}
+            <div className="metric-group">
+              <h5>Real-time Stats</h5>
+              <div className="metric-item">
+                <span className="metric-label">Frame Rate:</span>
+                <span
+                  className={`metric-value ${
+                    displayStats.frameRate > 20
+                      ? "good"
+                      : displayStats.frameRate > 10
+                      ? "warning"
+                      : "poor"
                   }`}
                 >
-                  <span className="landmark-icon">
-                    {landmark === "hands"
-                      ? "👐"
-                      : landmark === "face"
-                      ? "😊"
-                      : "🧍"}
-                  </span>
-                  <span className="landmark-name">
-                    {landmark.charAt(0).toUpperCase() + landmark.slice(1)}
-                  </span>
-                  <span
-                    className={`landmark-indicator ${
-                      detected ? "active" : "inactive"
-                    }`}
-                  >
-                    {detected ? "✓" : "✗"}
-                  </span>
-                </div>
-              ))}
+                  {displayStats.frameRate} FPS
+                </span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-label">Latency:</span>
+                <span
+                  className={`metric-value ${
+                    displayStats.latency < 100
+                      ? "good"
+                      : displayStats.latency < 200
+                      ? "warning"
+                      : "poor"
+                  }`}
+                >
+                  {displayStats.latency}ms
+                </span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-label">Quality:</span>
+                <span
+                  className={`metric-value ${
+                    displayStats.quality === "Excellent"
+                      ? "good"
+                      : displayStats.quality === "Good"
+                      ? "warning"
+                      : "poor"
+                  }`}
+                >
+                  {displayStats.quality}
+                </span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-label">Resolution:</span>
+                <span className="metric-value">{displayStats.resolution}</span>
+              </div>
+            </div>
+
+            {/* Processing Stats */}
+            <div className="metric-group">
+              <h5>Processing Stats</h5>
+              <div className="metric-item">
+                <span className="metric-label">Total Frames:</span>
+                <span className="metric-value">{displayStats.totalFrames}</span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-label">Dropped Frames:</span>
+                <span
+                  className={`metric-value ${
+                    displayStats.droppedFrames === 0 ? "good" : "warning"
+                  }`}
+                >
+                  {displayStats.droppedFrames}
+                </span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-label">Avg Latency:</span>
+                <span
+                  className={`metric-value ${
+                    performanceMetrics.avgLatency < 100 ? "good" : "warning"
+                  }`}
+                >
+                  {performanceMetrics.avgLatency}ms
+                </span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-label">Max Latency:</span>
+                <span className="metric-value">
+                  {performanceMetrics.maxLatency}ms
+                </span>
+              </div>
+            </div>
+
+            {/* Connection Stats */}
+            <div className="metric-group">
+              <h5>Connection Health</h5>
+              <div className="metric-item">
+                <span className="metric-label">Status:</span>
+                <span
+                  className={`metric-value ${
+                    connectionStatus === "connected" ? "good" : "poor"
+                  }`}
+                >
+                  {statusInfo.text}
+                </span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-label">Uptime:</span>
+                <span className="metric-value">
+                  {performanceMetrics.connectionUptime > 0
+                    ? `${Math.floor(
+                        performanceMetrics.connectionUptime / 60
+                      )}:${(performanceMetrics.connectionUptime % 60)
+                        .toString()
+                        .padStart(2, "0")}`
+                    : "0:00"}
+                </span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-label">Last Frame:</span>
+                <span className="metric-value">
+                  {displayStats.lastFrameTime
+                    ? displayStats.lastFrameTime.toLocaleTimeString()
+                    : "Never"}
+                </span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-label">Stream Health:</span>
+                <span
+                  className={`metric-value ${
+                    getConnectionQualityColor() === "#4CAF50"
+                      ? "good"
+                      : getConnectionQualityColor() === "#ff9800"
+                      ? "warning"
+                      : "poor"
+                  }`}
+                >
+                  {getConnectionQualityColor() === "#4CAF50"
+                    ? "Excellent"
+                    : getConnectionQualityColor() === "#ff9800"
+                    ? "Good"
+                    : "Poor"}
+                </span>
+              </div>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* MediaPipe Landmarks Status */}
+          {processedFrameData?.metadata?.landmarks_detected && (
+            <div className="landmarks-status">
+              <h5>MediaPipe Detection Status</h5>
+              <div className="landmarks-grid">
+                {Object.entries(
+                  processedFrameData.metadata.landmarks_detected
+                ).map(([landmark, detected]) => (
+                  <div
+                    key={landmark}
+                    className={`landmark-status ${
+                      detected ? "detected" : "not-detected"
+                    }`}
+                  >
+                    <span className="landmark-icon">
+                      {landmark === "hands"
+                        ? "👐"
+                        : landmark === "face"
+                        ? "😊"
+                        : "🧍"}
+                    </span>
+                    <span className="landmark-name">
+                      {landmark.charAt(0).toUpperCase() + landmark.slice(1)}
+                    </span>
+                    <span
+                      className={`landmark-indicator ${
+                        detected ? "active" : "inactive"
+                      }`}
+                    >
+                      {detected ? "✓" : "✗"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </details>
 
       {/* System Health Indicators */}

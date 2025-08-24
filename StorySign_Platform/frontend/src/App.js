@@ -716,6 +716,7 @@ function App() {
                 processedFrameData={processedFrameData}
                 streamingConnectionStatus={streamingConnectionStatus}
                 onRetryConnection={retryStreaming}
+                hideWebcamPreview={practiceStarted} // Hide webcam preview when practice is started
               />
             </ASLWorldModule>
             {storyGenerationError && (
@@ -830,8 +831,6 @@ function App() {
             </div>
 
             {/* Streaming area moved into ASLWorldModule via <VideoStream /> */}
-
-
           </div>
         )}
 

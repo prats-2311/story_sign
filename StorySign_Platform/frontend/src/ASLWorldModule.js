@@ -95,7 +95,7 @@ const ASLWorldModule = ({
           video: { width: 640, height: 480 },
         });
 
-        if (videoRef.current) {
+        if (videoRef?.current) {
           videoRef.current.srcObject = stream;
         }
       } catch (error) {
@@ -103,17 +103,25 @@ const ASLWorldModule = ({
       }
     };
 
+    const cleanupWebcam = () => {
+      if (videoRef?.current && videoRef.current.srcObject) {
+        const tracks = videoRef.current.srcObject.getTracks();
+        tracks.forEach((track) => track.stop());
+        videoRef.current.srcObject = null;
+      }
+    };
+
     // Only initialize when in story generation mode
-    if (mode === 'story_generation') {
+    if (mode === "story_generation") {
       initializeWebcam();
+    } else {
+      // Explicitly cleanup when switching to practice mode
+      cleanupWebcam();
     }
 
     // Cleanup function
     return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const tracks = videoRef.current.srcObject.getTracks();
-        tracks.forEach((track) => track.stop());
-      }
+      cleanupWebcam();
     };
   }, [mode]);
 
@@ -165,6 +173,19 @@ const ASLWorldModule = ({
 
   const renderPracticeMode = () => (
     <div className="practice-mode">
+      {/* Hide the simple preview video when in practice mode */}
+      <div className="video-preview" style={{ display: "none" }}>
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="preview-video"
+          style={{ display: "none" }}
+        />
+        <canvas ref={canvasRef} style={{ display: "none" }} />
+      </div>
+
       <div className="story-display">
         <h2>Practice Story: {storyData?.title || "Generated Story"}</h2>
         <div className="story-content">
@@ -212,8 +233,15 @@ const ASLWorldModule = ({
         {!practiceStarted ? (
           <div className="start-practice-container">
             <h3>Ready to Practice?</h3>
-            <p>Your story is generated. Click the button below to start your webcam and begin signing.</p>
-            <button className="start-practice-btn" onClick={onStartPractice} disabled={isGeneratingStory || connectionStatus !== "connected"}>
+            <p>
+              Your story is generated. Click the button below to start your
+              webcam and begin signing.
+            </p>
+            <button
+              className="start-practice-btn"
+              onClick={onStartPractice}
+              disabled={isGeneratingStory || connectionStatus !== "connected"}
+            >
               Start Practice Session
             </button>
           </div>
@@ -221,9 +249,7 @@ const ASLWorldModule = ({
           <div className="video-and-feedback">
             <details className="video-stream-details" open>
               <summary>Show/Hide Live Video Feed</summary>
-              <div className="video-container-asl">
-                {children}
-              </div>
+              <div className="video-container-asl">{children}</div>
             </details>
 
             <div className="practice-actions">
@@ -245,56 +271,63 @@ const ASLWorldModule = ({
                             {latestFeedback?.completed
                               ? "Overall Score"
                               : "Confidence"}
-                            : {Math.round(latestFeedback.confidence_score * 100)}%
+                            :{" "}
+                            {Math.round(latestFeedback.confidence_score * 100)}%
                           </span>
                         </div>
                       )}
 
                       {/* Story Statistics for Completion */}
-                      {latestFeedback?.completed && latestFeedback?.story_stats && (
-                        <div className="story-stats">
-                          <h5>Practice Summary:</h5>
-                          <div className="stats-grid">
-                            <div className="stat-item">
-                              <span className="stat-label">Sentences:</span>
-                              <span className="stat-value">
-                                {latestFeedback.story_stats.total_sentences}
-                              </span>
+                      {latestFeedback?.completed &&
+                        latestFeedback?.story_stats && (
+                          <div className="story-stats">
+                            <h5>Practice Summary:</h5>
+                            <div className="stats-grid">
+                              <div className="stat-item">
+                                <span className="stat-label">Sentences:</span>
+                                <span className="stat-value">
+                                  {latestFeedback.story_stats.total_sentences}
+                                </span>
+                              </div>
+                              {latestFeedback.story_stats.completion_time >
+                                0 && (
+                                <div className="stat-item">
+                                  <span className="stat-label">Time:</span>
+                                  <span className="stat-value">
+                                    {Math.round(
+                                      latestFeedback.story_stats
+                                        .completion_time / 1000
+                                    )}
+                                    s
+                                  </span>
+                                </div>
+                              )}
+                              {latestFeedback.story_stats.average_confidence >
+                                0 && (
+                                <div className="stat-item">
+                                  <span className="stat-label">
+                                    Avg. Score:
+                                  </span>
+                                  <span className="stat-value">
+                                    {Math.round(
+                                      latestFeedback.story_stats
+                                        .average_confidence * 100
+                                    )}
+                                    %
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                            {latestFeedback.story_stats.completion_time > 0 && (
-                              <div className="stat-item">
-                                <span className="stat-label">Time:</span>
-                                <span className="stat-value">
-                                  {Math.round(
-                                    latestFeedback.story_stats.completion_time /
-                                      1000
-                                  )}
-                                  s
-                                </span>
-                              </div>
-                            )}
-                            {latestFeedback.story_stats.average_confidence > 0 && (
-                              <div className="stat-item">
-                                <span className="stat-label">Avg. Score:</span>
-                                <span className="stat-value">
-                                  {Math.round(
-                                    latestFeedback.story_stats.average_confidence *
-                                      100
-                                  )}
-                                  %
-                                </span>
-                              </div>
-                            )}
                           </div>
-                        </div>
-                      )}
+                        )}
 
                       {/* Processing Information */}
                       {latestFeedback.processing_time > 0 &&
                         !latestFeedback?.completed && (
                           <div className="processing-info">
                             <small>
-                              Analysis completed in {latestFeedback.processing_time}
+                              Analysis completed in{" "}
+                              {latestFeedback.processing_time}
                               ms
                             </small>
                           </div>
@@ -304,8 +337,8 @@ const ASLWorldModule = ({
                       {latestFeedback?.error && (
                         <div className="feedback-error">
                           <p>
-                            ⚠️ There was an issue processing your signing. Please
-                            try again.
+                            ⚠️ There was an issue processing your signing.
+                            Please try again.
                           </p>
                         </div>
                       )}
@@ -345,7 +378,9 @@ const ASLWorldModule = ({
                           (storyData?.sentences?.length || 0) - 1 && (
                           <button
                             className="next-sentence-btn"
-                            onClick={() => handlePracticeControl("next_sentence")}
+                            onClick={() =>
+                              handlePracticeControl("next_sentence")
+                            }
                             disabled={isProcessingFeedback}
                           >
                             Next Sentence ({currentSentenceIndex + 2}/
@@ -356,7 +391,9 @@ const ASLWorldModule = ({
                           (storyData?.sentences?.length || 0) - 1 && (
                           <button
                             className="complete-story-btn"
-                            onClick={() => handlePracticeControl("complete_story")}
+                            onClick={() =>
+                              handlePracticeControl("complete_story")
+                            }
                             disabled={isProcessingFeedback}
                           >
                             Complete Story
@@ -391,15 +428,17 @@ const ASLWorldModule = ({
                       <>
                         <div className="loading-spinner"></div>
                         <p>Analyzing your signing...</p>
-                        <small>Please wait while AI analyzes your gesture</small>
+                        <small>
+                          Please wait while AI analyzes your gesture
+                        </small>
                       </>
                     ) : (
                       <>
                         <div className="gesture-icon">👋</div>
                         <p>Start signing the sentence above</p>
                         <small>
-                          The system will automatically detect when you begin and
-                          end your gesture
+                          The system will automatically detect when you begin
+                          and end your gesture
                         </small>
                         <div className="gesture-status">
                           <div className={`status-indicator ${gestureState}`}>
@@ -411,7 +450,8 @@ const ASLWorldModule = ({
                                 "Gesture detected - keep signing"}
                               {gestureState === "analyzing" &&
                                 "Analyzing your gesture"}
-                              {gestureState === "completed" && "Story completed!"}
+                              {gestureState === "completed" &&
+                                "Story completed!"}
                             </span>
                           </div>
                         </div>
@@ -470,11 +510,9 @@ const ASLWorldModule = ({
       </div>
 
       <div className="module-content">
-        {mode === "story_generation" ? (
-          renderStoryGenerationMode()
-        ) : (
-          renderPracticeMode()
-        )}
+        {mode === "story_generation"
+          ? renderStoryGenerationMode()
+          : renderPracticeMode()}
       </div>
     </div>
   );

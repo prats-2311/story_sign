@@ -235,7 +235,7 @@
   - Add visual indicators for gesture listening and processing states
   - _Requirements: 8.5, 8.6, 8.7, 9.3, 9.4_
 
-- [x] 17.2 Integrate feedback display and user interaction
+- [ ] 17.2 Integrate feedback display and user interaction
 
   - Enhance VideoStreamingClient.js to handle ASL feedback messages
   - Implement feedback data flow from WebSocket to ASL World Module

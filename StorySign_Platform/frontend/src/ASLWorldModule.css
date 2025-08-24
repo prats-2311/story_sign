@@ -74,16 +74,20 @@
 
 .video-preview {
   position: relative;
-  display: inline-block;
-  margin-bottom: 30px;
+  display: block;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto 30px auto;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 .preview-video {
-  width: 480px;
-  height: 360px;
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  min-height: 400px;
   object-fit: cover;
   display: block;
   background-color: #000;
@@ -932,5 +936,96 @@
 
   .feedback-error p {
     color: #ef5350;
+  }
+}
+
+/* Enhanced Video Display Styles */
+.video-display-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.video-canvas-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.processed-video-canvas {
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 800px;
+  min-height: 400px;
+  object-fit: contain;
+}
+
+.video-placeholder {
+  width: 100%;
+  max-width: 800px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #000;
+  color: #fff;
+  border-radius: 8px;
+  margin: 0 auto;
+}
+
+.video-container-asl {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Ensure video elements fill available space */
+.processed-video-details .video-display-container,
+.video-stream-details .video-container-asl {
+  width: 100%;
+  max-width: none;
+}
+
+/* Make the module content wider for better video display */
+.module-content {
+  padding: 40px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Responsive adjustments for larger videos */
+@media (max-width: 900px) {
+  .preview-video {
+    max-width: 100%;
+    min-height: 300px;
+  }
+
+  .processed-video-canvas {
+    min-height: 300px;
+  }
+
+  .video-placeholder {
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 600px) {
+  .preview-video {
+    min-height: 250px;
+  }
+
+  .processed-video-canvas {
+    min-height: 250px;
+  }
+
+  .video-placeholder {
+    min-height: 250px;
   }
 }
