@@ -4,6 +4,8 @@ import "./ASLWorldModule.css";
 
 const ASLWorldModule = ({
   storyData = null,
+  selectedStory = null,
+  onStorySelect,
   currentSentenceIndex = 0,
   latestFeedback = null,
   onStoryGenerate,
@@ -22,10 +24,23 @@ const ASLWorldModule = ({
   onOptimizationChange,
   children,
 }) => {
-  const [mode, setMode] = useState("story_generation"); // 'story_generation' or 'practice'
+  const [mode, setMode] = useState("story_generation"); // 'story_generation', 'story_selection', or 'practice'
   const [showFeedback, setShowFeedback] = useState(false);
+  const [generationMode, setGenerationMode] = useState("scan");
+  const [customPrompt, setCustomPrompt] = useState("");
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+
+  const simpleWords = [
+    "Cat",
+    "Dog",
+    "House",
+    "Ball",
+    "Book",
+    "Tree",
+    "Car",
+    "Sun",
+  ];
 
   // Handle object scanning and story generation
   const handleScanObject = useCallback(async () => {
@@ -49,14 +64,29 @@ const ASLWorldModule = ({
       // Convert to base64 JPEG with high quality for object recognition
       const frameData = canvas.toDataURL("image/jpeg", 0.9);
 
-      // Call the story generation handler
+      // Call the story generation handler with frame data
       if (onStoryGenerate) {
-        await onStoryGenerate(frameData);
+        await onStoryGenerate({ frame_data: frameData });
       }
     } catch (error) {
       console.error("Error capturing frame for story generation:", error);
     }
   }, [onStoryGenerate]);
+
+  // Handle simple word generation
+  const handleSimpleWordGenerate = (word) => {
+    if (onStoryGenerate) {
+      onStoryGenerate({ simple_word: word });
+    }
+  };
+
+  // Handle custom prompt generation
+  const handleCustomPromptGenerate = (e) => {
+    e.preventDefault();
+    if (customPrompt.trim() && onStoryGenerate) {
+      onStoryGenerate({ custom_prompt: customPrompt });
+    }
+  };
 
   // Handle practice control actions
   const handlePracticeControl = useCallback(
@@ -73,12 +103,16 @@ const ASLWorldModule = ({
     [onPracticeControl, currentSentenceIndex]
   );
 
-  // Switch to practice mode when story is available
+  // Switch to story selection mode when stories are available
   React.useEffect(() => {
-    if (storyData && storyData.sentences && storyData.sentences.length > 0) {
+    if (storyData && !selectedStory) {
+      setMode("story_selection");
+    } else if (selectedStory) {
       setMode("practice");
+    } else {
+      setMode("story_generation");
     }
-  }, [storyData]);
+  }, [storyData, selectedStory]);
 
   // Show feedback when it becomes available
   React.useEffect(() => {
@@ -127,46 +161,240 @@ const ASLWorldModule = ({
 
   const renderStoryGenerationMode = () => (
     <div className="story-generation-mode">
-      <div className="scan-section">
-        <h2>Generate Your Story</h2>
-        <p>
-          Show an object to the camera to create a personalized story for ASL
-          practice.
-        </p>
+      <div className="generation-tabs">
+        <button
+          onClick={() => setGenerationMode("scan")}
+          className={generationMode === "scan" ? "active" : ""}
+        >
+          Scan Object
+        </button>
+        <button
+          onClick={() => setGenerationMode("word")}
+          className={generationMode === "word" ? "active" : ""}
+        >
+          Choose a Word
+        </button>
+        <button
+          onClick={() => setGenerationMode("custom")}
+          className={generationMode === "custom" ? "active" : ""}
+        >
+          Custom Topic
+        </button>
+      </div>
 
-        <div className="video-preview">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="preview-video"
-          />
-          <canvas ref={canvasRef} style={{ display: "none" }} />
-        </div>
+      {generationMode === "scan" && (
+        <div className="scan-section">
+          <h2>Scan an Object</h2>
+          <p>
+            Show an object to the camera to create a personalized story for ASL
+            practice.
+          </p>
 
-        <div className="scan-controls">
-          <button
-            className="scan-object-btn"
-            onClick={handleScanObject}
-            disabled={isGeneratingStory || connectionStatus !== "connected"}
-          >
-            {isGeneratingStory ? (
-              <>
-                <div className="loading-spinner"></div>
-                Generating Story...
-              </>
-            ) : (
-              "Scan Object to Start"
-            )}
-          </button>
-        </div>
-
-        {connectionStatus !== "connected" && (
-          <div className="connection-warning">
-            <p>⚠️ Backend connection required for story generation</p>
+          <div className="video-preview">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="preview-video"
+            />
+            <canvas ref={canvasRef} style={{ display: "none" }} />
           </div>
-        )}
+
+          <div className="scan-controls">
+            <button
+              className="scan-object-btn"
+              onClick={handleScanObject}
+              disabled={isGeneratingStory || connectionStatus !== "connected"}
+            >
+              {isGeneratingStory ? (
+                <>
+                  <div className="loading-spinner"></div>
+                  Generating Stories...
+                </>
+              ) : (
+                "Scan Object to Start"
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {generationMode === "word" && (
+        <div className="simple-word-section">
+          <h2>Choose a Word to Start Your Story</h2>
+          <p>
+            Select a simple word to generate stories at different difficulty
+            levels.
+          </p>
+          <div className="word-grid">
+            {simpleWords.map((word) => (
+              <button
+                key={word}
+                className="word-chip"
+                onClick={() => handleSimpleWordGenerate(word)}
+                disabled={isGeneratingStory}
+              >
+                {word}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {generationMode === "custom" && (
+        <div className="custom-prompt-section">
+          <h2>Enter a Topic for Your Story</h2>
+          <p>Describe what you'd like your story to be about.</p>
+          <form onSubmit={handleCustomPromptGenerate}>
+            <input
+              type="text"
+              className="prompt-input"
+              value={customPrompt}
+              onChange={(e) => setCustomPrompt(e.target.value)}
+              placeholder="e.g., 'A friendly robot' or 'A magical key'"
+              disabled={isGeneratingStory}
+            />
+            <button
+              type="submit"
+              className="generate-btn"
+              disabled={isGeneratingStory || !customPrompt.trim()}
+            >
+              {isGeneratingStory ? (
+                <>
+                  <div className="loading-spinner"></div>
+                  Generating Stories...
+                </>
+              ) : (
+                "Generate Stories"
+              )}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {connectionStatus !== "connected" && (
+        <div className="connection-warning">
+          <p>⚠️ Backend connection required for story generation</p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderStorySelectionMode = () => (
+    <div className="story-selection-mode">
+      <h2>Choose Your Challenge Level</h2>
+      <p>Select the difficulty level that matches your ASL skills.</p>
+
+      <div className="difficulty-levels">
+        <div
+          className="difficulty-card"
+          onClick={() => onStorySelect(storyData.amateur)}
+        >
+          <h3>Amateur</h3>
+          <div className="difficulty-info">
+            <span className="sentence-count">
+              {storyData.amateur.sentences.length} sentences
+            </span>
+            <p className="difficulty-description">
+              Simple words and basic sentence structure
+            </p>
+            <div className="story-preview">
+              <strong>"{storyData.amateur.title}"</strong>
+              <p>"{storyData.amateur.sentences[0]}"</p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="difficulty-card"
+          onClick={() => onStorySelect(storyData.normal)}
+        >
+          <h3>Normal</h3>
+          <div className="difficulty-info">
+            <span className="sentence-count">
+              {storyData.normal.sentences.length} sentences
+            </span>
+            <p className="difficulty-description">
+              Slightly more complex vocabulary
+            </p>
+            <div className="story-preview">
+              <strong>"{storyData.normal.title}"</strong>
+              <p>"{storyData.normal.sentences[0]}"</p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="difficulty-card recommended"
+          onClick={() => onStorySelect(storyData.mid_level)}
+        >
+          <h3>
+            Mid-Level <span className="recommended-badge">Recommended</span>
+          </h3>
+          <div className="difficulty-info">
+            <span className="sentence-count">
+              {storyData.mid_level.sentences.length} sentences
+            </span>
+            <p className="difficulty-description">
+              Introduces classifiers and rhetorical questions
+            </p>
+            <div className="story-preview">
+              <strong>"{storyData.mid_level.title}"</strong>
+              <p>"{storyData.mid_level.sentences[0]}"</p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="difficulty-card"
+          onClick={() => onStorySelect(storyData.difficult)}
+        >
+          <h3>Difficult</h3>
+          <div className="difficulty-info">
+            <span className="sentence-count">
+              {storyData.difficult.sentences.length} sentences
+            </span>
+            <p className="difficulty-description">
+              Complex grammar and varied structures
+            </p>
+            <div className="story-preview">
+              <strong>"{storyData.difficult.title}"</strong>
+              <p>"{storyData.difficult.sentences[0]}"</p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="difficulty-card"
+          onClick={() => onStorySelect(storyData.expert)}
+        >
+          <h3>Expert</h3>
+          <div className="difficulty-info">
+            <span className="sentence-count">
+              {storyData.expert.sentences.length} sentences
+            </span>
+            <p className="difficulty-description">
+              Advanced concepts and facial expressions
+            </p>
+            <div className="story-preview">
+              <strong>"{storyData.expert.title}"</strong>
+              <p>"{storyData.expert.sentences[0]}"</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="selection-footer">
+        <button
+          className="back-to-generation-btn"
+          onClick={() => {
+            setMode("story_generation");
+            setShowFeedback(false);
+          }}
+        >
+          ← Generate Different Stories
+        </button>
       </div>
     </div>
   );
@@ -187,9 +415,9 @@ const ASLWorldModule = ({
       </div>
 
       <div className="story-display">
-        <h2>Practice Story: {storyData?.title || "Generated Story"}</h2>
+        <h2>Practice Story: {selectedStory?.title || "Generated Story"}</h2>
         <div className="story-content">
-          {storyData?.sentences?.map((sentence, index) => (
+          {selectedStory?.sentences?.map((sentence, index) => (
             <div
               key={index}
               className={`story-sentence ${
@@ -212,19 +440,20 @@ const ASLWorldModule = ({
                 style={{
                   width: `${
                     ((currentSentenceIndex + 1) /
-                      (storyData?.sentences?.length || 1)) *
+                      (selectedStory?.sentences?.length || 1)) *
                     100
                   }%`,
                 }}
               ></div>
             </div>
             <span className="progress-text">
-              {currentSentenceIndex + 1} of {storyData?.sentences?.length || 0}
+              {currentSentenceIndex + 1} of{" "}
+              {selectedStory?.sentences?.length || 0}
             </span>
           </div>
           <h3>Practice This Sentence:</h3>
           <div className="highlighted-sentence">
-            {storyData?.sentences?.[currentSentenceIndex] ||
+            {selectedStory?.sentences?.[currentSentenceIndex] ||
               "No sentence available"}
           </div>
         </div>
@@ -375,7 +604,7 @@ const ASLWorldModule = ({
                           Try Again
                         </button>
                         {currentSentenceIndex <
-                          (storyData?.sentences?.length || 0) - 1 && (
+                          (selectedStory?.sentences?.length || 0) - 1 && (
                           <button
                             className="next-sentence-btn"
                             onClick={() =>
@@ -384,11 +613,11 @@ const ASLWorldModule = ({
                             disabled={isProcessingFeedback}
                           >
                             Next Sentence ({currentSentenceIndex + 2}/
-                            {storyData?.sentences?.length})
+                            {selectedStory?.sentences?.length})
                           </button>
                         )}
                         {currentSentenceIndex ===
-                          (storyData?.sentences?.length || 0) - 1 && (
+                          (selectedStory?.sentences?.length || 0) - 1 && (
                           <button
                             className="complete-story-btn"
                             onClick={() =>
@@ -510,9 +739,9 @@ const ASLWorldModule = ({
       </div>
 
       <div className="module-content">
-        {mode === "story_generation"
-          ? renderStoryGenerationMode()
-          : renderPracticeMode()}
+        {mode === "story_generation" && renderStoryGenerationMode()}
+        {mode === "story_selection" && renderStorySelectionMode()}
+        {mode === "practice" && renderPracticeMode()}
       </div>
     </div>
   );

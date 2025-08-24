@@ -26,7 +26,8 @@ function App() {
 
   // ASL World Module state management
   const [showASLWorld, setShowASLWorld] = useState(false);
-  const [storyData, setStoryData] = useState(null);
+  const [storyData, setStoryData] = useState(null); // Now holds StoryLevels
+  const [selectedStory, setSelectedStory] = useState(null); // User's chosen story
   const [practiceStarted, setPracticeStarted] = useState(false); // NEW: user-controlled practice start
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
   const [latestFeedback, setLatestFeedback] = useState(null);
@@ -38,21 +39,21 @@ function App() {
   const videoStreamingRef = useRef(null);
   const hasStartedPracticeRef = useRef(false);
 
-  // Effect 1: When a story is generated, do NOT auto-start webcam/streaming
+  // Effect 1: When stories are generated, reset state for selection
   React.useEffect(() => {
     if (storyData) {
-      // Reset practice session start flag for new story
+      // Reset practice session start flag for new stories
       hasStartedPracticeRef.current = false;
-      // Do not auto-start webcam/streaming here anymore
+      setSelectedStory(null); // Reset selected story for new set
       setCurrentSentenceIndex(0);
       setPracticeStarted(false);
     }
-  }, [storyData]); // Runs when a new story is loaded
+  }, [storyData]); // Runs when new stories are loaded
 
   // Effect 2: When the streaming connection is established, start the session (only if user started practice)
   React.useEffect(() => {
     if (
-      storyData &&
+      selectedStory &&
       practiceStarted &&
       streamingConnectionStatus === "connected" &&
       videoStreamingRef.current &&
@@ -60,9 +61,9 @@ function App() {
     ) {
       hasStartedPracticeRef.current = true;
       // Start practice session safely after WS is connected
-      startPracticeSession(storyData);
+      startPracticeSession(selectedStory);
     }
-  }, [storyData, practiceStarted, streamingConnectionStatus]);
+  }, [selectedStory, practiceStarted, streamingConnectionStatus]);
 
   // Named handler for starting practice session
   const handleStartPractice = () => {
@@ -261,18 +262,12 @@ function App() {
   };
 
   // Story generation workflow functions
-  const handleStoryGenerate = async (frameData) => {
+  const handleStoryGenerate = async (payload) => {
     setIsGeneratingStory(true);
     setStoryGenerationError("");
 
     try {
-      console.log("Starting story generation with frame data");
-
-      // Prepare request payload
-      const requestPayload = {
-        frame_data: frameData,
-        custom_prompt: null, // Could be extended to allow custom prompts
-      };
+      console.log("Starting story generation with payload:", payload);
 
       // Call story generation API
       const response = await fetch(
@@ -282,7 +277,7 @@ function App() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(requestPayload),
+          body: JSON.stringify(payload),
           timeout: 60000, // 60 second timeout for story generation
         }
       );
@@ -290,15 +285,14 @@ function App() {
       if (response.ok) {
         const data = await response.json();
 
-        if (data.success && data.story) {
-          console.log("Story generated successfully:", data.story);
-          setStoryData(data.story);
+        if (data.success && data.stories) {
+          console.log("Stories generated successfully:", data.stories);
+          setStoryData(data.stories); // Store the collection of stories
+          setSelectedStory(null); // Reset selected story for new set
           setCurrentSentenceIndex(0);
           setLatestFeedback(null);
           setStoryGenerationError("");
-
-          // Start practice session with the generated story
-          await startPracticeSession(data.story);
+          // The UI will now show the selection screen
         } else {
           const errorMessage =
             data.user_message || data.message || "Story generation failed";
@@ -338,6 +332,12 @@ function App() {
     }
   };
 
+  // Story selection handler
+  const handleStorySelect = (story) => {
+    setSelectedStory(story); // Set the chosen story
+    console.log("Story selected:", story.title);
+  };
+
   const handlePracticeControl = async (action, sentenceIndex) => {
     console.log(
       `Practice control action: ${action} at sentence ${sentenceIndex}`
@@ -347,9 +347,9 @@ function App() {
       // Prepare control data with enhanced information
       const controlData = {
         sentence_index: sentenceIndex,
-        target_sentence: storyData?.sentences?.[sentenceIndex] || "",
-        story_sentences: storyData?.sentences || [],
-        story_title: storyData?.title || "Unknown Story",
+        target_sentence: selectedStory?.sentences?.[sentenceIndex] || "",
+        story_sentences: selectedStory?.sentences || [],
+        story_title: selectedStory?.title || "Unknown Story",
         session_timestamp: new Date().toISOString(),
         previous_feedback: latestFeedback
           ? {
@@ -375,7 +375,7 @@ function App() {
       // Update local state based on action with enhanced handling
       switch (action) {
         case "next_sentence":
-          if (sentenceIndex < (storyData?.sentences?.length || 0) - 1) {
+          if (sentenceIndex < (selectedStory?.sentences?.length || 0) - 1) {
             const nextIndex = sentenceIndex + 1;
             setCurrentSentenceIndex(nextIndex);
             setLatestFeedback(null);
@@ -384,7 +384,7 @@ function App() {
 
             console.log(
               `Advanced to sentence ${nextIndex + 1}/${
-                storyData?.sentences?.length
+                selectedStory?.sentences?.length
               }`
             );
           } else {
@@ -400,7 +400,7 @@ function App() {
           setGestureState("listening");
           console.log(
             `Retrying sentence ${sentenceIndex + 1}: "${
-              storyData?.sentences?.[sentenceIndex]
+              selectedStory?.sentences?.[sentenceIndex]
             }"`
           );
           break;
@@ -425,6 +425,7 @@ function App() {
         case "new_story":
           // Reset all story-related state for new story generation
           setStoryData(null);
+          setSelectedStory(null);
           setCurrentSentenceIndex(0);
           setLatestFeedback(null);
           setIsProcessingFeedback(false);
@@ -461,12 +462,12 @@ function App() {
         suggestions: feedbackData.suggestions || [],
         target_sentence:
           feedbackData.target_sentence ||
-          storyData?.sentences?.[currentSentenceIndex] ||
+          selectedStory?.sentences?.[currentSentenceIndex] ||
           "",
         // Add metadata
         received_at: new Date().toISOString(),
         sentence_index: currentSentenceIndex,
-        story_title: storyData?.title || "Unknown Story",
+        story_title: selectedStory?.title || "Unknown Story",
         // Processing information
         processing_time: feedbackData.processing_time || 0,
         session_id: feedbackData.session_id || "unknown",
@@ -489,7 +490,7 @@ function App() {
         feedback: "Error: Invalid feedback received from server",
         confidence_score: 0,
         suggestions: ["Please try signing again"],
-        target_sentence: storyData?.sentences?.[currentSentenceIndex] || "",
+        target_sentence: selectedStory?.sentences?.[currentSentenceIndex] || "",
         error: true,
         received_at: new Date().toISOString(),
       });
@@ -583,7 +584,7 @@ function App() {
         target_sentence: "Story Complete",
         completed: true,
         story_stats: {
-          total_sentences: storyData?.sentences?.length || 0,
+          total_sentences: selectedStory?.sentences?.length || 0,
           completion_time: completionData.completion_time || 0,
           average_confidence: completionData.average_confidence || 0,
         },
@@ -660,6 +661,7 @@ function App() {
     // Reset ASL World state when closing
     if (showASLWorld) {
       setStoryData(null);
+      setSelectedStory(null);
       setCurrentSentenceIndex(0);
       setLatestFeedback(null);
       setIsGeneratingStory(false);
@@ -685,6 +687,8 @@ function App() {
             </div>
             <ASLWorldModule
               storyData={storyData}
+              selectedStory={selectedStory}
+              onStorySelect={handleStorySelect}
               currentSentenceIndex={currentSentenceIndex}
               latestFeedback={latestFeedback}
               onStoryGenerate={handleStoryGenerate}

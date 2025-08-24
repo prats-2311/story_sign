@@ -251,17 +251,19 @@
 }
 
 .feedback-section {
-  background: #f0f8ff;
+  background: #f0f8ff !important;
   border-radius: 12px;
   padding: 25px;
   border: 2px solid #2196f3;
+  color: #333 !important;
 }
 
 .feedback-display h4 {
   margin: 0 0 15px 0;
-  color: #1565c0;
+  color: #1565c0 !important;
   font-size: 1.3rem;
   font-weight: 600;
+  text-shadow: none;
 }
 
 .feedback-content {
@@ -271,8 +273,9 @@
 .feedback-text {
   font-size: 1.1rem;
   line-height: 1.6;
-  color: #333;
+  color: #333 !important;
   margin: 0 0 15px 0;
+  text-shadow: none;
 }
 
 .confidence-score {
@@ -288,9 +291,10 @@
 
 .suggestions h5 {
   margin: 0 0 10px 0;
-  color: #1565c0;
+  color: #1565c0 !important;
   font-size: 1rem;
   font-weight: 600;
+  text-shadow: none;
 }
 
 .suggestions ul {
@@ -300,9 +304,10 @@
 
 .suggestions li {
   margin: 8px 0;
-  color: #333;
+  color: #333 !important;
   font-size: 0.95rem;
   line-height: 1.4;
+  text-shadow: none;
 }
 
 .control-buttons {
@@ -587,7 +592,16 @@
   }
 
   .feedback-section {
-    border-color: #000;
+    border-color: #000 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .feedback-text,
+  .suggestions li,
+  .feedback-display h4,
+  .suggestions h5 {
+    color: #000 !important;
   }
 }
 
@@ -873,11 +887,15 @@
   }
 
   .sentence-text {
-    color: #fff;
+    color: #fff !important;
   }
 
   .feedback-text {
-    color: #fff;
+    color: #fff !important;
+  }
+
+  .suggestions li {
+    color: #fff !important;
   }
 
   .signing-indicator p {
@@ -936,6 +954,21 @@
 
   .feedback-error p {
     color: #ef5350;
+  }
+
+  /* Force proper contrast for feedback section in dark mode */
+  .feedback-section {
+    background: #2d2d2d !important;
+    border-color: #64b5f6 !important;
+    color: #fff !important;
+  }
+
+  .feedback-display h4 {
+    color: #64b5f6 !important;
+  }
+
+  .suggestions h5 {
+    color: #64b5f6 !important;
   }
 }
 
@@ -1028,4 +1061,400 @@
   .video-placeholder {
     min-height: 250px;
   }
+}
+/* Story Generation Tabs */
+.generation-tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.generation-tabs button {
+  background: none;
+  border: none;
+  padding: 15px 25px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  margin: 0 10px;
+}
+
+.generation-tabs button:hover {
+  color: #333;
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.generation-tabs button.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+}
+
+/* Simple Word Section */
+.simple-word-section {
+  text-align: center;
+  padding: 20px;
+}
+
+.simple-word-section h2 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.simple-word-section p {
+  margin: 0 0 30px 0;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.word-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.word-chip {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 15px 20px;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.word-chip:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.word-chip:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Custom Prompt Section */
+.custom-prompt-section {
+  text-align: center;
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.custom-prompt-section h2 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.custom-prompt-section p {
+  margin: 0 0 30px 0;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.custom-prompt-section form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.prompt-input {
+  padding: 15px 20px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  transition: border-color 0.3s ease;
+}
+
+.prompt-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.prompt-input:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.generate-btn {
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 25px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  align-self: center;
+  min-width: 200px;
+}
+
+.generate-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+}
+
+.generate-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Story Selection Mode */
+.story-selection-mode {
+  padding: 20px;
+  text-align: center;
+}
+
+.story-selection-mode h2 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 2.2rem;
+  font-weight: 600;
+}
+
+.story-selection-mode > p {
+  margin: 0 0 40px 0;
+  color: #666;
+  font-size: 1.2rem;
+}
+
+.difficulty-levels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto 30px auto;
+}
+
+.difficulty-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 15px;
+  padding: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.difficulty-card:hover {
+  transform: translateY(-5px);
+  border-color: #667eea;
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+}
+
+.difficulty-card.recommended {
+  border-color: #4caf50;
+  background: linear-gradient(135deg, #f8fff8 0%, #f0f8f0 100%);
+}
+
+.difficulty-card.recommended:hover {
+  border-color: #4caf50;
+  box-shadow: 0 8px 25px rgba(76, 175, 80, 0.2);
+}
+
+.difficulty-card h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.4rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.recommended-badge {
+  background: #4caf50;
+  color: white;
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.difficulty-info {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.sentence-count {
+  background: #667eea;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+.difficulty-description {
+  color: #666;
+  font-size: 1rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.story-preview {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 10px;
+  border-left: 4px solid #667eea;
+}
+
+.story-preview strong {
+  color: #333;
+  font-size: 1rem;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.story-preview p {
+  color: #555;
+  font-size: 0.95rem;
+  margin: 0;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.selection-footer {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.back-to-generation-btn {
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.back-to-generation-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+}
+
+/* Responsive Design for New Components */
+@media (max-width: 768px) {
+  .generation-tabs {
+    flex-direction: column;
+    border-bottom: none;
+  }
+
+  .generation-tabs button {
+    margin: 5px 0;
+    border-radius: 8px;
+    border: 2px solid #e0e0e0;
+  }
+
+  .generation-tabs button.active {
+    border-color: #667eea;
+    border-bottom-color: #667eea;
+  }
+
+  .word-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+  }
+
+  .difficulty-levels {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .difficulty-card {
+    padding: 20px;
+  }
+
+  .custom-prompt-section form {
+    gap: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .simple-word-section h2,
+  .custom-prompt-section h2,
+  .story-selection-mode h2 {
+    font-size: 1.6rem;
+  }
+
+  .word-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .difficulty-card h3 {
+    font-size: 1.2rem;
+  }
+
+  .story-preview {
+    padding: 12px;
+  }
+}
+
+/* Universal Text Contrast Fix for AI Feedback */
+.feedback-section,
+.feedback-section * {
+  text-shadow: none !important;
+}
+
+.feedback-section .feedback-text,
+.feedback-section .suggestions li,
+.feedback-section .feedback-display h4,
+.feedback-section .suggestions h5 {
+  color: #333 !important;
+  background: transparent !important;
+  text-shadow: none !important;
+}
+
+/* Ensure visibility on light backgrounds */
+.feedback-section {
+  background: #f0f8ff !important;
+  color: #333 !important;
+}
+
+/* Override any inherited styles that might cause white text */
+.feedback-section p,
+.feedback-section li,
+.feedback-section h4,
+.feedback-section h5,
+.feedback-section span,
+.feedback-section div {
+  color: inherit !important;
+}
+
+/* Specific fix for suggestions list */
+.feedback-section .suggestions ul li {
+  color: #333 !important;
+  background: transparent !important;
 }

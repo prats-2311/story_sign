@@ -10,7 +10,7 @@ import os
 import signal
 import atexit
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, List
 import traceback
 import gc
 import resource
@@ -1620,12 +1620,33 @@ async def get_processing_statistics() -> Dict[str, Any]:
 # Request models for API endpoints
 class StoryGenerationRequest(BaseModel):
     """Request model for story generation endpoint"""
-    frame_data: str = Field(..., description="Base64 encoded image data")
-    custom_prompt: Optional[str] = Field(None, description="Optional custom prompt for object identification")
+    frame_data: Optional[str] = Field(None, description="Base64 encoded image data")
+    simple_word: Optional[str] = Field(None, description="A simple word selected from a predefined list")
+    custom_prompt: Optional[str] = Field(None, description="A user-specified topic for the story")
+
+# Response models for multi-level story generation
+class Story(BaseModel):
+    """Individual story with title and sentences"""
+    title: str
+    sentences: List[str]
+
+class StoryLevels(BaseModel):
+    """Collection of stories at different difficulty levels"""
+    amateur: Story
+    normal: Story
+    mid_level: Story
+    difficult: Story
+    expert: Story
+
+class StoryGenerationResponse(BaseModel):
+    """Response model for story generation endpoint"""
+    success: bool
+    stories: Optional[StoryLevels] = None
+    user_message: Optional[str] = None
 
 
-@app.post("/api/story/recognize_and_generate")
-async def recognize_and_generate_story(request: StoryGenerationRequest) -> Dict[str, Any]:
+@app.post("/api/story/recognize_and_generate", response_model=StoryGenerationResponse)
+async def recognize_and_generate_story(request: StoryGenerationRequest):
     """
     Enhanced object recognition and story generation endpoint with comprehensive error handling
 
@@ -1658,40 +1679,54 @@ async def recognize_and_generate_story(request: StoryGenerationRequest) -> Dict[
 
         validation_errors = []
 
-        # Validate frame data presence
-        if not request.frame_data:
-            validation_errors.append("No image data provided")
+        # Validate that exactly one input method is provided
+        input_methods = [request.frame_data, request.simple_word, request.custom_prompt]
+        provided_methods = [method for method in input_methods if method]
+        
+        if len(provided_methods) == 0:
+            validation_errors.append("No input provided. Please provide frame_data, simple_word, or custom_prompt.")
+        elif len(provided_methods) > 1:
+            validation_errors.append("Multiple input methods provided. Please provide only one: frame_data, simple_word, or custom_prompt.")
 
-        # Validate frame data format
-        elif not request.frame_data.strip():
-            validation_errors.append("Empty image data provided")
+        # Validate frame data if provided
+        if request.frame_data:
+            if not request.frame_data.strip():
+                validation_errors.append("Empty image data provided")
+            else:
+                try:
+                    # Remove data URL prefix if present
+                    frame_data = request.frame_data
+                    if frame_data.startswith('data:image/'):
+                        frame_data = frame_data.split(',', 1)[1]
 
-        # Validate base64 format
-        else:
-            try:
-                # Remove data URL prefix if present
-                frame_data = request.frame_data
-                if frame_data.startswith('data:image/'):
-                    frame_data = frame_data.split(',', 1)[1]
+                    # Test base64 decoding
+                    import base64
+                    decoded_data = base64.b64decode(frame_data)
 
-                # Test base64 decoding
-                import base64
-                decoded_data = base64.b64decode(frame_data)
+                    # Check minimum size (should be at least a few KB for a real image)
+                    if len(decoded_data) < 1000:
+                        validation_errors.append("Image data appears to be too small to be a valid image")
 
-                # Check minimum size (should be at least a few KB for a real image)
-                if len(decoded_data) < 1000:
-                    validation_errors.append("Image data appears to be too small to be a valid image")
+                    # Check maximum size (prevent DoS attacks)
+                    elif len(decoded_data) > 10 * 1024 * 1024:  # 10MB limit
+                        validation_errors.append("Image data is too large (maximum 10MB allowed)")
 
-                # Check maximum size (prevent DoS attacks)
-                elif len(decoded_data) > 10 * 1024 * 1024:  # 10MB limit
-                    validation_errors.append("Image data is too large (maximum 10MB allowed)")
+                except Exception as e:
+                    validation_errors.append(f"Invalid base64 image format: {str(e)}")
 
-            except Exception as e:
-                validation_errors.append(f"Invalid base64 image format: {str(e)}")
+        # Validate simple word if provided
+        if request.simple_word:
+            if len(request.simple_word.strip()) < 2:
+                validation_errors.append("Simple word is too short (minimum 2 characters)")
+            elif len(request.simple_word.strip()) > 50:
+                validation_errors.append("Simple word is too long (maximum 50 characters)")
 
         # Validate custom prompt if provided
-        if request.custom_prompt and len(request.custom_prompt) > 500:
-            validation_errors.append("Custom prompt is too long (maximum 500 characters)")
+        if request.custom_prompt:
+            if len(request.custom_prompt.strip()) < 3:
+                validation_errors.append("Custom prompt is too short (minimum 3 characters)")
+            elif len(request.custom_prompt.strip()) > 500:
+                validation_errors.append("Custom prompt is too long (maximum 500 characters)")
 
         processing_stages["validation"]["duration_ms"] = (time.time() - processing_stages["validation"]["start_time"]) * 1000
 
@@ -1759,76 +1794,73 @@ async def recognize_and_generate_story(request: StoryGenerationRequest) -> Dict[
                 }
             )
 
-        # Stage 2: Enhanced object identification with validation and fallbacks
+        # Stage 2: Topic determination based on input method
         processing_stages["object_identification"]["start_time"] = time.time()
         processing_stages["object_identification"]["status"] = "in_progress"
 
-        object_name = None
+        topic = None
         vision_error = None
         identification_confidence = 0.0
         fallback_used = False
 
-        if vision_healthy:
+        # Determine topic from the request
+        if request.simple_word:
+            topic = request.simple_word.strip()
+            logger.info(f"Generating story from simple word: '{topic}'")
+        elif request.custom_prompt:
+            topic = request.custom_prompt.strip()
+            logger.info(f"Generating story from custom prompt: '{topic}'")
+        elif request.frame_data:
             logger.info("Attempting object identification with local vision service")
+            
+            if vision_healthy:
+                try:
+                    # Add timeout wrapper for vision service
+                    vision_result: VisionResult = await asyncio.wait_for(
+                        vision_service.identify_object(request.frame_data),
+                        timeout=30.0  # 30 second timeout for vision processing
+                    )
 
-            try:
-                # Add timeout wrapper for vision service
-                vision_result: VisionResult = await asyncio.wait_for(
-                    vision_service.identify_object(request.frame_data, request.custom_prompt),
-                    timeout=30.0  # 30 second timeout for vision processing
-                )
+                    # Enhanced object identification validation
+                    if vision_result.success and vision_result.object_name:
+                        # Validate object name quality
+                        topic = vision_result.object_name.strip()
+                        identification_confidence = vision_result.confidence or 0.0
 
-                # Enhanced object identification validation
-                if vision_result.success and vision_result.object_name:
-                    # Validate object name quality
-                    object_name = vision_result.object_name.strip().lower()
-                    identification_confidence = vision_result.confidence or 0.0
-
-                    # Check if object name is reasonable
-                    if len(object_name) < 2:
-                        vision_error = "Object name too short - may not be reliable"
-                        object_name = None
-                    elif len(object_name) > 50:
-                        vision_error = "Object name too long - may not be reliable"
-                        object_name = None
-                    elif identification_confidence < 0.3:
-                        vision_error = f"Low confidence identification ({identification_confidence:.2f})"
-                        object_name = None
+                        # Check if object name is reasonable
+                        if len(topic) < 2:
+                            vision_error = "Object name too short - may not be reliable"
+                            topic = None
+                        elif len(topic) > 50:
+                            vision_error = "Object name too long - may not be reliable"
+                            topic = None
+                        elif identification_confidence < 0.3:
+                            vision_error = f"Low confidence identification ({identification_confidence:.2f})"
+                            topic = None
+                        else:
+                            logger.info(f"Object identified: '{topic}' (confidence: {identification_confidence:.2f})")
                     else:
-                        logger.info(f"Object identified: '{object_name}' (confidence: {identification_confidence:.2f})")
-                else:
-                    vision_error = vision_result.error_message or "Object identification failed"
-                    logger.warning(f"Vision service failed: {vision_error}")
+                        vision_error = vision_result.error_message or "Object identification failed"
+                        logger.warning(f"Vision service failed: {vision_error}")
 
-            except asyncio.TimeoutError:
-                vision_error = "Object identification timed out"
-                logger.warning("Vision service timed out after 30 seconds")
-            except Exception as e:
-                vision_error = f"Vision service error: {str(e)}"
-                logger.error(f"Vision service exception: {e}", exc_info=True)
-        else:
-            vision_error = "Local vision service is not available"
-            logger.warning(vision_error)
+                except asyncio.TimeoutError:
+                    vision_error = "Object identification timed out"
+                    logger.warning("Vision service timed out after 30 seconds")
+                except Exception as e:
+                    vision_error = f"Vision service error: {str(e)}"
+                    logger.error(f"Vision service exception: {e}", exc_info=True)
+            else:
+                vision_error = "Local vision service is not available"
+                logger.warning(vision_error)
 
-        # Enhanced fallback logic with multiple options
-        if not object_name:
-            fallback_used = True
+            # Enhanced fallback logic for object scanning
+            if not topic:
+                fallback_used = True
+                topic = "a friendly cat"  # More engaging default fallback
+                logger.warning(f"Object identification failed. Using fallback topic: '{topic}'")
 
-            # Try different fallback strategies
-            fallback_strategies = [
-                # Strategy 1: Common storytelling objects
-                ["ball", "book", "flower", "cup", "toy", "cat", "dog", "tree", "car", "house"],
-                # Strategy 2: Educational objects
-                ["apple", "pencil", "chair", "table", "window", "door", "clock", "phone"],
-                # Strategy 3: Nature objects
-                ["bird", "fish", "rock", "leaf", "cloud", "sun", "moon", "star"]
-            ]
-
-            import random
-            selected_strategy = random.choice(fallback_strategies)
-            object_name = random.choice(selected_strategy)
-
-            logger.info(f"Using fallback object: '{object_name}' (reason: {vision_error})")
+        if not topic:
+            raise HTTPException(status_code=400, detail={"error": "No valid input provided for story generation."})
 
         processing_stages["object_identification"]["duration_ms"] = (time.time() - processing_stages["object_identification"]["start_time"]) * 1000
         processing_stages["object_identification"]["status"] = "completed"
@@ -1837,125 +1869,18 @@ async def recognize_and_generate_story(request: StoryGenerationRequest) -> Dict[
         processing_stages["story_generation"]["start_time"] = time.time()
         processing_stages["story_generation"]["status"] = "in_progress"
 
-        logger.info(f"Generating story for object: '{object_name}'")
+        logger.info(f"Generating multi-level stories for topic: '{topic}'")
 
-        # Retry logic for story generation
-        max_story_retries = 3
-        story_result = None
-        last_story_error = None
+        # Call the updated Ollama service function
+        story_levels = await ollama_service.generate_story(topic)
 
-        for attempt in range(max_story_retries):
-            try:
-                logger.info(f"Story generation attempt {attempt + 1}/{max_story_retries}")
-
-                # Add timeout for story generation
-                story_result = await asyncio.wait_for(
-                    ollama_service.generate_story(object_name),
-                    timeout=90.0  # 90 second timeout for story generation
-                )
-
-                # Validate story result
-# Validate story result (using dictionary syntax)
-                if story_result and isinstance(story_result, dict):
-                    story_sentences = story_result.get("sentences", [])
-
-                    if not story_sentences:
-                        last_story_error = "Generated story has no sentences"
-                        continue
-                    elif len(story_sentences) < 3:
-                        last_story_error = f"Generated story is too short ({len(story_sentences)} sentences)"
-                        continue
-                    elif any(len(str(sentence).strip()) < 10 for sentence in story_sentences):
-                        last_story_error = "Generated story contains sentences that are too short"
-                        continue
-                    else:
-                        # Story is valid, break the loop
-                        logging.info("Story validation successful.")
-                        break
-                else:
-                    last_story_error = "Story generation returned no content or an invalid format"
-
-            except asyncio.TimeoutError:
-                last_story_error = f"Story generation timed out (attempt {attempt + 1})"
-                logger.warning(f"Story generation timeout on attempt {attempt + 1}")
-            except Exception as e:
-                last_story_error = f"Story generation error: {str(e)}"
-                logger.error(f"Story generation exception on attempt {attempt + 1}: {e}")
-
-            # Wait before retry (exponential backoff)
-            if attempt < max_story_retries - 1:
-                wait_time = 2 ** attempt  # 1s, 2s, 4s
-                logger.info(f"Waiting {wait_time}s before retry...")
-                await asyncio.sleep(wait_time)
+        if not story_levels:
+            raise HTTPException(status_code=500, detail={"error": "Failed to generate stories from the AI service."})
 
         processing_stages["story_generation"]["duration_ms"] = (time.time() - processing_stages["story_generation"]["start_time"]) * 1000
-
-        # Check if story generation ultimately failed
-        if not story_result or not isinstance(story_result, dict) or "sentences" not in story_result:
-            # Create a fallback story
-            logger.info(f"Creating fallback story for object: '{object_name}'")
-
-            fallback_story = {
-                "title": f"The Adventure of the {object_name.title()}",
-                "sentences": [
-                    f"The {object_name} was very special and unique.",
-                    f"Everyone loved to see the {object_name} when they visited.",
-                    f"The {object_name} brought joy and happiness to all around it.",
-                    f"People gathered to admire the wonderful {object_name} each day.",
-                    f"The amazing {object_name} made everyone smile with delight."
-                ],
-                "identified_object": object_name
-            }
-
-            story_result = fallback_story
-            processing_stages["story_generation"]["status"] = "completed"
-            processing_stages["story_generation"]["note"] = "Used fallback story template"
-
         processing_stages["story_generation"]["status"] = "completed"
 
-        # Calculate total processing time
-        total_time_ms = (time.time() - start_time) * 1000
-
-        # Prepare enhanced response with comprehensive metadata
-        response_data = {
-            "success": True,
-            "story": story_result,
-            "processing_info": {
-                "object_identification": {
-                    "success": object_name is not None,
-                    "identified_object": object_name,
-                    "confidence": identification_confidence,
-                    "vision_service_used": vision_healthy,
-                    "fallback_used": fallback_used,
-                    "error": vision_error,
-                    "processing_time_ms": processing_stages["object_identification"]["duration_ms"]
-                },
-                "story_generation": {
-                    "success": True,
-                    "generation_time_ms": processing_stages["story_generation"]["duration_ms"],
-                    "retries_needed": 0,
-                    "processing_time_ms": processing_stages["story_generation"]["duration_ms"]
-                },
-                "validation": {
-                    "processing_time_ms": processing_stages["validation"]["duration_ms"]
-                },
-                "total_processing_time_ms": total_time_ms,
-                "service_status": service_status,
-                "processing_stages": processing_stages
-            },
-            "timestamp": datetime.utcnow().isoformat(),
-            "user_feedback": {
-                "message": "Story generated successfully!",
-                "can_retry": True,
-                "suggestions": [
-                    "You can generate a new story by scanning a different object",
-                    "Click 'Try Again' if you want a different story with the same object"
-                ]
-            }
-        }
-
-        logger.info(f"Enhanced story generation completed successfully in {total_time_ms:.1f}ms")
-        return response_data
+        return {"success": True, "stories": story_levels}
 
     except HTTPException:
         # Re-raise HTTP exceptions as-is (they already have enhanced error details)

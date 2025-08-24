@@ -130,24 +130,44 @@ class OllamaService:
             self.session = None
             logger.info("Ollama service session stopped")
 
-    async def generate_story(self, object_name: str) -> Optional[Dict[str, Any]]:
+    async def generate_story(self, topic: str) -> Optional[Dict[str, Any]]:
         """
-        Generate a short, simple story based on the identified object using the Ollama Cloud API.
-        Returns a dict with keys: title (str) and sentences (list[str]), or None on failure.
+        Generate multiple difficulty levels of stories based on the topic using the Ollama Cloud API.
+        Returns a dict with keys for each difficulty level, or None on failure.
         """
         if not self.client:
             logger.error("Ollama client is not initialized. Cannot generate story.")
             return None
 
-        prompt = (
-            f"Generate a very simple, 3-sentence story for a child about a '{object_name}'. "
-            f"The story must use basic words suitable for learning American Sign Language. "
-            f"VERY IMPORTANT: Respond ONLY with a valid JSON object in the format: "
-            f'{{"title": "The Story of the {object_name}", "sentences": ["sentence 1", "sentence 2", "sentence 3"]}}'
-        )
+        prompt = f"""
+        You are an expert curriculum designer for American Sign Language (ASL).
+        Your task is to create a set of five short stories about the topic: "{topic}".
+        Each story must be tailored to a specific ASL skill level.
+        The skill levels are: Amateur, Normal, Mid-Level, Difficult, Expert.
+
+        Here are the requirements for each level:
+        - Amateur: 3 sentences. Very simple subject-verb-object structure. Use only basic, common ASL vocabulary.
+        - Normal: 3-4 sentences. Introduce slightly more complex vocabulary and sentence structures.
+        - Mid-Level: 4 sentences. Introduce concepts like classifiers or very simple rhetorical questions.
+        - Difficult: 4-5 sentences. Use more complex ASL grammar, classifiers, and varied sentence structures. The story should have more detail.
+        - Expert: 5 sentences. Use advanced ASL concepts, including nuanced facial expressions (which you can suggest in parentheses), complex classifiers, and potentially conditional sentences.
+
+        You MUST respond with ONLY a valid JSON object. The JSON object must have a single key "stories" which contains five keys: "amateur", "normal", "mid_level", "difficult", and "expert". Each of these keys will contain an object with a "title" and a list of "sentences".
+
+        Example response format:
+        {{
+          "stories": {{
+            "amateur": {{ "title": "The Story of the {topic}", "sentences": ["...", "...", "..."] }},
+            "normal": {{ "title": "A Tale of the {topic}", "sentences": ["...", "...", "..."] }},
+            "mid_level": {{ "title": "The {topic}'s Journey", "sentences": ["...", "...", "...", "..."] }},
+            "difficult": {{ "title": "Adventures of the {topic}", "sentences": ["...", "...", "...", "..."] }},
+            "expert": {{ "title": "A Complex Legend of the {topic}", "sentences": ["...", "...", "...", "...", "..."] }}
+          }}
+        }}
+        """
 
         messages = [{"role": "user", "content": prompt}]
-        logger.info(f"Generating story for object: '{object_name}' with model '{self.story_model}'")
+        logger.info(f"Generating multi-level story for topic: '{topic}' with model '{self.story_model}'")
 
         try:
             # The Ollama Python client is synchronous; run it in a thread to avoid blocking
@@ -161,19 +181,26 @@ class OllamaService:
                 )
             )
 
-            story_content = response.get('message', {}).get('content', '{}')
-            story_json = json.loads(story_content)
-            logger.info(f"Successfully generated story: {story_json.get('title')}")
-            return story_json
+            content_str = response.get('message', {}).get('content', '{}')
+
+            # Use our existing cleanup logic
+            if content_str.strip().startswith("```json"):
+                content_str = content_str.strip()[7:-3].strip()
+            elif content_str.strip().startswith("```"):
+                 content_str = content_str.strip()[3:-3].strip()
+
+            story_data = json.loads(content_str)
+
+            return story_data.get("stories", story_data)
 
         except ResponseError as e:
-            logger.error(f"Ollama Cloud API error during story generation: {e}")
+            logger.error(f"Ollama Cloud API error during multi-level story generation: {e}")
             return None
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to decode JSON response from Ollama: {e}. Response was: {story_content}")
+            logger.error(f"Failed to decode JSON response from multi-level story generation: {e}. Response was: {content_str}")
             return None
         except Exception as e:
-            logger.error(f"Unexpected error during story generation: {e}")
+            logger.error(f"Unexpected error during multi-level story generation: {e}")
             return None
 
     async def _make_request(self, endpoint: str, payload: Dict[str, Any], model: str) -> Tuple[bool, Optional[Dict], Optional[str]]:
