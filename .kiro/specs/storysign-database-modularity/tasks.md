@@ -46,7 +46,7 @@
 
 ## Phase 2: Backend Modular Refactoring
 
-- [ ] 6. Restructure FastAPI backend with routers
+- [x] 6. Restructure FastAPI backend with routers
 
   - Create api/ directory with module-specific routers
   - Extract existing endpoints into asl_world.py router
@@ -55,7 +55,7 @@
   - Test all existing API endpoints still function
   - _Requirements: 4.1, 4.2, 4.3_
 
-- [ ] 7. Create core services architecture
+- [x] 7. Create core services architecture
 
   - Create core/ directory for shared services
   - Implement service layer pattern for business logic
