@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import "./App.css";
 import "./components/performance/PerformanceMonitor.css";
 import { MainDashboard, ASLWorldPage } from "./pages";
+import { PlatformShell } from "./components";
+import PlatformShellDemo from "./components/shell/PlatformShellDemo";
 
 function App() {
   const navigate = useNavigate();
@@ -194,59 +196,57 @@ function App() {
   };
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>StorySign</h1>
-        <p>Real-time American Sign Language Recognition System</p>
-      </header>
-      <main className="App-main">
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <MainDashboard
-                backendMessage={backendMessage}
-                isLoading={isLoading}
-                connectionStatus={connectionStatus}
-                webcamActive={webcamActive}
-                webcamError={webcamError}
-                streamingActive={streamingActive}
-                streamingError={streamingError}
-                showTroubleshooting={showTroubleshooting}
-                testBackendConnection={testBackendConnection}
-                toggleWebcam={toggleWebcam}
-                toggleStreaming={toggleStreaming}
-                retryWebcam={retryWebcam}
-                retryStreaming={retryStreaming}
-                onNavigateToASLWorld={handleNavigateToASLWorld}
-              />
-            }
-          />
-          <Route
-            path="/asl-world"
-            element={
-              <ASLWorldPage
-                connectionStatus={connectionStatus}
-                webcamActive={webcamActive}
-                streamingActive={streamingActive}
-                onFrameCapture={handleFrameCapture}
-                videoStreamingRef={videoStreamingRef}
-                processedFrameData={processedFrameData}
-                streamingConnectionStatus={streamingConnectionStatus}
-                optimizationSettings={optimizationSettings}
-                onOptimizationChange={handleOptimizationChange}
-                onConnectionChange={handleStreamingConnectionChange}
-                onProcessedFrame={handleProcessedFrame}
-                onError={handleStreamingError}
-                onRetryConnection={retryStreaming}
-              />
-            }
-          />
-          {/* Default redirect to main dashboard */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-    </div>
+    <PlatformShell>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <MainDashboard
+              backendMessage={backendMessage}
+              isLoading={isLoading}
+              connectionStatus={connectionStatus}
+              webcamActive={webcamActive}
+              webcamError={webcamError}
+              streamingActive={streamingActive}
+              streamingError={streamingError}
+              showTroubleshooting={showTroubleshooting}
+              testBackendConnection={testBackendConnection}
+              toggleWebcam={toggleWebcam}
+              toggleStreaming={toggleStreaming}
+              retryWebcam={retryWebcam}
+              retryStreaming={retryStreaming}
+              onNavigateToASLWorld={handleNavigateToASLWorld}
+            />
+          }
+        />
+        <Route
+          path="/asl-world"
+          element={
+            <ASLWorldPage
+              connectionStatus={connectionStatus}
+              webcamActive={webcamActive}
+              streamingActive={streamingActive}
+              onFrameCapture={handleFrameCapture}
+              videoStreamingRef={videoStreamingRef}
+              processedFrameData={processedFrameData}
+              streamingConnectionStatus={streamingConnectionStatus}
+              optimizationSettings={optimizationSettings}
+              onOptimizationChange={handleOptimizationChange}
+              onConnectionChange={handleStreamingConnectionChange}
+              onProcessedFrame={handleProcessedFrame}
+              onError={handleStreamingError}
+              onRetryConnection={retryStreaming}
+              toggleWebcam={toggleWebcam}
+              toggleStreaming={toggleStreaming}
+              testBackendConnection={testBackendConnection}
+            />
+          }
+        />
+        <Route path="/platform-demo" element={<PlatformShellDemo />} />
+        {/* Default redirect to main dashboard */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </PlatformShell>
   );
 }
 

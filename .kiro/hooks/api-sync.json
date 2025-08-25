@@ -1,0 +1,10 @@
+{
+  "name": "Frontend-Backend API Sync",
+  "trigger": "file_save",
+  "filePattern": "StorySign_Platform/backend/main.py",
+  "action": "Generate TypeScript interfaces from FastAPI models and update frontend types",
+  "description": "Keeps frontend API types in sync with backend changes",
+  "command": "echo 'API sync would generate TypeScript interfaces from FastAPI models'",
+  "enabled": false,
+  "note": "This would typically use a tool like openapi-typescript-codegen"
+}

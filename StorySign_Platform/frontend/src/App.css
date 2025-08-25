@@ -1376,3 +1376,36 @@ select:focus {
     font-size: 14px;
   }
 }
+/* Platform Shell Demo Styles */
+.platform-demo-section {
+  grid-column: 1 / -1;
+  text-align: left;
+  background-color: #e3f2fd;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #2196f3;
+}
+
+.platform-demo-section h3 {
+  margin-top: 0;
+  color: #1976d2;
+}
+
+.platform-demo-section ul {
+  margin: 15px 0;
+  padding-left: 20px;
+}
+
+.platform-demo-section li {
+  margin: 8px 0;
+  line-height: 1.4;
+}
+
+.platform-demo-section p {
+  margin: 12px 0;
+  line-height: 1.5;
+}
+
+.platform-demo-section strong {
+  color: #1976d2;
+}

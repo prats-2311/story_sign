@@ -1,5 +1,4 @@
 import React, { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import { ASLWorldModule } from "../modules";
 import { VideoStream } from "../components";
 
@@ -17,9 +16,10 @@ const ASLWorldPage = ({
   onProcessedFrame,
   onError,
   onRetryConnection,
+  toggleWebcam,
+  toggleStreaming,
+  testBackendConnection,
 }) => {
-  const navigate = useNavigate();
-
   // ASL World Module state management (moved from App.js)
   const [storyData, setStoryData] = useState(null); // Now holds StoryLevels
   const [selectedStory, setSelectedStory] = useState(null); // User's chosen story
@@ -60,17 +60,53 @@ const ASLWorldPage = ({
   }, [selectedStory, practiceStarted, streamingConnectionStatus]);
 
   // Named handler for starting practice session
-  const handleStartPractice = () => {
-    if (!webcamActive) {
-      // Note: webcam control is still managed by parent App component
-      console.warn("Webcam should be activated by parent component");
+  const handleStartPractice = async () => {
+    console.log(
+      "Starting practice session - checking backend connection, webcam and streaming status"
+    );
+
+    // Test backend connection if not already connected
+    if (connectionStatus !== "connected" && testBackendConnection) {
+      console.log("Testing backend connection for practice session");
+      await testBackendConnection();
     }
-    if (!streamingActive) {
-      // Note: streaming control is still managed by parent App component
-      console.warn("Streaming should be activated by parent component");
+
+    // Activate webcam if not already active
+    if (!webcamActive && toggleWebcam) {
+      console.log("Activating webcam for practice session");
+      toggleWebcam();
     }
+
+    // Set practice started flag
     setPracticeStarted(true);
   };
+
+  // Effect to handle streaming activation after webcam is active and backend is connected
+  React.useEffect(() => {
+    if (
+      practiceStarted &&
+      webcamActive &&
+      !streamingActive &&
+      connectionStatus === "connected" &&
+      toggleStreaming
+    ) {
+      console.log(
+        "Backend connected and webcam is active, now activating streaming for practice session"
+      );
+      // Small delay to ensure webcam is fully initialized
+      const timer = setTimeout(() => {
+        toggleStreaming();
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [
+    practiceStarted,
+    webcamActive,
+    streamingActive,
+    connectionStatus,
+    toggleStreaming,
+  ]);
 
   // Practice session management functions
   const startPracticeSession = async (story) => {
@@ -469,17 +505,8 @@ const ASLWorldPage = ({
     }
   };
 
-  const handleBackToMain = () => {
-    navigate("/");
-  };
-
   return (
     <div className="asl-world-container">
-      <div className="asl-world-header">
-        <button className="back-to-main-btn" onClick={handleBackToMain}>
-          ← Back to Main
-        </button>
-      </div>
       <ASLWorldModule
         storyData={storyData}
         selectedStory={selectedStory}

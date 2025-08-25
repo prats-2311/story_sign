@@ -1,0 +1,9 @@
+{
+  "name": "MediaPipe Environment Validator",
+  "trigger": "file_save",
+  "filePattern": "StorySign_Platform/backend/video_processor.py",
+  "action": "Validate MediaPipe installation and test basic functionality",
+  "description": "Ensures MediaPipe environment is working after video processing code changes",
+  "command": "cd StorySign_Platform/backend && python test_mediapipe_env.py",
+  "enabled": true
+}

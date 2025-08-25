@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "python-testing": {
+      "command": "uvx",
+      "args": ["mcp-server-pytest@latest"],
+      "env": {
+        "PYTEST_ROOT": "./StorySign_Platform",
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false,
+      "autoApprove": ["run_tests", "get_test_results"]
+    },
+    "git-workflow": {
+      "command": "uvx", 
+      "args": ["mcp-server-git@latest"],
+      "env": {
+        "GIT_ROOT": "./StorySign_Platform",
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false,
+      "autoApprove": ["git_status", "git_diff", "git_log"]
+    },
+    "performance-monitoring": {
+      "command": "uvx",
+      "args": ["mcp-server-system@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false,
+      "autoApprove": ["get_system_info", "monitor_process"]
+    }
+  }
+}

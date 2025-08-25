@@ -1,0 +1,10 @@
+{
+  "name": "Video Processing Test Runner",
+  "trigger": "file_save",
+  "filePattern": "StorySign_Platform/frontend/src/**/*.js",
+  "excludePattern": "**/*.test.js",
+  "action": "Run frontend tests related to video processing and ASL World functionality",
+  "description": "Automatically runs relevant tests when video processing or ASL World components are modified",
+  "command": "cd StorySign_Platform/frontend && npm test -- --watchAll=false --testPathPattern='(ASLWorld|VideoStream|ProcessedVideo)' --passWithNoTests",
+  "enabled": true
+}

@@ -1,0 +1,10 @@
+{
+  "name": "Video Streaming Fix Validator",
+  "trigger": "file_save",
+  "filePattern": "StorySign_Platform/frontend/src/pages/ASLWorldPage.js",
+  "action": "Test video streaming functionality after ASLWorldPage changes",
+  "description": "Validates that webcam and streaming activation works properly after practice session starts",
+  "command": "cd StorySign_Platform/frontend && npm test -- --watchAll=false --testPathPattern='ASLWorld' --passWithNoTests && echo '✅ Video streaming fix validation complete'",
+  "enabled": true,
+  "priority": "high"
+}
