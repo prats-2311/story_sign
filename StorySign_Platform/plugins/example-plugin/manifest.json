@@ -1,0 +1,60 @@
+{
+  "id": "example-plugin",
+  "name": "Example Plugin",
+  "version": "1.0.0",
+  "description": "A simple example plugin demonstrating the plugin architecture",
+  "author": "StorySign Team",
+  "homepage": "https://storysign.example.com/plugins/example",
+  "repository": "https://github.com/storysign/example-plugin",
+  "entry_point": "main.py",
+  "dependencies": [],
+  "permissions": ["read:user_data", "write:user_data", "modify:ui"],
+  "min_platform_version": "1.0.0",
+  "supported_modules": ["asl-world", "harmony"],
+  "hooks": [
+    {
+      "name": "practice_session_start",
+      "type": "after",
+      "target": "asl_world.practice_session.start",
+      "priority": 100,
+      "async_execution": true
+    },
+    {
+      "name": "story_generation_filter",
+      "type": "filter",
+      "target": "asl_world.story.generate",
+      "priority": 50,
+      "async_execution": true
+    }
+  ],
+  "ui_components": [
+    {
+      "name": "progress_widget",
+      "type": "widget",
+      "mount_point": "sidebar",
+      "props": {
+        "title": "Enhanced Progress",
+        "collapsible": true
+      }
+    }
+  ],
+  "api_endpoints": [
+    {
+      "path": "/custom-analytics",
+      "method": "GET",
+      "handler": "get_custom_analytics",
+      "permissions": ["read:user_data"]
+    }
+  ],
+  "sandbox_config": {
+    "security_level": "standard",
+    "isolated_storage": true
+  },
+  "resource_limits": {
+    "max_memory_mb": 100,
+    "max_cpu_time_seconds": 5.0,
+    "max_execution_time_seconds": 10.0,
+    "max_file_operations": 50,
+    "max_network_requests": 20
+  }
+}
