@@ -1177,16 +1177,18 @@ class ConnectionManager:
         return f"client_{self.connection_counter}"
 
     async def connect(self, websocket: WebSocket) -> str:
-        """Accept WebSocket connection and create processing service"""
-        await websocket.accept()
+        """Register WebSocket connection (WebSocket should already be accepted)"""
         client_id = self.generate_client_id()
 
         self.active_connections[client_id] = websocket
-        self.processing_services[client_id] = VideoProcessingService(client_id, app_config)
-
-        await self.processing_services[client_id].start_processing(websocket)
+        # Note: VideoProcessingService will be created and managed by the WebSocket endpoint
+        
         logger.info(f"Client {client_id} connected. Total connections: {len(self.active_connections)}")
         return client_id
+    
+    def register_processing_service(self, client_id: str, processing_service):
+        """Register processing service for a client"""
+        self.processing_services[client_id] = processing_service
 
     async def disconnect(self, client_id: str):
         """Disconnect client and cleanup resources"""

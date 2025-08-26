@@ -152,6 +152,94 @@ class GestureDetectionConfig(BaseModel):
         return v
 
 
+class DatabaseConfig(BaseModel):
+    """Configuration for TiDB database connection and settings"""
+
+    # Connection settings
+    host: str = Field(default="localhost", description="TiDB server host")
+    port: int = Field(default=4000, ge=1, le=65535, description="TiDB server port")
+    database: str = Field(default="storysign", description="Database name")
+    username: str = Field(default="root", description="Database username")
+    password: str = Field(default="", description="Database password")
+    
+    # Connection pool settings
+    pool_size: int = Field(default=10, ge=1, le=100, description="Connection pool size")
+    max_overflow: int = Field(default=20, ge=0, le=100, description="Maximum pool overflow")
+    pool_timeout: int = Field(default=30, ge=5, le=300, description="Pool timeout in seconds")
+    pool_recycle: int = Field(default=3600, ge=300, le=86400, description="Pool recycle time in seconds")
+    
+    # SSL settings
+    ssl_disabled: bool = Field(default=True, description="Disable SSL for local development")
+    ssl_ca: Optional[str] = Field(default=None, description="SSL CA certificate path")
+    ssl_cert: Optional[str] = Field(default=None, description="SSL certificate path")
+    ssl_key: Optional[str] = Field(default=None, description="SSL private key path")
+    
+    # Query settings
+    query_timeout: int = Field(default=30, ge=5, le=300, description="Query timeout in seconds")
+    echo_queries: bool = Field(default=False, description="Echo SQL queries for debugging")
+    
+    # Health check settings
+    health_check_interval: int = Field(default=30, ge=10, le=300, description="Health check interval in seconds")
+    max_retries: int = Field(default=3, ge=1, le=10, description="Maximum connection retry attempts")
+    retry_delay: float = Field(default=1.0, ge=0.1, le=10.0, description="Delay between retries in seconds")
+    
+    @field_validator('host')
+    @classmethod
+    def validate_host(cls, v):
+        """Validate host is not empty"""
+        if not v or not v.strip():
+            raise ValueError("Database host cannot be empty")
+        return v.strip()
+    
+    @field_validator('database', 'username')
+    @classmethod
+    def validate_required_fields(cls, v):
+        """Validate required fields are not empty"""
+        if not v or not v.strip():
+            raise ValueError("Database name and username cannot be empty")
+        return v.strip()
+    
+    def get_connection_url(self, async_driver: bool = True) -> str:
+        """
+        Generate database connection URL
+        
+        Args:
+            async_driver: Whether to use async driver (asyncmy) or sync (pymysql)
+            
+        Returns:
+            Database connection URL
+        """
+        driver = "mysql+asyncmy" if async_driver else "mysql+pymysql"
+        
+        # Build connection URL
+        url_parts = [f"{driver}://{self.username}"]
+        
+        if self.password:
+            url_parts.append(f":{self.password}")
+        
+        url_parts.extend([
+            f"@{self.host}:{self.port}",
+            f"/{self.database}"
+        ])
+        
+        # Add SSL parameters
+        params = []
+        if self.ssl_disabled:
+            params.append("ssl_disabled=true")
+        else:
+            if self.ssl_ca:
+                params.append(f"ssl_ca={self.ssl_ca}")
+            if self.ssl_cert:
+                params.append(f"ssl_cert={self.ssl_cert}")
+            if self.ssl_key:
+                params.append(f"ssl_key={self.ssl_key}")
+        
+        if params:
+            url_parts.append(f"?{'&'.join(params)}")
+        
+        return "".join(url_parts)
+
+
 class AppConfig(BaseModel):
     """Main application configuration containing all sub-configurations"""
 
@@ -161,6 +249,7 @@ class AppConfig(BaseModel):
     local_vision: LocalVisionConfig = Field(default_factory=LocalVisionConfig)
     ollama: OllamaConfig = Field(default_factory=OllamaConfig)
     gesture_detection: GestureDetectionConfig = Field(default_factory=GestureDetectionConfig)
+    database: DatabaseConfig = Field(default_factory=DatabaseConfig)
 
     class Config:
         """Pydantic configuration"""
@@ -299,6 +388,44 @@ class ConfigManager:
         if os.getenv('STORYSIGN_GESTURE_DETECTION__ENABLED'):
             env_vars.setdefault('gesture_detection', {})['enabled'] = os.getenv('STORYSIGN_GESTURE_DETECTION__ENABLED').lower() == 'true'
 
+        # Database configuration from environment
+        if os.getenv('STORYSIGN_DATABASE__HOST'):
+            env_vars.setdefault('database', {})['host'] = os.getenv('STORYSIGN_DATABASE__HOST')
+        if os.getenv('STORYSIGN_DATABASE__PORT'):
+            env_vars.setdefault('database', {})['port'] = int(os.getenv('STORYSIGN_DATABASE__PORT'))
+        if os.getenv('STORYSIGN_DATABASE__DATABASE'):
+            env_vars.setdefault('database', {})['database'] = os.getenv('STORYSIGN_DATABASE__DATABASE')
+        if os.getenv('STORYSIGN_DATABASE__USERNAME'):
+            env_vars.setdefault('database', {})['username'] = os.getenv('STORYSIGN_DATABASE__USERNAME')
+        if os.getenv('STORYSIGN_DATABASE__PASSWORD'):
+            env_vars.setdefault('database', {})['password'] = os.getenv('STORYSIGN_DATABASE__PASSWORD')
+        if os.getenv('STORYSIGN_DATABASE__POOL_SIZE'):
+            env_vars.setdefault('database', {})['pool_size'] = int(os.getenv('STORYSIGN_DATABASE__POOL_SIZE'))
+        if os.getenv('STORYSIGN_DATABASE__MAX_OVERFLOW'):
+            env_vars.setdefault('database', {})['max_overflow'] = int(os.getenv('STORYSIGN_DATABASE__MAX_OVERFLOW'))
+        if os.getenv('STORYSIGN_DATABASE__POOL_TIMEOUT'):
+            env_vars.setdefault('database', {})['pool_timeout'] = int(os.getenv('STORYSIGN_DATABASE__POOL_TIMEOUT'))
+        if os.getenv('STORYSIGN_DATABASE__POOL_RECYCLE'):
+            env_vars.setdefault('database', {})['pool_recycle'] = int(os.getenv('STORYSIGN_DATABASE__POOL_RECYCLE'))
+        if os.getenv('STORYSIGN_DATABASE__SSL_DISABLED'):
+            env_vars.setdefault('database', {})['ssl_disabled'] = os.getenv('STORYSIGN_DATABASE__SSL_DISABLED').lower() == 'true'
+        if os.getenv('STORYSIGN_DATABASE__SSL_CA'):
+            env_vars.setdefault('database', {})['ssl_ca'] = os.getenv('STORYSIGN_DATABASE__SSL_CA')
+        if os.getenv('STORYSIGN_DATABASE__SSL_CERT'):
+            env_vars.setdefault('database', {})['ssl_cert'] = os.getenv('STORYSIGN_DATABASE__SSL_CERT')
+        if os.getenv('STORYSIGN_DATABASE__SSL_KEY'):
+            env_vars.setdefault('database', {})['ssl_key'] = os.getenv('STORYSIGN_DATABASE__SSL_KEY')
+        if os.getenv('STORYSIGN_DATABASE__QUERY_TIMEOUT'):
+            env_vars.setdefault('database', {})['query_timeout'] = int(os.getenv('STORYSIGN_DATABASE__QUERY_TIMEOUT'))
+        if os.getenv('STORYSIGN_DATABASE__ECHO_QUERIES'):
+            env_vars.setdefault('database', {})['echo_queries'] = os.getenv('STORYSIGN_DATABASE__ECHO_QUERIES').lower() == 'true'
+        if os.getenv('STORYSIGN_DATABASE__HEALTH_CHECK_INTERVAL'):
+            env_vars.setdefault('database', {})['health_check_interval'] = int(os.getenv('STORYSIGN_DATABASE__HEALTH_CHECK_INTERVAL'))
+        if os.getenv('STORYSIGN_DATABASE__MAX_RETRIES'):
+            env_vars.setdefault('database', {})['max_retries'] = int(os.getenv('STORYSIGN_DATABASE__MAX_RETRIES'))
+        if os.getenv('STORYSIGN_DATABASE__RETRY_DELAY'):
+            env_vars.setdefault('database', {})['retry_delay'] = float(os.getenv('STORYSIGN_DATABASE__RETRY_DELAY'))
+
         # Merge environment variables with file configuration (env vars take precedence)
         for section, values in env_vars.items():
             if section in config_data:
@@ -338,6 +465,7 @@ class ConfigManager:
             logger.debug(f"Local vision config: {self._config.local_vision}")
             logger.debug(f"Ollama config: {self._config.ollama}")
             logger.debug(f"Gesture detection config: {self._config.gesture_detection}")
+            logger.debug(f"Database config: host={self._config.database.host}, port={self._config.database.port}, database={self._config.database.database}")
 
             return self._config
 

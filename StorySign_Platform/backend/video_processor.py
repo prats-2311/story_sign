@@ -441,9 +441,19 @@ class MediaPipeProcessor:
 
     def close(self):
         """Clean up MediaPipe resources"""
-        if hasattr(self, 'holistic'):
-            self.holistic.close()
-            self.logger.info("MediaPipe Holistic model closed")
+        if hasattr(self, 'holistic') and self.holistic is not None:
+            try:
+                self.holistic.close()
+                self.logger.info("MediaPipe Holistic model closed")
+            except ValueError as e:
+                if "already None" in str(e):
+                    self.logger.debug("MediaPipe graph already closed")
+                else:
+                    self.logger.warning(f"MediaPipe close warning: {e}")
+            except Exception as e:
+                self.logger.error(f"Error closing MediaPipe: {e}")
+            finally:
+                self.holistic = None
 
 
 class FrameProcessor:

@@ -59,6 +59,40 @@ const ASLWorldPage = ({
     }
   }, [selectedStory, practiceStarted, streamingConnectionStatus]);
 
+  // Effect 3: Auto-reconnect WebSocket after story generation if needed
+  React.useEffect(() => {
+    // If we have stories but WebSocket is disconnected, try to reconnect
+    if (
+      storyData &&
+      !isGeneratingStory &&
+      streamingConnectionStatus === "disconnected" &&
+      webcamActive &&
+      connectionStatus === "connected"
+    ) {
+      console.log(
+        "Story generation completed but WebSocket disconnected, attempting reconnection..."
+      );
+
+      // Small delay to ensure story generation is fully complete
+      const reconnectTimer = setTimeout(() => {
+        if (toggleStreaming && !streamingActive) {
+          console.log("Auto-reconnecting WebSocket after story generation");
+          toggleStreaming();
+        }
+      }, 2000);
+
+      return () => clearTimeout(reconnectTimer);
+    }
+  }, [
+    storyData,
+    isGeneratingStory,
+    streamingConnectionStatus,
+    webcamActive,
+    connectionStatus,
+    streamingActive,
+    toggleStreaming,
+  ]);
+
   // Named handler for starting practice session
   const handleStartPractice = async () => {
     console.log(
@@ -149,7 +183,7 @@ const ASLWorldPage = ({
 
       // Call story generation API
       const response = await fetch(
-        "http://localhost:8000/api/story/recognize_and_generate",
+        "http://localhost:8000/api/asl-world/story/recognize_and_generate",
         {
           method: "POST",
           headers: {

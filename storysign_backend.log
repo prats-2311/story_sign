@@ -192,3 +192,24 @@
 2025-08-25 15:59:35,549 - main - INFO -    ✅ JPEG compression optimized to quality 50 for speed
 2025-08-25 15:59:35,549 - main - INFO -    ✅ Video resolution reset to 640x480 for full quality processing
 2025-08-25 15:59:35,549 - main.ConnectionManager - INFO - Performing emergency cleanup on exit...
+2025-08-25 17:47:22,456 - main.ConnectionManager - INFO - Shutdown handlers registered successfully
+2025-08-25 17:47:22,480 - main - INFO - 🚀 LATENCY OPTIMIZATIONS ACTIVE:
+2025-08-25 17:47:22,481 - main - INFO -    ✅ ThreadPoolExecutor initialized for non-blocking MediaPipe processing
+2025-08-25 17:47:22,481 - main - INFO -    ✅ MediaPipe model complexity set to 0 (fastest)
+2025-08-25 17:47:22,481 - main - INFO -    ✅ JPEG compression optimized to quality 50 for speed
+2025-08-25 17:47:22,481 - main - INFO -    ✅ Video resolution reset to 640x480 for full quality processing
+2025-08-25 17:47:22,481 - __main__ - INFO - Testing connection manager initialization...
+2025-08-25 17:47:22,481 - main.ConnectionManager - INFO - Shutdown handlers registered successfully
+2025-08-25 17:47:22,481 - __main__ - INFO - ✅ Connection manager created: <main.ConnectionManager object at 0x15bdd5610>
+2025-08-25 17:47:22,481 - __main__ - INFO - ✅ Connection count: 0
+2025-08-25 17:47:22,481 - __main__ - INFO - ✅ Config loaded: 0.0.0.0:8000
+2025-08-25 17:47:22,481 - video_processor.MediaPipeProcessor - INFO - 🔍 MEDIAPIPE_AVAILABLE flag: True
+2025-08-25 17:47:22,600 - video_processor.MediaPipeProcessor - INFO - ✅ MediaPipe Holistic initialized with complexity 0
+2025-08-25 17:47:22,600 - video_processor.GestureDetector - INFO - Gesture detector initialized with velocity threshold: 0.02
+2025-08-25 17:47:22,600 - video_processor.PracticeSessionManager - INFO - Practice session manager initialized
+2025-08-25 17:47:22,600 - video_processor.FrameProcessor - INFO - Frame processor initialized with gesture detection enabled
+2025-08-25 17:47:22,600 - video_processor.FrameProcessor - INFO - Frame processor initialized
+2025-08-25 17:47:22,601 - __main__ - INFO - ✅ VideoProcessingService created: <main.VideoProcessingService object at 0x15bdd5790>
+2025-08-25 17:47:22,601 - __main__ - INFO - ✅ All components initialized successfully
+2025-08-25 17:47:22,601 - main.ConnectionManager - INFO - Performing emergency cleanup on exit...
+2025-08-25 17:47:22,601 - main.ConnectionManager - INFO - Performing emergency cleanup on exit...

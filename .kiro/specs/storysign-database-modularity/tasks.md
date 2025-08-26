@@ -64,7 +64,7 @@
   - Test service layer integration with existing functionality
   - _Requirements: 4.4, 4.5_
 
-- [ ] 8. Implement database configuration
+- [x] 8. Implement database configuration
   - Add TiDB configuration to config.py
   - Create database connection management in core/db.py
   - Set up SQLAlchemy async session handling
@@ -74,7 +74,7 @@
 
 ## Phase 3: Database Schema and Models
 
-- [ ] 9. Design and implement user management schema
+- [x] 9. Design and implement user management schema
 
   - Create SQLAlchemy models for users and profiles
   - Implement user authentication and session management
@@ -83,7 +83,7 @@
   - Test user registration, login, and profile management
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 10. Implement learning progress tracking schema
+- [x] 10. Implement learning progress tracking schema
 
   - Create models for practice sessions and sentence attempts
   - Design user progress tracking with skill levels

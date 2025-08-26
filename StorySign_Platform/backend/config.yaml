@@ -51,3 +51,33 @@ ollama_config:
   # Keep timeouts as they are, or adjust if needed
   timeout_seconds: 60
   max_tokens: 1500
+
+# TiDB Database configuration
+database:
+  # Connection settings
+  host: "localhost" # TiDB server host
+  port: 4000 # TiDB server port (default: 4000)
+  database: "storysign" # Database name
+  username: "root" # Database username
+  password: "" # Database password (empty for local development)
+
+  # Connection pool settings
+  pool_size: 10 # Connection pool size (1-100)
+  max_overflow: 20 # Maximum pool overflow (0-100)
+  pool_timeout: 30 # Pool timeout in seconds (5-300)
+  pool_recycle: 3600 # Pool recycle time in seconds (300-86400)
+
+  # SSL settings (disabled for local development)
+  ssl_disabled: true # Disable SSL for local development
+  ssl_ca: null # SSL CA certificate path
+  ssl_cert: null # SSL certificate path
+  ssl_key: null # SSL private key path
+
+  # Query settings
+  query_timeout: 30 # Query timeout in seconds (5-300)
+  echo_queries: false # Echo SQL queries for debugging
+
+  # Health check settings
+  health_check_interval: 30 # Health check interval in seconds (10-300)
+  max_retries: 3 # Maximum connection retry attempts (1-10)
+  retry_delay: 1.0 # Delay between retries in seconds (0.1-10.0)

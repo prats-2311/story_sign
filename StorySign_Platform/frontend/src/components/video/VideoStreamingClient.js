@@ -173,6 +173,16 @@ const VideoStreamingClient = forwardRef(
             onProcessedFrame?.(message);
             break;
 
+          case "pong":
+            // Handle pong response to ping
+            console.debug("Received pong from server");
+            break;
+
+          case "keepalive":
+            // Handle keepalive message from server
+            console.debug("Received keepalive from server");
+            break;
+
           case "error":
             console.error("Server error:", message.message);
             setLastError(`Server error: ${message.message}`);
@@ -389,6 +399,35 @@ const VideoStreamingClient = forwardRef(
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isActive]); // Remove connect/disconnect from dependencies to prevent recreation
+
+    // Add periodic connection health check
+    useEffect(() => {
+      if (!isActive || connectionStatus !== "connected") {
+        return;
+      }
+
+      const healthCheckInterval = setInterval(() => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          // Send ping to keep connection alive
+          try {
+            const pingMessage = {
+              type: "ping",
+              timestamp: new Date().toISOString(),
+            };
+            wsRef.current.send(JSON.stringify(pingMessage));
+          } catch (error) {
+            console.warn("Failed to send ping:", error);
+          }
+        } else if (wsRef.current?.readyState === WebSocket.CLOSED) {
+          console.log(
+            "Connection lost during health check, attempting reconnection..."
+          );
+          connect();
+        }
+      }, 10000); // Check every 10 seconds
+
+      return () => clearInterval(healthCheckInterval);
+    }, [isActive, connectionStatus, connect]);
 
     // Reset counters when connection changes
     useEffect(() => {
