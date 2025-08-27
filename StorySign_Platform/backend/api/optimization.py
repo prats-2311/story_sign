@@ -10,6 +10,9 @@ import logging
 from core.database_optimizer import get_database_optimizer, DatabaseOptimizer
 from core.monitoring_service import get_monitoring_service, DatabaseMonitoringService
 from core.cache_service import get_cache_service, CacheService
+from core.websocket_pool import get_connection_pool
+from core.message_queue import get_queue_manager
+from core.adaptive_quality import get_adaptive_quality_service
 
 logger = logging.getLogger(__name__)
 
@@ -368,4 +371,199 @@ async def get_optimization_dashboard(
         
     except Exception as e:
         logger.error(f"Failed to get dashboard data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Real-time performance optimization endpoints
+
+@router.get("/realtime/stats")
+async def get_realtime_performance_stats() -> Dict[str, Any]:
+    """Get comprehensive real-time performance statistics"""
+    try:
+        stats = {
+            "timestamp": "2025-01-27T00:00:00Z",
+            "connection_pool": {},
+            "message_queues": {},
+            "adaptive_quality": {},
+            "system_metrics": {}
+        }
+        
+        # Get connection pool stats
+        try:
+            connection_pool = await get_connection_pool()
+            if connection_pool:
+                stats["connection_pool"] = connection_pool.get_pool_stats()
+        except Exception as e:
+            logger.warning(f"Failed to get connection pool stats: {e}")
+            stats["connection_pool"] = {"error": str(e)}
+        
+        # Get message queue stats
+        try:
+            queue_manager = get_queue_manager()
+            if queue_manager:
+                stats["message_queues"] = queue_manager.get_all_stats()
+        except Exception as e:
+            logger.warning(f"Failed to get queue stats: {e}")
+            stats["message_queues"] = {"error": str(e)}
+        
+        # Get adaptive quality stats
+        try:
+            adaptive_service = await get_adaptive_quality_service()
+            if adaptive_service:
+                stats["adaptive_quality"] = adaptive_service.get_service_stats()
+        except Exception as e:
+            logger.warning(f"Failed to get adaptive quality stats: {e}")
+            stats["adaptive_quality"] = {"error": str(e)}
+        
+        # Get system metrics
+        try:
+            import psutil
+            stats["system_metrics"] = {
+                "cpu_percent": psutil.cpu_percent(interval=0.1),
+                "memory_percent": psutil.virtual_memory().percent,
+                "disk_usage_percent": psutil.disk_usage('/').percent,
+                "network_io": dict(psutil.net_io_counters()._asdict()),
+                "process_count": len(psutil.pids())
+            }
+        except Exception as e:
+            logger.warning(f"Failed to get system metrics: {e}")
+            stats["system_metrics"] = {"error": str(e)}
+        
+        return stats
+        
+    except Exception as e:
+        logger.error(f"Error getting real-time stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get real-time stats: {str(e)}")
+
+
+@router.get("/websocket/pool/stats")
+async def get_websocket_pool_stats() -> Dict[str, Any]:
+    """Get WebSocket connection pool statistics"""
+    try:
+        connection_pool = await get_connection_pool()
+        
+        if not connection_pool:
+            raise HTTPException(status_code=503, detail="Connection pool not available")
+        
+        return {
+            "pool_stats": connection_pool.get_pool_stats(),
+            "timestamp": "2025-01-27T00:00:00Z"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting WebSocket pool stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get WebSocket pool stats: {str(e)}")
+
+
+@router.get("/websocket/clients")
+async def get_websocket_clients() -> Dict[str, Any]:
+    """Get information about connected WebSocket clients"""
+    try:
+        connection_pool = await get_connection_pool()
+        
+        if not connection_pool:
+            raise HTTPException(status_code=503, detail="Connection pool not available")
+        
+        # Get client metrics for all connected clients
+        client_metrics = {}
+        for client_id in connection_pool.connections.keys():
+            metrics = connection_pool.get_client_metrics(client_id)
+            if metrics:
+                client_metrics[client_id] = metrics
+        
+        return {
+            "clients": client_metrics,
+            "total_clients": len(client_metrics),
+            "timestamp": "2025-01-27T00:00:00Z"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting WebSocket clients: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get WebSocket clients: {str(e)}")
+
+
+@router.get("/queues/stats")
+async def get_message_queue_stats() -> Dict[str, Any]:
+    """Get message queue statistics"""
+    try:
+        queue_manager = get_queue_manager()
+        
+        if not queue_manager:
+            raise HTTPException(status_code=503, detail="Queue manager not available")
+        
+        return {
+            "queue_stats": queue_manager.get_all_stats(),
+            "timestamp": "2025-01-27T00:00:00Z"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting queue stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get queue stats: {str(e)}")
+
+
+@router.get("/adaptive-quality/stats")
+async def get_adaptive_quality_stats() -> Dict[str, Any]:
+    """Get adaptive quality management statistics"""
+    try:
+        adaptive_service = await get_adaptive_quality_service()
+        
+        if not adaptive_service:
+            raise HTTPException(status_code=503, detail="Adaptive quality service not available")
+        
+        return {
+            "adaptive_quality_stats": adaptive_service.get_service_stats(),
+            "timestamp": "2025-01-27T00:00:00Z"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting adaptive quality stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get adaptive quality stats: {str(e)}")
+
+
+@router.post("/performance/test/realtime")
+async def run_realtime_performance_test(
+    background_tasks: BackgroundTasks,
+    max_connections: int = 50,
+    duration_seconds: int = 60
+) -> Dict[str, Any]:
+    """Run real-time performance test in background"""
+    try:
+        if max_connections < 1 or max_connections > 200:
+            raise HTTPException(status_code=400, detail="Max connections must be between 1 and 200")
+        
+        if duration_seconds < 10 or duration_seconds > 300:
+            raise HTTPException(status_code=400, detail="Duration must be between 10 and 300 seconds")
+        
+        # Start real-time performance test in background
+        async def run_test():
+            try:
+                from test_real_time_performance import RealTimePerformanceTester
+                tester = RealTimePerformanceTester()
+                results = await tester.run_comprehensive_test_suite()
+                logger.info(f"Real-time performance test completed: {results.get('overall_success_rate', 0):.1f}% success rate")
+            except Exception as e:
+                logger.error(f"Background real-time performance test failed: {e}")
+        
+        background_tasks.add_task(run_test)
+        
+        return {
+            "message": "Real-time performance test started in background",
+            "parameters": {
+                "max_connections": max_connections,
+                "duration_seconds": duration_seconds
+            },
+            "note": "Check logs for test results"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to start real-time performance test: {e}")
         raise HTTPException(status_code=500, detail=str(e))

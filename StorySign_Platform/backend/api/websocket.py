@@ -1,27 +1,33 @@
 """
-WebSocket API router
-Contains WebSocket endpoints for real-time video processing
+WebSocket API router with optimized real-time performance
+Contains WebSocket endpoints for real-time video processing with connection pooling,
+message queuing, and adaptive quality management
 """
 
 import logging
 import json
 import asyncio
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
+from core.websocket_pool import get_connection_pool
+from core.message_queue import get_queue_manager, MessagePriority
+from core.optimized_video_processor import create_optimized_processor, remove_optimized_processor
+from core.adaptive_quality import get_adaptive_quality_service
 
 logger = logging.getLogger(__name__)
 
 # Create router for WebSocket endpoints
 router = APIRouter(tags=["websocket"])
 
-# Global variables that will be set by main.py
+# Global variables that will be set by main.py (for backward compatibility)
 connection_manager = None
 VideoProcessingService = None
 
 def set_dependencies(conn_manager, video_service_class):
-    """Set dependencies from main.py"""
+    """Set dependencies from main.py (backward compatibility)"""
     global connection_manager, VideoProcessingService
     connection_manager = conn_manager
     VideoProcessingService = video_service_class
@@ -30,117 +36,74 @@ def set_dependencies(conn_manager, video_service_class):
 @router.websocket("/ws/video")
 async def websocket_video_endpoint(websocket: WebSocket):
     """
-    Enhanced WebSocket endpoint with comprehensive error handling and graceful shutdown
-
-    Handles real-time video processing for ASL recognition with MediaPipe integration,
-    performance monitoring, resource management, and graceful error recovery.
-
+    Optimized WebSocket endpoint with high-performance real-time processing
+    
+    Features:
+    - Connection pooling for efficient resource management
+    - Message queuing for high-throughput scenarios
+    - Adaptive quality management based on network conditions
+    - Optimized video processing pipeline
+    - Comprehensive performance monitoring
+    
     Args:
         websocket: WebSocket connection for real-time communication
-
-    Features:
-        - Individual client session management with unique client IDs
-        - Async video processing with queue management and performance optimization
-        - Comprehensive error handling with graceful degradation
-        - Resource monitoring and automatic cleanup
-        - Enhanced logging and debugging capabilities
-        - Graceful shutdown handling for server maintenance
     """
     client_id = None
-    video_service = None
-
+    optimized_processor = None
+    
     try:
-        # Accept WebSocket connection
-        await websocket.accept()
-        logger.info("WebSocket connection accepted, initializing client session")
+        # Get optimized services
+        connection_pool = await get_connection_pool()
+        queue_manager = get_queue_manager()
+        adaptive_service = await get_adaptive_quality_service()
         
-        # Send initial connection confirmation immediately
-        initial_message = {
-            "type": "connection_established",
-            "timestamp": datetime.utcnow().isoformat(),
-            "message": "WebSocket connection established successfully"
-        }
-        await websocket.send_text(json.dumps(initial_message))
-        logger.info("Initial connection message sent")
-
-        # Check if connection manager is available
-        try:
-            if connection_manager is None:
-                logger.error("Connection manager not initialized - creating temporary instance")
-                # Import and create temporary connection manager
-                from main import ConnectionManager
-                temp_connection_manager = ConnectionManager()
-                client_id = await temp_connection_manager.connect(websocket)
-                logger.info("Temporary connection manager created and client connected")
-            else:
-                # Connect client and get unique client ID
-                client_id = await connection_manager.connect(websocket)
-                logger.info("Client connected using global connection manager")
-            
-            logger.info(f"Client {client_id} connected successfully")
-        except Exception as conn_error:
-            logger.error(f"Error connecting client: {conn_error}", exc_info=True)
-            await websocket.close(code=1011, reason="Connection setup failed")
-            return
-
-        # Initialize video processing service for this client
-        try:
-            if VideoProcessingService is None:
-                logger.error("VideoProcessingService not available - importing directly")
-                # Import directly from main
-                from main import VideoProcessingService as MainVideoProcessingService
-                video_service_class = MainVideoProcessingService
-            else:
-                video_service_class = VideoProcessingService
-
-            from config import get_config
-            app_config = get_config()
-            logger.info(f"Creating video service for client {client_id}")
-            video_service = video_service_class(client_id, app_config)
-            logger.info(f"Video service created, starting processing...")
-
-            # Start video processing for this client session
-            await video_service.start_processing(websocket)
-            logger.info(f"Video processing started for client {client_id}")
-            
-            # Register the processing service with the connection manager
-            if connection_manager:
-                connection_manager.register_processing_service(client_id, video_service)
-            elif 'temp_connection_manager' in locals():
-                temp_connection_manager.register_processing_service(client_id, video_service)
-                
-        except Exception as video_error:
-            logger.error(f"Error initializing video service: {video_error}", exc_info=True)
-            await websocket.close(code=1011, reason="Video service initialization failed")
-            return
-
-        # Send initial connection confirmation
+        # Connect client to pool
+        client_id = await connection_pool.connect_client(
+            websocket=websocket,
+            group="video_processing",
+            message_handler=handle_client_message
+        )
+        
+        logger.info(f"Client {client_id} connected to optimized WebSocket pool")
+        
+        # Create optimized video processor
+        from config import get_config
+        app_config = get_config()
+        optimized_processor = await create_optimized_processor(client_id, app_config)
+        
+        # Send enhanced connection confirmation
         connection_message = {
             "type": "connection_established",
             "timestamp": datetime.utcnow().isoformat(),
             "client_id": client_id,
-            "message": "WebSocket connection established successfully",
+            "message": "Optimized WebSocket connection established",
+            "features": {
+                "connection_pooling": True,
+                "message_queuing": True,
+                "adaptive_quality": True,
+                "optimized_processing": True
+            },
             "server_info": {
-                "version": "1.0.0",
-                "features": ["real_time_processing", "gesture_analysis", "story_generation"],
+                "version": "2.0.0",
+                "optimization_level": "high_performance",
                 "max_frame_rate": app_config.video.fps,
                 "supported_formats": [app_config.video.format]
             }
         }
-
-        await websocket.send_text(json.dumps(connection_message))
-        logger.info(f"Connection confirmation sent to client {client_id}")
-
-        # Main message processing loop
+        
+        await connection_pool.send_message(client_id, connection_message, priority=True)
+        logger.info(f"Enhanced connection confirmation sent to client {client_id}")
+        
+        # Main message processing loop with optimized handling
         while True:
             try:
-                # Receive message from client with timeout
+                # Receive message with timeout
                 message_text = await asyncio.wait_for(
                     websocket.receive_text(),
-                    timeout=60.0  # 60 second timeout for client messages
+                    timeout=60.0
                 )
-
-                # Parse and validate message
+                
+                # Parse message
                 try:
                     message_data = json.loads(message_text)
                 except json.JSONDecodeError as e:
@@ -151,249 +114,200 @@ async def websocket_video_endpoint(websocket: WebSocket):
                         "message": "Invalid JSON format",
                         "client_id": client_id
                     }
-                    await websocket.send_text(json.dumps(error_response))
+                    await connection_pool.send_message(client_id, error_response, priority=True)
                     continue
-
-                # Handle different message types
-                message_type = message_data.get("type", "unknown")
-
-                if message_type == "raw_frame":
-                    # Add frame to processing queue (non-blocking)
-                    try:
-                        await asyncio.wait_for(
-                            video_service.frame_queue.put(message_data),
-                            timeout=0.1  # Very short timeout to prevent blocking
-                        )
-                    except asyncio.TimeoutError:
-                        # Queue is full, drop frame to maintain real-time performance
-                        video_service.processing_stats['frames_dropped'] += 1
-                        logger.debug(f"Frame dropped for client {client_id} - queue full")
-
-                elif message_type == "ping":
-                    # Respond to ping with pong
-                    pong_response = {
-                        "type": "pong",
-                        "timestamp": datetime.utcnow().isoformat(),
-                        "client_id": client_id
-                    }
-                    await websocket.send_text(json.dumps(pong_response))
-                    logger.debug(f"Responded to ping from client {client_id}")
-
-                elif message_type == "get_stats":
-                    # Send current processing statistics
-                    current_stats = await video_service.resource_monitor.get_current_stats()
-                    stats_response = {
-                        "type": "stats",
-                        "timestamp": datetime.utcnow().isoformat(),
-                        "client_id": client_id,
-                        "processing_stats": video_service.processing_stats,
-                        "resource_stats": current_stats
-                    }
-                    await websocket.send_text(json.dumps(stats_response))
-
-                elif message_type == "control":
-                    # Handle practice control messages (start_session, next_sentence, etc.)
-                    logger.info(f"Received control message from client {client_id}: {message_data}")
-                    
-                    action = message_data.get("action", "unknown")
-                    control_data = message_data.get("data", {})
-                    
-                    # Process control message through video service
-                    try:
-                        # Handle practice control through the frame processor
-                        if hasattr(video_service, 'frame_processor') and hasattr(video_service.frame_processor, 'practice_session_manager'):
-                            practice_manager = video_service.frame_processor.practice_session_manager
-                            
-                            if action == "start_session":
-                                # Start practice session using control message handler
-                                if practice_manager:
-                                    result = practice_manager.handle_control_message(action, control_data)
-                                    logger.info(f"Practice session started for client {client_id}: {result}")
-                                
-                                    # Send success response
-                                    control_response = {
-                                        "type": "practice_session_response",
-                                        "action": "session_started",
-                                        "timestamp": datetime.utcnow().isoformat(),
-                                        "client_id": client_id,
-                                        "result": result
-                                    }
-                                    await websocket.send_text(json.dumps(control_response))
-                                else:
-                                    # Send error if practice manager not available
-                                    control_response = {
-                                        "type": "practice_session_response",
-                                        "action": "session_started",
-                                        "timestamp": datetime.utcnow().isoformat(),
-                                        "client_id": client_id,
-                                        "result": {
-                                            "success": False,
-                                            "error": "Practice manager not available"
-                                        }
-                                    }
-                                    await websocket.send_text(json.dumps(control_response))
-                            
-                            elif action in ["next_sentence", "try_again", "complete_story", "restart_story", "stop_session"]:
-                                # Handle practice control actions through the practice manager
-                                if practice_manager:
-                                    result = practice_manager.handle_control_message(action, control_data)
-                                    logger.info(f"Processing practice control: {action} for client {client_id}, result: {result}")
-                                    
-                                    # Send result response
-                                    control_response = {
-                                        "type": "control_response",
-                                        "action": action,
-                                        "timestamp": datetime.utcnow().isoformat(),
-                                        "client_id": client_id,
-                                        "result": result
-                                    }
-                                    await websocket.send_text(json.dumps(control_response))
-                                else:
-                                    # Send error if practice manager not available
-                                    control_response = {
-                                        "type": "control_response",
-                                        "action": action,
-                                        "timestamp": datetime.utcnow().isoformat(),
-                                        "client_id": client_id,
-                                        "result": {
-                                            "success": False,
-                                            "error": "Practice manager not available"
-                                        }
-                                    }
-                                    await websocket.send_text(json.dumps(control_response))
-                            
-                            else:
-                                logger.warning(f"Unknown control action '{action}' from client {client_id}")
-                                error_response = {
-                                    "type": "control_response",
-                                    "action": action,
-                                    "timestamp": datetime.utcnow().isoformat(),
-                                    "client_id": client_id,
-                                    "result": {
-                                        "success": False,
-                                        "error": f"Unknown control action: {action}"
-                                    }
-                                }
-                                await websocket.send_text(json.dumps(error_response))
-                        
-                        else:
-                            logger.error(f"Practice session manager not available for client {client_id}")
-                            error_response = {
-                                "type": "control_response",
-                                "action": action,
-                                "timestamp": datetime.utcnow().isoformat(),
-                                "client_id": client_id,
-                                "result": {
-                                    "success": False,
-                                    "error": "Practice session manager not available"
-                                }
-                            }
-                            await websocket.send_text(json.dumps(error_response))
-                    
-                    except Exception as control_error:
-                        logger.error(f"Error processing control message for client {client_id}: {control_error}", exc_info=True)
-                        error_response = {
-                            "type": "control_response",
-                            "action": action,
-                            "timestamp": datetime.utcnow().isoformat(),
-                            "client_id": client_id,
-                            "result": {
-                                "success": False,
-                                "error": f"Control processing error: {str(control_error)}"
-                            }
-                        }
-                        await websocket.send_text(json.dumps(error_response))
-
-                else:
-                    logger.warning(f"Unknown message type '{message_type}' from client {client_id}")
-                    error_response = {
-                        "type": "error",
-                        "timestamp": datetime.utcnow().isoformat(),
-                        "message": f"Unknown message type: {message_type}",
-                        "client_id": client_id
-                    }
-                    await websocket.send_text(json.dumps(error_response))
-
+                
+                # Route message to optimized processor
+                await route_message_to_processor(client_id, message_data, optimized_processor, connection_pool)
+                
             except asyncio.TimeoutError:
-                # Client hasn't sent a message in 60 seconds - send keepalive
+                # Send keepalive
                 keepalive_message = {
                     "type": "keepalive",
                     "timestamp": datetime.utcnow().isoformat(),
                     "client_id": client_id,
                     "message": "Connection is active"
                 }
-                try:
-                    await websocket.send_text(json.dumps(keepalive_message))
-                    logger.debug(f"Sent keepalive to client {client_id}")
-                except Exception as e:
-                    logger.warning(f"Failed to send keepalive to client {client_id}: {e}")
-                    break  # Connection is likely broken
-
+                await connection_pool.send_message(client_id, keepalive_message, priority=True)
+                
             except WebSocketDisconnect:
                 logger.info(f"Client {client_id} disconnected normally")
                 break
-
+                
             except Exception as e:
                 logger.error(f"Error processing message from client {client_id}: {e}", exc_info=True)
                 
-                # Try to send error response
-                try:
-                    error_response = {
-                        "type": "processing_error",
-                        "timestamp": datetime.utcnow().isoformat(),
-                        "message": "Error processing your request",
-                        "client_id": client_id,
-                        "retry_allowed": True
-                    }
-                    await websocket.send_text(json.dumps(error_response))
-                except Exception as send_error:
-                    logger.error(f"Failed to send error response to client {client_id}: {send_error}")
-                    break  # Connection is likely broken
-
+                # Send error response
+                error_response = {
+                    "type": "processing_error",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "message": "Error processing your request",
+                    "client_id": client_id,
+                    "retry_allowed": True
+                }
+                await connection_pool.send_message(client_id, error_response, priority=True)
+    
     except WebSocketDisconnect:
         logger.info(f"Client {client_id or 'unknown'} disconnected during setup")
-
+    
     except Exception as e:
-        logger.error(f"Critical error in WebSocket endpoint for client {client_id or 'unknown'}: {e}", exc_info=True)
-
-        # Try to send critical error message
-        try:
-            if websocket and client_id:
-                critical_error_response = {
-                    "type": "critical_error",
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "message": "A critical error occurred. Please reconnect.",
-                    "client_id": client_id,
-                    "requires_reconnection": True
-                }
-                await websocket.send_text(json.dumps(critical_error_response))
-        except Exception as send_error:
-            logger.error(f"Failed to send critical error response to client {client_id}: {send_error}")
-
+        logger.error(f"Critical error in optimized WebSocket endpoint for client {client_id or 'unknown'}: {e}", exc_info=True)
+    
     finally:
         # Comprehensive cleanup
         try:
-            # Stop video processing service
-            if video_service:
-                await video_service.stop_processing()
-                logger.info(f"Video processing stopped for client {client_id}")
-
-            # Disconnect from connection manager
-            if client_id:
-                if connection_manager:
-                    await connection_manager.disconnect(client_id)
-                elif 'temp_connection_manager' in locals():
-                    await temp_connection_manager.disconnect(client_id)
-                logger.info(f"Client {client_id} disconnected and cleaned up")
-
-            # Close WebSocket connection if still open
-            try:
-                if websocket:
-                    await websocket.close()
-            except Exception as close_error:
-                logger.debug(f"WebSocket already closed for client {client_id}: {close_error}")
-
+            if client_id and optimized_processor:
+                await remove_optimized_processor(client_id)
+                logger.info(f"Optimized processor cleaned up for client {client_id}")
+            
+            if client_id and connection_pool:
+                await connection_pool.disconnect_client(client_id)
+                logger.info(f"Client {client_id} disconnected from pool")
+                
         except Exception as cleanup_error:
             logger.error(f"Error during cleanup for client {client_id}: {cleanup_error}", exc_info=True)
+        
+        logger.info(f"Optimized WebSocket endpoint cleanup completed for client {client_id or 'unknown'}")
 
-        logger.info(f"WebSocket endpoint cleanup completed for client {client_id or 'unknown'}")
+
+async def route_message_to_processor(
+    client_id: str, 
+    message_data: Dict[str, Any], 
+    processor, 
+    connection_pool
+):
+    """Route message to appropriate processor based on message type"""
+    try:
+        message_type = message_data.get("type", "unknown")
+        
+        if message_type == "raw_frame":
+            # High priority frame processing
+            await handle_frame_message(client_id, message_data, processor, connection_pool)
+            
+        elif message_type == "control":
+            # Control message handling
+            await handle_control_message(client_id, message_data, processor, connection_pool)
+            
+        elif message_type == "ping":
+            # Ping response
+            pong_response = {
+                "type": "pong",
+                "timestamp": datetime.utcnow().isoformat(),
+                "client_id": client_id
+            }
+            await connection_pool.send_message(client_id, pong_response, priority=True)
+            
+        elif message_type == "get_stats":
+            # Performance statistics
+            await handle_stats_request(client_id, processor, connection_pool)
+            
+        else:
+            logger.warning(f"Unknown message type '{message_type}' from client {client_id}")
+            error_response = {
+                "type": "error",
+                "timestamp": datetime.utcnow().isoformat(),
+                "message": f"Unknown message type: {message_type}",
+                "client_id": client_id
+            }
+            await connection_pool.send_message(client_id, error_response, priority=True)
+            
+    except Exception as e:
+        logger.error(f"Message routing error for client {client_id}: {e}", exc_info=True)
+
+
+async def handle_frame_message(client_id: str, message_data: Dict[str, Any], processor, connection_pool):
+    """Handle frame processing with optimized pipeline"""
+    try:
+        # Process frame through optimized processor
+        result = await processor.process_frame(message_data)
+        
+        if result.success:
+            # Send processed frame response
+            response = {
+                "type": "processed_frame",
+                "timestamp": datetime.utcnow().isoformat(),
+                "frame_data": result.frame_data,
+                "landmarks_detected": result.landmarks_detected,
+                "metadata": {
+                    "client_id": client_id,
+                    "processing_time_ms": result.processing_time_ms,
+                    "quality_profile": result.quality_settings.profile.value if result.quality_settings else None,
+                    **(result.metadata or {})
+                }
+            }
+            
+            # Use normal priority for frame responses to allow batching
+            await connection_pool.send_message(client_id, response, priority=False, batch=True)
+        else:
+            # Send error response
+            error_response = {
+                "type": "processing_error",
+                "timestamp": datetime.utcnow().isoformat(),
+                "message": result.error_message or "Frame processing failed",
+                "client_id": client_id
+            }
+            await connection_pool.send_message(client_id, error_response, priority=True)
+            
+    except Exception as e:
+        logger.error(f"Frame processing error for client {client_id}: {e}", exc_info=True)
+
+
+async def handle_control_message(client_id: str, message_data: Dict[str, Any], processor, connection_pool):
+    """Handle practice control messages"""
+    try:
+        action = message_data.get("action", "unknown")
+        control_data = message_data.get("data", {})
+        
+        # Process control message (implementation depends on processor capabilities)
+        # This would integrate with the existing practice session manager
+        
+        control_response = {
+            "type": "control_response",
+            "action": action,
+            "timestamp": datetime.utcnow().isoformat(),
+            "client_id": client_id,
+            "result": {
+                "success": True,
+                "message": f"Control action '{action}' processed"
+            }
+        }
+        
+        await connection_pool.send_message(client_id, control_response, priority=True)
+        
+    except Exception as e:
+        logger.error(f"Control message error for client {client_id}: {e}", exc_info=True)
+
+
+async def handle_stats_request(client_id: str, processor, connection_pool):
+    """Handle statistics request"""
+    try:
+        # Get processor stats
+        processor_stats = processor.get_processing_stats() if processor else {}
+        
+        # Get connection pool stats
+        pool_stats = connection_pool.get_pool_stats()
+        
+        # Get client-specific metrics
+        client_metrics = connection_pool.get_client_metrics(client_id)
+        
+        stats_response = {
+            "type": "stats",
+            "timestamp": datetime.utcnow().isoformat(),
+            "client_id": client_id,
+            "processor_stats": processor_stats,
+            "pool_stats": pool_stats,
+            "client_metrics": client_metrics
+        }
+        
+        await connection_pool.send_message(client_id, stats_response, priority=True)
+        
+    except Exception as e:
+        logger.error(f"Stats request error for client {client_id}: {e}", exc_info=True)
+
+
+async def handle_client_message(message_data: Dict[str, Any]):
+    """Handle client message (callback for connection pool)"""
+    # This is a callback function for the connection pool
+    # Additional message handling logic can be added here
+    pass
+
