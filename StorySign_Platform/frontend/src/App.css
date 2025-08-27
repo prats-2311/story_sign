@@ -1364,16 +1364,86 @@ select:focus {
   }
 }
 
-/* Responsive design for ASL World */
-@media (max-width: 768px) {
+/* Import responsive styles */
+@import url("./styles/responsive.css");
+
+/* Enhanced responsive design for ASL World */
+@media (max-width: 767.98px) {
   .asl-world-container {
-    padding: 15px;
-    margin: 0 10px;
+    padding: var(--spacing-sm);
+    margin: 0 var(--spacing-sm);
+    border-radius: 8px;
   }
 
   .asl-world-toggle-btn {
-    padding: 12px 24px;
-    font-size: 14px;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    min-height: var(--mobile-touch-target);
+  }
+
+  .control-panel {
+    grid-template-columns: 1fr;
+    padding: var(--spacing-md);
+    gap: var(--spacing-md);
+  }
+
+  .App-header h1 {
+    font-size: var(--font-size-2xl);
+  }
+
+  .App-header p {
+    font-size: var(--font-size-base);
+  }
+
+  .App-main {
+    padding: var(--spacing-sm);
+  }
+
+  /* Mobile-optimized video containers */
+  .video-container {
+    min-height: 200px;
+    border-radius: 8px;
+  }
+
+  .video-placeholder {
+    padding: var(--spacing-lg);
+  }
+
+  /* Touch-friendly buttons */
+  .test-backend-btn,
+  .webcam-toggle-btn,
+  .streaming-toggle-btn {
+    min-height: var(--mobile-touch-target);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-base);
+  }
+
+  /* Mobile navigation spacing */
+  .platform-main {
+    padding-bottom: calc(var(--mobile-nav-height, 60px) + var(--spacing-md));
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .control-panel {
+    grid-template-columns: 1fr 1fr;
+    max-width: var(--container-md);
+  }
+
+  .asl-world-container {
+    max-width: var(--container-md);
+  }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1200px) {
+  .control-panel {
+    max-width: var(--container-lg);
+  }
+
+  .asl-world-container {
+    max-width: var(--container-lg);
   }
 }
 /* Platform Shell Demo Styles */

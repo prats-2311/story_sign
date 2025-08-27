@@ -1,14 +1,19 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import "./App.css";
 import "./components/performance/PerformanceMonitor.css";
+import "./styles/responsive.css";
 import { MainDashboard, ASLWorldPage } from "./pages";
 import PluginManagementPage from "./pages/PluginManagementPage";
 import { PlatformShell } from "./components";
 import PlatformShellDemo from "./components/shell/PlatformShellDemo";
+import pwaService from "./services/PWAService";
+import { useResponsive } from "./hooks/useResponsive";
 
 function App() {
   const navigate = useNavigate();
+  const { isMobile, shouldUseVideoOptimizations, getVideoQuality } =
+    useResponsive();
 
   const [backendMessage, setBackendMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -23,12 +28,30 @@ function App() {
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   const [optimizationSettings, setOptimizationSettings] = useState({
     adaptiveQuality: true,
-    targetFPS: 30,
-    maxLatency: 100,
-    qualityProfile: "balanced",
+    targetFPS: isMobile ? 24 : 30,
+    maxLatency: isMobile ? 150 : 100,
+    qualityProfile: shouldUseVideoOptimizations ? "mobile" : "balanced",
   });
 
   const videoStreamingRef = useRef(null);
+
+  // PWA and responsive setup
+  useEffect(() => {
+    // Initialize PWA service
+    pwaService.init();
+
+    // Update optimization settings based on device capabilities
+    setOptimizationSettings((prev) => ({
+      ...prev,
+      targetFPS: isMobile ? 24 : 30,
+      maxLatency: isMobile ? 150 : 100,
+      qualityProfile: shouldUseVideoOptimizations ? "mobile" : "balanced",
+    }));
+
+    // Cache important resources for offline use
+    const importantResources = ["/", "/asl-world", "/plugins"];
+    pwaService.cacheResources(importantResources);
+  }, [isMobile, shouldUseVideoOptimizations]);
 
   const testBackendConnection = async () => {
     setIsLoading(true);

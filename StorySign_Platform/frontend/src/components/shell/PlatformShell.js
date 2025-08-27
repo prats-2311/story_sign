@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useResponsive } from "../../hooks/useResponsive";
+import MobileNavigation from "../ui/MobileNavigation";
 import "./PlatformShell.css";
 
 // Platform Context for global state management
@@ -102,6 +104,7 @@ const NOTIFICATION_TYPES = {
 const PlatformShell = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isMobile, shouldCollapseSidebar } = useResponsive();
 
   // Authentication state (placeholder for future implementation)
   const [user, setUser] = useState(null);
@@ -117,8 +120,8 @@ const PlatformShell = ({ children }) => {
     screenReader: false,
   });
 
-  // Navigation state
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Navigation state - responsive default
+  const [sidebarOpen, setSidebarOpen] = useState(!shouldCollapseSidebar);
   const [currentModule, setCurrentModule] = useState("dashboard");
 
   // Notification system state
@@ -391,13 +394,18 @@ const PlatformShell = ({ children }) => {
 
   return (
     <PlatformContext.Provider value={contextValue}>
-      <div className={`platform-shell theme-${currentTheme}`}>
+      <div
+        className={`platform-shell theme-${currentTheme} ${
+          isMobile ? "mobile" : ""
+        }`}
+      >
         <PlatformHeader />
         <div className="platform-body">
           <PlatformSidebar />
           <main className="platform-main">{children}</main>
         </div>
         <PlatformNotifications />
+        {isMobile && <MobileNavigation />}
       </div>
     </PlatformContext.Provider>
   );
@@ -522,8 +530,10 @@ const PlatformHeader = () => {
 const PlatformSidebar = () => {
   const { sidebarOpen, modules, currentModule, navigateToModule } =
     usePlatform();
+  const { isMobile } = useResponsive();
 
-  if (!sidebarOpen) return null;
+  // Hide sidebar on mobile (use mobile navigation instead)
+  if (!sidebarOpen || isMobile) return null;
 
   return (
     <aside className="platform-sidebar">
