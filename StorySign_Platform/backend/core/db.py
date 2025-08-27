@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker
 )
-from sqlalchemy.pool import QueuePool
+# Removed QueuePool import as it's not compatible with async engines
 from sqlalchemy.exc import SQLAlchemyError, DisconnectionError
 from sqlalchemy import text, event
 from sqlalchemy.engine import Engine
@@ -86,7 +86,6 @@ class DatabaseManager:
             
             self._engine = create_async_engine(
                 connection_url,
-                poolclass=QueuePool,
                 pool_size=self.config.pool_size,
                 max_overflow=self.config.max_overflow,
                 pool_timeout=self.config.pool_timeout,

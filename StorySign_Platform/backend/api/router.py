@@ -72,6 +72,15 @@ if SOCIAL_MODULES_AVAILABLE:
     api_router.include_router(social.router, prefix="/social", tags=["social"])
     api_router.include_router(group_management.router, prefix="/groups", tags=["group-management"])
 
+# Include optimization module (with error handling)
+try:
+    from . import optimization
+    api_router.include_router(optimization.router, prefix="/optimization", tags=["optimization"])
+    OPTIMIZATION_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Optimization module not available: {e}")
+    OPTIMIZATION_AVAILABLE = False
+
 # Include GraphQL if available
 if GRAPHQL_AVAILABLE:
     api_router.include_router(graphql_app, prefix="", tags=["graphql"])

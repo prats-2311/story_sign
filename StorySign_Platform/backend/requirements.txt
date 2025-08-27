@@ -20,3 +20,7 @@ mysql-connector-python>=8.0.0
 # Authentication dependencies
 bcrypt>=4.0.0
 pyjwt>=2.8.0
+# Redis caching dependencies
+redis[hiredis]>=5.0.0
+# Monitoring and optimization dependencies
+psutil>=5.9.0

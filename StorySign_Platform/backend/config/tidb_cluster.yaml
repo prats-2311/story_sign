@@ -1,0 +1,271 @@
+# TiDB Cluster Configuration for StorySign Platform
+# This configuration supports both local development and production deployment
+
+# Global configuration
+global:
+  user: "tidb"
+  ssh_port: 22
+  deploy_dir: "/tidb-deploy"
+  data_dir: "/tidb-data"
+  log_dir: "/tidb-logs"
+
+  # OS and arch configuration
+  os: "linux"
+  arch: "amd64"
+
+  # Resource limits
+  resource_control:
+    memory_limit: "0"
+    cpu_quota: "0"
+
+# Server configurations
+server_configs:
+  tidb:
+    # Performance tuning
+    performance:
+      max-procs: 0 # Use all available CPUs
+      max-connections: 4096
+      tcp-keep-alive: true
+
+    # Memory configuration
+    mem-quota-query: 1073741824 # 1GB per query
+    oom-use-tmp-storage: true
+    tmp-storage-quota: 10737418240 # 10GB temp storage
+
+    # Log configuration
+    log:
+      level: "info"
+      format: "json"
+      slow-threshold: 300 # 300ms slow query threshold
+      expensive-threshold: 10000 # 10s expensive query threshold
+      query-log-max-len: 4096
+
+    # Security
+    security:
+      ssl-ca: ""
+      ssl-cert: ""
+      ssl-key: ""
+      cluster-ssl-ca: ""
+      cluster-ssl-cert: ""
+      cluster-ssl-key: ""
+
+    # Prepared statement cache
+    prepared-plan-cache:
+      enabled: true
+      capacity: 1000
+      memory-guard-ratio: 0.1
+
+  tikv:
+    # Storage configuration
+    storage:
+      # Block cache size (adjust based on available memory)
+      block-cache:
+        capacity: "8GB"
+
+    # RocksDB configuration
+    rocksdb:
+      max-background-jobs: 8
+      max-sub-compactions: 3
+
+      # Write buffer configuration
+      defaultcf:
+        write-buffer-size: "128MB"
+        max-write-buffer-number: 5
+        min-write-buffer-number-to-merge: 1
+
+      # Compaction configuration
+      writecf:
+        write-buffer-size: "128MB"
+        max-write-buffer-number: 5
+        min-write-buffer-number-to-merge: 1
+
+    # Raftstore configuration
+    raftstore:
+      # Raft log configuration
+      raftdb-path: ""
+      capacity: "0"
+
+      # Performance tuning
+      sync-log: true
+      region-split-check-diff: "32MB"
+      region-compact-check-interval: "5m"
+      region-compact-check-step: 100
+      region-compact-min-tombstones: 10000
+      region-compact-tombstones-percent: 30
+
+    # Coprocessor configuration
+    coprocessor:
+      split-region-on-table: false
+      batch-split-limit: 10
+      region-max-size: "144MB"
+      region-split-size: "96MB"
+
+  pd:
+    # Scheduling configuration
+    schedule:
+      max-merge-region-size: 20
+      max-merge-region-keys: 200000
+      split-merge-interval: "1h"
+      enable-remove-down-replica: true
+      enable-replace-offline-replica: true
+      enable-make-up-replica: true
+      enable-remove-extra-replica: true
+      enable-location-replacement: true
+
+    # Replication configuration
+    replication:
+      max-replicas: 3
+      location-labels: ["zone", "rack", "host"]
+
+    # Leader scheduling
+    leader-schedule-limit: 4
+    region-schedule-limit: 2048
+    replica-schedule-limit: 64
+
+# TiDB instances
+tidb_servers:
+  - host: 10.0.1.1
+    ssh_port: 22
+    port: 4000
+    status_port: 10080
+    deploy_dir: "/tidb-deploy/tidb-4000"
+    log_dir: "/tidb-deploy/tidb-4000/log"
+    numa_node: "0,1"
+    config:
+      log.slow-threshold: 300
+      prepared-plan-cache.enabled: true
+
+  - host: 10.0.1.2
+    ssh_port: 22
+    port: 4000
+    status_port: 10080
+    deploy_dir: "/tidb-deploy/tidb-4000"
+    log_dir: "/tidb-deploy/tidb-4000/log"
+    numa_node: "0,1"
+    config:
+      log.slow-threshold: 300
+      prepared-plan-cache.enabled: true
+
+# TiKV instances
+tikv_servers:
+  - host: 10.0.1.3
+    ssh_port: 22
+    port: 20160
+    status_port: 20180
+    deploy_dir: "/tidb-deploy/tikv-20160"
+    data_dir: "/tidb-data/tikv-20160"
+    log_dir: "/tidb-deploy/tikv-20160/log"
+    numa_node: "0,1"
+    config:
+      server.grpc-concurrency: 4
+      raftstore.apply-pool-size: 2
+      raftstore.store-pool-size: 2
+      rocksdb.max-background-jobs: 4
+
+  - host: 10.0.1.4
+    ssh_port: 22
+    port: 20160
+    status_port: 20180
+    deploy_dir: "/tidb-deploy/tikv-20160"
+    data_dir: "/tidb-data/tikv-20160"
+    log_dir: "/tidb-deploy/tikv-20160/log"
+    numa_node: "0,1"
+    config:
+      server.grpc-concurrency: 4
+      raftstore.apply-pool-size: 2
+      raftstore.store-pool-size: 2
+      rocksdb.max-background-jobs: 4
+
+  - host: 10.0.1.5
+    ssh_port: 22
+    port: 20160
+    status_port: 20180
+    deploy_dir: "/tidb-deploy/tikv-20160"
+    data_dir: "/tidb-data/tikv-20160"
+    log_dir: "/tidb-deploy/tikv-20160/log"
+    numa_node: "0,1"
+    config:
+      server.grpc-concurrency: 4
+      raftstore.apply-pool-size: 2
+      raftstore.store-pool-size: 2
+      rocksdb.max-background-jobs: 4
+
+# PD instances
+pd_servers:
+  - host: 10.0.1.6
+    ssh_port: 22
+    client_port: 2379
+    peer_port: 2380
+    deploy_dir: "/tidb-deploy/pd-2379"
+    data_dir: "/tidb-data/pd-2379"
+    log_dir: "/tidb-deploy/pd-2379/log"
+    numa_node: "0,1"
+
+  - host: 10.0.1.7
+    ssh_port: 22
+    client_port: 2379
+    peer_port: 2380
+    deploy_dir: "/tidb-deploy/pd-2379"
+    data_dir: "/tidb-data/pd-2379"
+    log_dir: "/tidb-deploy/pd-2379/log"
+    numa_node: "0,1"
+
+  - host: 10.0.1.8
+    ssh_port: 22
+    client_port: 2379
+    peer_port: 2380
+    deploy_dir: "/tidb-deploy/pd-2379"
+    data_dir: "/tidb-data/pd-2379"
+    log_dir: "/tidb-deploy/pd-2379/log"
+    numa_node: "0,1"
+
+# Monitoring configuration
+monitoring_servers:
+  - host: 10.0.1.9
+    ssh_port: 22
+    port: 9090
+    deploy_dir: "/tidb-deploy/prometheus-9090"
+    data_dir: "/tidb-data/prometheus-9090"
+    log_dir: "/tidb-deploy/prometheus-9090/log"
+
+grafana_servers:
+  - host: 10.0.1.9
+    ssh_port: 22
+    port: 3000
+    deploy_dir: "/tidb-deploy/grafana-3000"
+
+alertmanager_servers:
+  - host: 10.0.1.9
+    ssh_port: 22
+    web_port: 9093
+    cluster_port: 9094
+    deploy_dir: "/tidb-deploy/alertmanager-9093"
+    data_dir: "/tidb-data/alertmanager-9093"
+    log_dir: "/tidb-deploy/alertmanager-9093/log"
+# Development/Local configuration
+# Uncomment and modify for local development
+# tidb_servers:
+#   - host: 127.0.0.1
+#     ssh_port: 22
+#     port: 4000
+#     status_port: 10080
+#     deploy_dir: "./tidb-deploy/tidb-4000"
+#     log_dir: "./tidb-deploy/tidb-4000/log"
+
+# tikv_servers:
+#   - host: 127.0.0.1
+#     ssh_port: 22
+#     port: 20160
+#     status_port: 20180
+#     deploy_dir: "./tidb-deploy/tikv-20160"
+#     data_dir: "./tidb-data/tikv-20160"
+#     log_dir: "./tidb-deploy/tikv-20160/log"
+
+# pd_servers:
+#   - host: 127.0.0.1
+#     ssh_port: 22
+#     client_port: 2379
+#     peer_port: 2380
+#     deploy_dir: "./tidb-deploy/pd-2379"
+#     data_dir: "./tidb-data/pd-2379"
+#     log_dir: "./tidb-deploy/pd-2379/log"

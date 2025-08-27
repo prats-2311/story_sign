@@ -251,6 +251,47 @@ class DatabaseConfig(BaseModel):
         return connect_args
 
 
+class CacheConfig(BaseModel):
+    """Configuration for Redis caching"""
+    
+    host: str = Field(default="localhost", description="Redis server host")
+    port: int = Field(default=6379, ge=1, le=65535, description="Redis server port")
+    db: int = Field(default=0, ge=0, le=15, description="Redis database number")
+    password: Optional[str] = Field(default=None, description="Redis password")
+    max_connections: int = Field(default=20, ge=1, le=100, description="Maximum Redis connections")
+    default_ttl: int = Field(default=3600, ge=60, le=86400, description="Default TTL in seconds")
+    key_prefix: str = Field(default="storysign:", description="Cache key prefix")
+    enabled: bool = Field(default=True, description="Enable/disable Redis caching")
+    
+    @field_validator('host')
+    @classmethod
+    def validate_host(cls, v):
+        """Validate host is not empty"""
+        if not v or not v.strip():
+            raise ValueError("Redis host cannot be empty")
+        return v.strip()
+
+
+class OptimizationConfig(BaseModel):
+    """Configuration for database optimization"""
+    
+    monitoring_interval: int = Field(default=300, ge=60, le=3600, description="Monitoring interval in seconds")
+    slow_query_threshold: float = Field(default=1.0, ge=0.1, le=60.0, description="Slow query threshold in seconds")
+    max_metrics_history: int = Field(default=10000, ge=1000, le=100000, description="Maximum metrics to keep in memory")
+    retention_hours: int = Field(default=24, ge=1, le=168, description="Metric retention in hours")
+    auto_optimize: bool = Field(default=True, description="Enable automatic optimization")
+    index_recommendations: bool = Field(default=True, description="Enable index recommendations")
+    
+    # Alert thresholds
+    connection_warning_threshold: int = Field(default=50, ge=10, le=1000, description="Connection count warning threshold")
+    connection_error_threshold: int = Field(default=80, ge=20, le=1000, description="Connection count error threshold")
+    connection_critical_threshold: int = Field(default=100, ge=30, le=1000, description="Connection count critical threshold")
+    
+    query_time_warning_threshold: float = Field(default=1.0, ge=0.1, le=60.0, description="Query time warning threshold")
+    query_time_error_threshold: float = Field(default=5.0, ge=1.0, le=60.0, description="Query time error threshold")
+    query_time_critical_threshold: float = Field(default=10.0, ge=5.0, le=60.0, description="Query time critical threshold")
+
+
 class AppConfig(BaseModel):
     """Main application configuration containing all sub-configurations"""
 
@@ -261,6 +302,8 @@ class AppConfig(BaseModel):
     ollama: OllamaConfig = Field(default_factory=OllamaConfig)
     gesture_detection: GestureDetectionConfig = Field(default_factory=GestureDetectionConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
+    cache: CacheConfig = Field(default_factory=CacheConfig)
+    optimization: OptimizationConfig = Field(default_factory=OptimizationConfig)
 
     class Config:
         """Pydantic configuration"""
