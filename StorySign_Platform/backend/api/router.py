@@ -9,7 +9,7 @@ from . import system, asl_world, harmony, reconnect, websocket, services_demo
 
 # Import new API modules (with error handling)
 try:
-    from . import auth, users, documentation
+    from . import auth, users, documentation, integrations
     NEW_API_AVAILABLE = True
 except ImportError as e:
     print(f"Warning: New API modules not available: {e}")
@@ -55,6 +55,7 @@ if NEW_API_AVAILABLE:
     api_router.include_router(auth.router)
     api_router.include_router(users.router)
     api_router.include_router(documentation.router)
+    api_router.include_router(integrations.router, tags=["integrations"])
 
 # Include feature modules if available
 if FEATURE_MODULES_AVAILABLE:

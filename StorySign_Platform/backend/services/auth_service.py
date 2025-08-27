@@ -12,6 +12,7 @@ import bcrypt
 from core.base_service import BaseService
 from repositories.user_repository import UserRepository, UserSessionRepository
 from models.user import User, UserSession
+from models.integrations import ExternalIntegration
 
 
 class AuthService(BaseService):
@@ -433,3 +434,267 @@ class AuthService(BaseService):
         count = await session_repository.cleanup_expired_sessions()
         self.logger.info(f"Cleaned up {count} expired sessions")
         return count
+    
+    # External authentication methods
+    
+    async def create_or_login_oauth_user(
+        self,
+        user_repository: UserRepository,
+        provider_name: str,
+        user_info: Dict[str, Any]
+    ) -> User:
+        """
+        Create or login user from OAuth provider
+        
+        Args:
+            user_repository: User repository instance
+            provider_name: OAuth provider name
+            user_info: User information from OAuth provider
+            
+        Returns:
+            User instance
+        """
+        external_id = user_info.get("id") or user_info.get("sub")
+        email = user_info.get("email")
+        
+        if not external_id or not email:
+            raise ValueError("Invalid OAuth user info: missing ID or email")
+        
+        # Check if external integration exists
+        integration = await user_repository.get_external_integration(
+            "oauth", provider_name, external_id
+        )
+        
+        if integration:
+            # Update last login
+            await user_repository.update_external_integration(
+                integration.id, {"last_login": datetime.utcnow()}
+            )
+            return integration.user
+        
+        # Check if user exists by email
+        user = await user_repository.get_by_email(email)
+        
+        if not user:
+            # Create new user
+            user_data = {
+                "email": email,
+                "username": self._generate_username_from_email(email),
+                "password_hash": self.hash_password(secrets.token_urlsafe(32)),  # Random password
+                "first_name": user_info.get("given_name") or user_info.get("first_name"),
+                "last_name": user_info.get("family_name") or user_info.get("last_name"),
+                "is_active": True,
+                "role": "learner"
+            }
+            user = await user_repository.create_user(user_data)
+        
+        # Create external integration record
+        integration_data = {
+            "user_id": user.id,
+            "provider_type": "oauth",
+            "provider_name": provider_name,
+            "external_user_id": external_id,
+            "external_email": email,
+            "external_metadata": user_info,
+            "last_login": datetime.utcnow(),
+            "is_active": True
+        }
+        
+        await user_repository.create_external_integration(integration_data)
+        
+        self.logger.info(f"OAuth user created/logged in: {user.id} via {provider_name}")
+        return user
+    
+    async def create_or_login_saml_user(
+        self,
+        user_repository: UserRepository,
+        assertion_data: Dict[str, Any]
+    ) -> User:
+        """
+        Create or login user from SAML assertion
+        
+        Args:
+            user_repository: User repository instance
+            assertion_data: SAML assertion data
+            
+        Returns:
+            User instance
+        """
+        email = assertion_data.get("email") or assertion_data.get("emailaddress")
+        name_id = assertion_data.get("nameid")
+        
+        if not email or not name_id:
+            raise ValueError("Invalid SAML assertion: missing email or name ID")
+        
+        # Check if external integration exists
+        integration = await user_repository.get_external_integration(
+            "saml", "default", name_id
+        )
+        
+        if integration:
+            # Update last login
+            await user_repository.update_external_integration(
+                integration.id, {"last_login": datetime.utcnow()}
+            )
+            return integration.user
+        
+        # Check if user exists by email
+        user = await user_repository.get_by_email(email)
+        
+        if not user:
+            # Create new user
+            user_data = {
+                "email": email,
+                "username": self._generate_username_from_email(email),
+                "password_hash": self.hash_password(secrets.token_urlsafe(32)),  # Random password
+                "first_name": assertion_data.get("firstname") or assertion_data.get("givenname"),
+                "last_name": assertion_data.get("lastname") or assertion_data.get("surname"),
+                "is_active": True,
+                "role": assertion_data.get("role", "learner")
+            }
+            user = await user_repository.create_user(user_data)
+        
+        # Create external integration record
+        integration_data = {
+            "user_id": user.id,
+            "provider_type": "saml",
+            "provider_name": "default",
+            "external_user_id": name_id,
+            "external_email": email,
+            "external_metadata": assertion_data,
+            "last_login": datetime.utcnow(),
+            "is_active": True
+        }
+        
+        await user_repository.create_external_integration(integration_data)
+        
+        self.logger.info(f"SAML user created/logged in: {user.id}")
+        return user
+    
+    async def create_or_login_lti_user(
+        self,
+        user_repository: UserRepository,
+        lti_params: Dict[str, Any]
+    ) -> User:
+        """
+        Create or login user from LTI launch
+        
+        Args:
+            user_repository: User repository instance
+            lti_params: LTI launch parameters
+            
+        Returns:
+            User instance
+        """
+        user_id = lti_params.get("user_id")
+        email = lti_params.get("lis_person_contact_email_primary")
+        
+        if not user_id:
+            raise ValueError("Invalid LTI launch: missing user ID")
+        
+        # Check if external integration exists
+        integration = await user_repository.get_external_integration(
+            "lti", "default", user_id
+        )
+        
+        if integration:
+            # Update last login
+            await user_repository.update_external_integration(
+                integration.id, {"last_login": datetime.utcnow()}
+            )
+            return integration.user
+        
+        # Check if user exists by email (if provided)
+        user = None
+        if email:
+            user = await user_repository.get_by_email(email)
+        
+        if not user:
+            # Create new user
+            username = (
+                lti_params.get("lis_person_sourcedid") or
+                lti_params.get("ext_user_username") or
+                f"lti_user_{user_id}"
+            )
+            
+            user_data = {
+                "email": email or f"lti_user_{user_id}@example.com",
+                "username": username,
+                "password_hash": self.hash_password(secrets.token_urlsafe(32)),  # Random password
+                "first_name": lti_params.get("lis_person_name_given"),
+                "last_name": lti_params.get("lis_person_name_family"),
+                "is_active": True,
+                "role": self._map_lti_role(lti_params.get("roles", ""))
+            }
+            user = await user_repository.create_user(user_data)
+        
+        # Create external integration record
+        integration_data = {
+            "user_id": user.id,
+            "provider_type": "lti",
+            "provider_name": "default",
+            "external_user_id": user_id,
+            "external_email": email,
+            "external_metadata": lti_params,
+            "last_login": datetime.utcnow(),
+            "is_active": True
+        }
+        
+        await user_repository.create_external_integration(integration_data)
+        
+        self.logger.info(f"LTI user created/logged in: {user.id}")
+        return user
+    
+    def create_refresh_token(self, user_id: str) -> str:
+        """
+        Create a JWT refresh token
+        
+        Args:
+            user_id: User ID to encode in token
+            
+        Returns:
+            JWT refresh token
+        """
+        expire = datetime.utcnow() + timedelta(days=self.refresh_token_expire_days)
+        
+        payload = {
+            "sub": user_id,
+            "exp": expire,
+            "iat": datetime.utcnow(),
+            "type": "refresh"
+        }
+        
+        return jwt.encode(payload, self.jwt_secret, algorithm=self.jwt_algorithm)
+    
+    def _generate_username_from_email(self, email: str) -> str:
+        """
+        Generate username from email address
+        
+        Args:
+            email: Email address
+            
+        Returns:
+            Generated username
+        """
+        base_username = email.split("@")[0]
+        # Add random suffix to ensure uniqueness
+        return f"{base_username}_{secrets.token_hex(4)}"
+    
+    def _map_lti_role(self, roles: str) -> str:
+        """
+        Map LTI roles to internal roles
+        
+        Args:
+            roles: LTI roles string
+            
+        Returns:
+            Internal role
+        """
+        roles_lower = roles.lower()
+        
+        if "instructor" in roles_lower or "teacher" in roles_lower:
+            return "educator"
+        elif "admin" in roles_lower:
+            return "admin"
+        else:
+            return "learner"
