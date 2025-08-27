@@ -4,7 +4,7 @@ Main API router that combines all module-specific routers
 
 from fastapi import APIRouter
 
-from . import system, asl_world, harmony, reconnect, websocket, services_demo, collaborative, plugins
+from . import system, asl_world, harmony, reconnect, websocket, services_demo, collaborative, plugins, analytics_simple, research
 
 # Create main API router
 api_router = APIRouter()
@@ -18,3 +18,5 @@ api_router.include_router(websocket.router)
 api_router.include_router(services_demo.router)
 api_router.include_router(collaborative.router, prefix="/collaborative", tags=["collaborative"])
 api_router.include_router(plugins.router, prefix="/plugins", tags=["plugins"])
+api_router.include_router(analytics_simple.router, prefix="/analytics", tags=["analytics"])
+api_router.include_router(research.router, prefix="/research", tags=["research"])

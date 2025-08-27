@@ -139,7 +139,7 @@
 
 ## Phase 5: Analytics and Research Features
 
-- [ ] 16. Implement analytics data collection
+- [x] 16. Implement analytics data collection
 
   - Create analytics event models and collection system
   - Implement privacy-compliant data aggregation
@@ -148,7 +148,7 @@
   - Test analytics collection and privacy controls
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 17. Build analytics dashboard and reporting
+- [x] 17. Build analytics dashboard and reporting
 
   - Create analytics dashboard for educators and researchers
   - Implement data visualization and reporting tools
@@ -157,7 +157,7 @@
   - Test analytics dashboard and data export
   - _Requirements: 5.1, 5.2, 5.5, 5.6_
 
-- [ ] 18. Implement research data management
+- [x] 18. Implement research data management
   - Create research consent and participation management
   - Implement data anonymization and aggregation
   - Add research query and export interfaces

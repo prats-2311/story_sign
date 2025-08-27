@@ -300,29 +300,4 @@ export interface ModuleManager {
   reloadModule(moduleId: string): Promise<void>;
 }
 
-// Export all interfaces and types
-export type {
-  ModuleMetadata,
-  User,
-  UserProfile,
-  AnalyticsEvent,
-  DatabaseService,
-  ContentQuery,
-  AnalyticsService,
-  AnalyticsQuery,
-  PluginService,
-  PluginInfo,
-  Plugin,
-  PluginHook,
-  HookHandler,
-  HookContext,
-  RealtimeService,
-  MessageHandler,
-  ModuleContext,
-  PlatformService,
-  ModuleConfig,
-  ModuleInterface,
-  ModuleHealthStatus,
-  ModuleRegistration,
-  ModuleManager,
-};
+// All interfaces and types are already exported above with their declarations

@@ -95,7 +95,9 @@ export abstract class BaseModule implements ModuleInterface {
 
       if (this._context) {
         this._context.platform.showNotification(
-          `Failed to initialize ${this.metadata.name}: ${error.message}`,
+          `Failed to initialize ${this.metadata.name}: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
           "error"
         );
       }
@@ -263,7 +265,11 @@ export abstract class BaseModule implements ModuleInterface {
       try {
         await this.validateDependencies();
       } catch (error) {
-        issues.push(`Dependency validation failed: ${error.message}`);
+        issues.push(
+          `Dependency validation failed: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
       }
 
       // Call subclass health check
@@ -301,7 +307,11 @@ export abstract class BaseModule implements ModuleInterface {
       this._errorCount++;
       return {
         healthy: false,
-        issues: [`Health check failed: ${error.message}`],
+        issues: [
+          `Health check failed: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        ],
         lastChecked: new Date().toISOString(),
         performance: {
           responseTime: Date.now() - startTime,

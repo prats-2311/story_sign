@@ -1,0 +1,224 @@
+/* Analytics Page Styles */
+
+.analytics-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.page-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  padding: 40px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-content h1 {
+  margin: 0 0 12px 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.page-description {
+  margin: 0;
+  font-size: 1.1rem;
+  opacity: 0.9;
+  max-width: 600px;
+  line-height: 1.5;
+}
+
+.user-role-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.role-label {
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.role-badge {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-badge.educator {
+  background-color: #28a745;
+  color: white;
+}
+
+.role-badge.researcher {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.role-badge.admin {
+  background-color: #dc3545;
+  color: white;
+}
+
+.dashboard-container {
+  padding: 0;
+  background-color: #f5f5f5;
+}
+
+.page-footer {
+  background-color: white;
+  padding: 30px 20px;
+  border-top: 1px solid #e0e0e0;
+  margin-top: 40px;
+}
+
+.footer-info {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-info p {
+  margin: 0 0 12px 0;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.footer-info strong {
+  color: #333;
+}
+
+/* Loading State */
+.analytics-page-loading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.analytics-page-loading p {
+  color: #666;
+  font-size: 18px;
+  margin: 0;
+}
+
+/* No Access State */
+.analytics-page-no-access {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.no-access-content {
+  text-align: center;
+  background: white;
+  padding: 60px 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+}
+
+.no-access-content h2 {
+  color: #dc3545;
+  margin: 0 0 20px 0;
+  font-size: 2rem;
+}
+
+.no-access-content p {
+  color: #666;
+  margin: 0 0 16px 0;
+  line-height: 1.6;
+}
+
+.back-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 20px;
+}
+
+.back-button:hover {
+  background-color: #0056b3;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+    padding: 30px 20px;
+  }
+
+  .header-content h1 {
+    font-size: 2rem;
+  }
+
+  .page-description {
+    font-size: 1rem;
+  }
+
+  .user-role-indicator {
+    justify-content: center;
+  }
+
+  .no-access-content {
+    margin: 20px;
+    padding: 40px 20px;
+  }
+
+  .no-access-content h2 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    padding: 20px 15px;
+  }
+
+  .header-content h1 {
+    font-size: 1.75rem;
+  }
+
+  .page-description {
+    font-size: 0.9rem;
+  }
+
+  .role-badge {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}

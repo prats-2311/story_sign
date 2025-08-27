@@ -43,6 +43,14 @@ const PluginManager = () => {
     setLoading(true);
     try {
       const response = await fetch("/api/v1/plugins/");
+
+      // Check if response is actually JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        console.warn("API returned non-JSON response, using mock data");
+        throw new Error("Non-JSON response from API");
+      }
+
       const data = await response.json();
 
       if (data.status === "success") {
@@ -103,9 +111,27 @@ const PluginManager = () => {
       }
     } catch (error) {
       console.error("Failed to load installed plugins:", error);
+
+      // Use mock data as fallback
+      console.log("Using mock plugin data as fallback");
+      setPlugins([
+        {
+          id: "gesture-enhancer",
+          name: "Gesture Enhancer",
+          version: "1.0.0",
+          description:
+            "Enhances gesture recognition with additional algorithms",
+          status: "active",
+          author: "StorySign Team",
+          installed_at: "2024-01-15T10:30:00Z",
+          permissions: ["read:user_data", "access:video_stream"],
+          error_message: null,
+        },
+      ]);
+
       addNotification(
-        "Failed to load installed plugins",
-        notificationTypes.ERROR
+        "Using mock plugin data - API connection failed",
+        notificationTypes.WARNING
       );
     } finally {
       setLoading(false);
@@ -171,39 +197,49 @@ const PluginManager = () => {
 
   const loadSecurityReports = async () => {
     try {
-      const response = await fetch("/api/v1/plugins/security/reports");
-      const data = await response.json();
+      // Use mock data for now since security monitoring API isn't fully implemented
+      console.log("Loading security reports (using mock data)");
 
-      if (data.status === "success") {
-        setSecurityReports(data.reports || {});
-      } else {
-        // Mock security reports
-        setSecurityReports({
-          "gesture-enhancer": {
-            risk_level: "low",
-            violations: [],
-            resource_usage: { cpu: 15, memory: 45, network: 0 },
-            last_scan: "2024-01-15T12:00:00Z",
-          },
-          "progress-tracker": {
-            risk_level: "medium",
-            violations: ["excessive_database_queries"],
-            resource_usage: { cpu: 25, memory: 78, network: 12 },
-            last_scan: "2024-01-15T11:30:00Z",
-          },
-          "social-features": {
-            risk_level: "high",
-            violations: [
-              "unauthorized_network_access",
-              "suspicious_data_collection",
-            ],
-            resource_usage: { cpu: 45, memory: 120, network: 89 },
-            last_scan: "2024-01-15T10:15:00Z",
-          },
-        });
-      }
+      // TODO: Uncomment when security API is ready
+      // const response = await fetch("/api/v1/plugins/security/reports");
+      // const contentType = response.headers.get("content-type");
+      // if (!contentType || !contentType.includes("application/json")) {
+      //   throw new Error("Non-JSON response from security API");
+      // }
+      // const data = await response.json();
+      // if (data.status === "success") {
+      //   setSecurityReports(data.reports || {});
+      //   return;
+      // }
+
+      // Mock security reports for development
+      setSecurityReports({
+        "gesture-enhancer": {
+          risk_level: "low",
+          violations: [],
+          resource_usage: { cpu: 15, memory: 45, network: 0 },
+          last_scan: "2024-01-15T12:00:00Z",
+        },
+        "progress-tracker": {
+          risk_level: "medium",
+          violations: ["excessive_database_queries"],
+          resource_usage: { cpu: 25, memory: 78, network: 12 },
+          last_scan: "2024-01-15T11:30:00Z",
+        },
+        "social-features": {
+          risk_level: "high",
+          violations: [
+            "unauthorized_network_access",
+            "suspicious_data_collection",
+          ],
+          resource_usage: { cpu: 45, memory: 120, network: 89 },
+          last_scan: "2024-01-15T10:15:00Z",
+        },
+      });
     } catch (error) {
       console.error("Failed to load security reports:", error);
+      // Set empty reports as fallback
+      setSecurityReports({});
     }
   };
 

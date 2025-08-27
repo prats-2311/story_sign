@@ -11,7 +11,7 @@
       "autoApprove": ["run_tests", "get_test_results"]
     },
     "git-workflow": {
-      "command": "uvx", 
+      "command": "uvx",
       "args": ["mcp-server-git@latest"],
       "env": {
         "GIT_ROOT": "./StorySign_Platform",

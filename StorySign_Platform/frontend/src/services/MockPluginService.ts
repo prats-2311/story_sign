@@ -10,6 +10,7 @@ import {
   PluginInfo,
   Plugin,
   HookHandler,
+  Permission,
 } from "../types/module";
 
 export class MockPluginService implements PluginService {
@@ -171,7 +172,7 @@ export class MockPluginService implements PluginService {
         version: "1.0.0",
         description: "Enhances gesture recognition with additional algorithms",
         isLoaded: false,
-        permissions: ["read:own_data", "view:analytics"],
+        permissions: [Permission.READ_OWN_DATA, Permission.VIEW_ANALYTICS],
       },
       {
         id: "progress-tracker",
@@ -179,7 +180,11 @@ export class MockPluginService implements PluginService {
         version: "2.1.0",
         description: "Provides detailed progress tracking and analytics",
         isLoaded: false,
-        permissions: ["read:own_data", "write:own_data", "view:analytics"],
+        permissions: [
+          Permission.READ_OWN_DATA,
+          Permission.WRITE_OWN_DATA,
+          Permission.VIEW_ANALYTICS,
+        ],
       },
       {
         id: "social-features",
@@ -187,7 +192,11 @@ export class MockPluginService implements PluginService {
         version: "1.5.0",
         description: "Adds social learning and collaboration features",
         isLoaded: false,
-        permissions: ["read:own_data", "write:own_data", "create:content"],
+        permissions: [
+          Permission.READ_OWN_DATA,
+          Permission.WRITE_OWN_DATA,
+          Permission.CREATE_CONTENT,
+        ],
       },
       {
         id: "accessibility-helper",
@@ -195,7 +204,7 @@ export class MockPluginService implements PluginService {
         version: "1.2.0",
         description: "Improves accessibility for users with disabilities",
         isLoaded: false,
-        permissions: ["read:own_data"],
+        permissions: [Permission.READ_OWN_DATA],
       },
       {
         id: "custom-themes",
@@ -203,7 +212,7 @@ export class MockPluginService implements PluginService {
         version: "1.0.0",
         description: "Allows users to create and share custom themes",
         isLoaded: false,
-        permissions: ["read:own_data", "write:own_data"],
+        permissions: [Permission.READ_OWN_DATA, Permission.WRITE_OWN_DATA],
       },
     ];
 

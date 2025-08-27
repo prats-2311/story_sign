@@ -11,6 +11,13 @@ import {
   ConnectionStatus,
 } from "../types/module";
 
+interface Landmark {
+  x: number;
+  y: number;
+  z: number;
+  visibility: number;
+}
+
 interface ChannelInfo {
   status: ConnectionStatus;
   handlers: MessageHandler[];
@@ -25,7 +32,7 @@ export class MockRealtimeService implements RealtimeService {
     message: any;
     timestamp: string;
   }> = [];
-  private simulationIntervals: Map<string, NodeJS.Timeout> = new Map();
+  private simulationIntervals: Map<string, number> = new Map();
 
   constructor() {
     console.log("MockRealtimeService: Initialized");
@@ -348,9 +355,9 @@ export class MockRealtimeService implements RealtimeService {
     this.simulationIntervals.set(channel, interval);
   }
 
-  private generateMockLandmarks(): any {
+  private generateMockLandmarks(): Landmark[] {
     const landmarkCount = 21; // Typical for hand landmarks
-    const landmarks = [];
+    const landmarks: Landmark[] = [];
 
     for (let i = 0; i < landmarkCount; i++) {
       landmarks.push({

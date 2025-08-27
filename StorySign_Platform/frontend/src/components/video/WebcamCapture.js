@@ -216,7 +216,11 @@ const WebcamCapture = ({ onFrameCapture, onError, isActive = false }) => {
 
   // Capture frame from video and convert to base64 JPEG with performance monitoring
   const captureFrame = useCallback(() => {
-    if (!videoRef.current || !downscaleCanvasRef.current || webcamStatus !== "active") {
+    if (
+      !videoRef.current ||
+      !downscaleCanvasRef.current ||
+      webcamStatus !== "active"
+    ) {
       return null;
     }
 
@@ -239,6 +243,7 @@ const WebcamCapture = ({ onFrameCapture, onError, isActive = false }) => {
     downscaleCanvas.height = backendHeight;
 
     // Draw full-res video onto smaller canvas (browser handles downscaling)
+    // Note: CSS transform on video element doesn't affect canvas drawImage
     ctx.drawImage(video, 0, 0, backendWidth, backendHeight);
 
     try {
@@ -417,6 +422,7 @@ const WebcamCapture = ({ onFrameCapture, onError, isActive = false }) => {
             maxWidth: "640px",
             height: "auto",
             display: webcamStatus === "active" ? "block" : "none",
+            transform: "scaleX(-1)", // Flip horizontally to fix mirror effect
           }}
         />
 

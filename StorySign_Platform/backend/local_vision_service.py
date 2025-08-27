@@ -78,8 +78,9 @@ class LocalVisionService:
 
         try:
             if self.config.service_type == "ollama":
-                # Check Ollama API
-                async with self.session.get(f"{self.config.service_url}/api/tags") as response:
+                # Check Ollama API with timeout
+                timeout = aiohttp.ClientTimeout(total=5)  # 5 second timeout for health check
+                async with self.session.get(f"{self.config.service_url}/api/tags", timeout=timeout) as response:
                     if response.status == 200:
                         data = await response.json()
                         models = [model.get('name', '') for model in data.get('models', [])]
@@ -101,8 +102,9 @@ class LocalVisionService:
                         return False
 
             elif self.config.service_type == "lm_studio":
-                # Check LM Studio API
-                async with self.session.get(f"{self.config.service_url}/v1/models") as response:
+                # Check LM Studio API with timeout
+                timeout = aiohttp.ClientTimeout(total=5)  # 5 second timeout for health check
+                async with self.session.get(f"{self.config.service_url}/v1/models", timeout=timeout) as response:
                     if response.status == 200:
                         data = await response.json()
                         models = [model.get('id', '') for model in data.get('data', [])]
@@ -128,6 +130,14 @@ class LocalVisionService:
                 logger.error(f"Unknown service type: {self.config.service_type}")
                 return False
 
+        except asyncio.TimeoutError:
+            self._health_status = False
+            logger.warning(f"Local vision service health check timed out for {self.config.service_url}")
+            return False
+        except aiohttp.ClientConnectorError as e:
+            self._health_status = False
+            logger.warning(f"Local vision service connection failed: {e}. Service may not be running at {self.config.service_url}")
+            return False
         except Exception as e:
             self._health_status = False
             logger.error(f"Local vision service health check failed: {e}")

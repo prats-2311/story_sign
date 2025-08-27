@@ -307,6 +307,7 @@ const ProcessedVideoDisplay = ({
                   minHeight: "400px",
                   border: `2px solid ${statusInfo.color}`,
                   borderRadius: "8px",
+                  transform: "scaleX(-1)", // Flip horizontally to match webcam display
                 }}
               />
               <div className="video-overlay-controls">

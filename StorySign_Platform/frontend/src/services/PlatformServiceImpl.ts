@@ -7,6 +7,15 @@
 
 import { PlatformService, NotificationType } from "../types/module";
 
+// Extend Performance interface to include Chrome-specific memory property
+interface PerformanceWithMemory extends Performance {
+  memory?: {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+    jsHeapSizeLimit: number;
+  };
+}
+
 export class PlatformServiceImpl implements PlatformService {
   private navigationCallback:
     | ((moduleId: string, params?: Record<string, any>) => void)
@@ -197,11 +206,13 @@ export class PlatformServiceImpl implements PlatformService {
       };
     }
 
-    if (typeof performance !== "undefined" && performance.memory) {
+    // Check for Chrome-specific memory API (not available in all browsers)
+    const performanceWithMemory = performance as PerformanceWithMemory;
+    if (typeof performance !== "undefined" && performanceWithMemory.memory) {
       info.memory = {
-        used: performance.memory.usedJSHeapSize,
-        total: performance.memory.totalJSHeapSize,
-        limit: performance.memory.jsHeapSizeLimit,
+        used: performanceWithMemory.memory.usedJSHeapSize,
+        total: performanceWithMemory.memory.totalJSHeapSize,
+        limit: performanceWithMemory.memory.jsHeapSizeLimit,
       };
     }
 

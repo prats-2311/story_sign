@@ -76,7 +76,7 @@ export interface ASLWorldModuleProps {
   // Story management
   storyData?: any;
   selectedStory?: any;
-  onStorySelect?: (story: any) => void;
+  onStorySelect: (story: any) => void; // Required prop
   onStoryGenerate?: (params: any) => void;
   isGeneratingStory?: boolean;
 
@@ -121,7 +121,7 @@ export class ASLWorldModuleInterface extends BaseModule {
     route: "/asl-world",
   };
 
-  private moduleProps: ASLWorldModuleProps = {};
+  private moduleProps: Partial<ASLWorldModuleProps> = {};
   private practiceSessionId: string | null = null;
   private currentUserData: ASLWorldUserData | null = null;
 
@@ -202,7 +202,11 @@ export class ASLWorldModuleInterface extends BaseModule {
         // This would typically ping the AI services
         console.log("Checking AI services availability...");
       } catch (error) {
-        issues.push(`AI services unavailable: ${error.message}`);
+        issues.push(
+          `AI services unavailable: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
       }
     }
 
@@ -263,15 +267,27 @@ export class ASLWorldModuleInterface extends BaseModule {
   }
 
   // Component rendering
-  renderComponent(props: ASLWorldModuleProps): ReactNode {
-    // Merge props with module-specific enhancements
-    const enhancedProps = {
+  renderComponent(props: Partial<ASLWorldModuleProps>): ReactNode {
+    // Merge props with module-specific enhancements and provide defaults
+    const enhancedProps: ASLWorldModuleProps = {
+      // Default values for required props
+      onStorySelect: this.handleStorySelect.bind(this),
+      onFrameCapture: () => {}, // Default no-op handler
+
+      // Merge provided props
       ...props,
       ...this.moduleProps,
-      // Add module-specific event handlers
-      onStoryGenerate: this.handleStoryGenerate.bind(this),
-      onPracticeControl: this.handlePracticeControl.bind(this),
-      onStartPractice: this.handleStartPractice.bind(this),
+
+      // Override with module-specific event handlers
+      onStorySelect: props.onStorySelect || this.handleStorySelect.bind(this),
+      onStoryGenerate:
+        props.onStoryGenerate || this.handleStoryGenerate.bind(this),
+      onPracticeControl:
+        props.onPracticeControl || this.handlePracticeControl.bind(this),
+      onStartPractice:
+        props.onStartPractice || this.handleStartPractice.bind(this),
+      onFrameCapture:
+        props.onFrameCapture || this.handleFrameCapture.bind(this),
     };
 
     return React.createElement(ASLWorldModule, enhancedProps);
@@ -289,7 +305,7 @@ export class ASLWorldModuleInterface extends BaseModule {
 
     const sessionId = `session_${Date.now()}_${Math.random()
       .toString(36)
-      .substr(2, 9)}`;
+      .substring(2, 11)}`;
 
     const sessionData = {
       id: sessionId,
@@ -442,7 +458,7 @@ export class ASLWorldModuleInterface extends BaseModule {
 
     // Delegate to original handler if provided
     if (this.moduleProps.onStoryGenerate) {
-      await this.moduleProps.onStoryGenerate(params);
+      this.moduleProps.onStoryGenerate(params);
     }
   }
 
@@ -471,7 +487,7 @@ export class ASLWorldModuleInterface extends BaseModule {
 
     // Delegate to original handler if provided
     if (this.moduleProps.onPracticeControl) {
-      await this.moduleProps.onPracticeControl(action, index);
+      this.moduleProps.onPracticeControl(action, index);
     }
   }
 
@@ -489,6 +505,62 @@ export class ASLWorldModuleInterface extends BaseModule {
     // Delegate to original handler if provided
     if (this.moduleProps.onStartPractice) {
       this.moduleProps.onStartPractice();
+    }
+  }
+
+  private handleStorySelect(story: any): void {
+    if (!this.context?.user) {
+      console.warn("Cannot select story - user not logged in");
+      return;
+    }
+
+    // Update module props with selected story
+    this.updateProps({ selectedStory: story });
+
+    // Track story selection event
+    this.trackEvent({
+      type: "story_selected",
+      moduleName: this.metadata.id,
+      eventData: {
+        storyId: story.id || "generated",
+        storyTitle: story.title,
+        difficulty: story.difficulty,
+        sentenceCount: story.sentences?.length || 0,
+      },
+      userId: this.context.user.id,
+      timestamp: new Date().toISOString(),
+    });
+
+    console.log(
+      "Story selected:",
+      story.title,
+      "Difficulty:",
+      story.difficulty
+    );
+  }
+
+  private handleFrameCapture(frame: any): void {
+    if (!this.context?.user) {
+      console.warn("Cannot capture frame - user not logged in");
+      return;
+    }
+
+    // Track frame capture event for analytics
+    this.trackEvent({
+      type: "frame_captured",
+      moduleName: this.metadata.id,
+      eventData: {
+        frameSize: frame?.size || 0,
+        timestamp: Date.now(),
+      },
+      userId: this.context.user.id,
+      sessionId: this.practiceSessionId || undefined,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Delegate to original handler if provided
+    if (this.moduleProps.onFrameCapture) {
+      this.moduleProps.onFrameCapture(frame);
     }
   }
 
@@ -521,7 +593,7 @@ export class ASLWorldModuleInterface extends BaseModule {
     );
     if (completedSessions.length > 0) {
       userData.progress.averageScore =
-        completedSessions.reduce((sum, s) => sum + s.overallScore, 0) /
+        completedSessions.reduce((sum, s) => sum + (s.overallScore || 0), 0) /
         completedSessions.length;
     }
 
