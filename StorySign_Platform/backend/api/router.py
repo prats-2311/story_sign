@@ -81,6 +81,15 @@ except ImportError as e:
     print(f"Warning: Optimization module not available: {e}")
     OPTIMIZATION_AVAILABLE = False
 
+# Include monitoring module (with error handling)
+try:
+    from . import monitoring
+    api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
+    MONITORING_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Monitoring module not available: {e}")
+    MONITORING_AVAILABLE = False
+
 # Include GraphQL if available
 if GRAPHQL_AVAILABLE:
     api_router.include_router(graphql_app, prefix="", tags=["graphql"])

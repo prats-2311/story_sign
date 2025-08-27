@@ -1,0 +1,449 @@
+# Comprehensive monitoring and observability configuration
+# This file configures all monitoring, alerting, and observability features
+
+monitoring:
+  # Database monitoring configuration
+  database_monitoring:
+    enabled: true
+    interval: 60 # seconds
+    retention_hours: 168 # 1 week
+    max_history: 50000
+
+    # Metric thresholds for alerting
+    thresholds:
+      - metric_name: "connection_count"
+        warning_threshold: 50
+        error_threshold: 80
+        critical_threshold: 100
+        comparison: "greater_than"
+        enabled: true
+
+      - metric_name: "query_response_time"
+        warning_threshold: 1.0
+        error_threshold: 5.0
+        critical_threshold: 10.0
+        comparison: "greater_than"
+        enabled: true
+
+      - metric_name: "cpu_usage_percent"
+        warning_threshold: 70
+        error_threshold: 85
+        critical_threshold: 95
+        comparison: "greater_than"
+        enabled: true
+
+      - metric_name: "memory_usage_percent"
+        warning_threshold: 80
+        error_threshold: 90
+        critical_threshold: 95
+        comparison: "greater_than"
+        enabled: true
+
+      - metric_name: "disk_usage_percent"
+        warning_threshold: 80
+        error_threshold: 90
+        critical_threshold: 95
+        comparison: "greater_than"
+        enabled: true
+
+      - metric_name: "slow_query_count"
+        warning_threshold: 10
+        error_threshold: 50
+        critical_threshold: 100
+        comparison: "greater_than"
+        enabled: true
+
+      - metric_name: "error_rate_percent"
+        warning_threshold: 1.0
+        error_threshold: 5.0
+        critical_threshold: 10.0
+        comparison: "greater_than"
+        enabled: true
+
+      - metric_name: "cache_hit_rate_percent"
+        warning_threshold: 80
+        error_threshold: 60
+        critical_threshold: 40
+        comparison: "less_than"
+        enabled: true
+
+  # Error tracking configuration
+  error_tracking:
+    enabled: true
+    pattern_window: 300 # 5 minutes
+    pattern_threshold: 5 # errors to trigger pattern alert
+    max_stack_trace: 2000
+    cleanup_interval: 3600 # 1 hour
+    retention_hours: 168 # 1 week
+
+    # Error categories to track
+    categories:
+      - database
+      - api
+      - authentication
+      - validation
+      - external_service
+      - plugin
+      - video_processing
+      - websocket
+      - system
+
+    # Auto-resolution settings
+    auto_resolution:
+      enabled: true
+      resolution_window: 3600 # 1 hour without recurrence
+
+  # Health check configuration
+  health_check:
+    enabled: true
+    interval: 60 # seconds
+    retention_hours: 24
+    max_history: 10000
+    recovery_enabled: true
+
+    # Component health checks
+    components:
+      database:
+        enabled: true
+        timeout: 30
+        critical_response_time: 5000 # ms
+        warning_response_time: 1000 # ms
+
+      cache:
+        enabled: true
+        timeout: 10
+        critical_response_time: 1000 # ms
+        warning_response_time: 500 # ms
+
+      memory:
+        enabled: true
+        critical_threshold: 95 # percent
+        warning_threshold: 85 # percent
+
+      disk:
+        enabled: true
+        critical_threshold: 95 # percent
+        warning_threshold: 85 # percent
+
+      websocket:
+        enabled: true
+        max_connections: 1000
+        timeout: 30
+
+      ai_services:
+        enabled: true
+        timeout: 60
+        critical_response_time: 10000 # ms
+        warning_response_time: 5000 # ms
+
+# Alerting configuration
+alerting:
+  # Alert channels
+  channels:
+    log:
+      enabled: true
+      level: "warning" # minimum level to log
+
+    email:
+      enabled: false
+      smtp_server: "smtp.example.com"
+      smtp_port: 587
+      username: "alerts@example.com"
+      password: "${SMTP_PASSWORD}"
+      recipients:
+        - "admin@example.com"
+        - "ops@example.com"
+
+      # Email alert rules
+      rules:
+        - severity: "critical"
+          immediate: true
+        - severity: "error"
+          throttle: 300 # 5 minutes
+        - severity: "warning"
+          throttle: 3600 # 1 hour
+
+    webhook:
+      enabled: false
+      url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+      timeout: 30
+      retry_count: 3
+
+      # Webhook payload template
+      payload_template: |
+        {
+          "text": "StorySign Alert: {{alert.title}}",
+          "attachments": [
+            {
+              "color": "{{alert.severity_color}}",
+              "fields": [
+                {
+                  "title": "Severity",
+                  "value": "{{alert.severity}}",
+                  "short": true
+                },
+                {
+                  "title": "Component",
+                  "value": "{{alert.metric_name}}",
+                  "short": true
+                },
+                {
+                  "title": "Message",
+                  "value": "{{alert.message}}",
+                  "short": false
+                },
+                {
+                  "title": "Timestamp",
+                  "value": "{{alert.timestamp}}",
+                  "short": true
+                }
+              ]
+            }
+          ]
+        }
+
+  # Alert escalation rules
+  escalation:
+    enabled: true
+    rules:
+      - condition: "alert.severity == 'critical' and alert.duration > 300"
+        action: "escalate_to_oncall"
+
+      - condition: "alert.severity == 'error' and alert.duration > 1800"
+        action: "escalate_to_manager"
+
+      - condition: "error_rate > 10 and duration > 600"
+        action: "page_engineering"
+
+# Performance monitoring
+performance:
+  # Real-time performance tracking
+  real_time:
+    enabled: true
+    sample_rate: 1.0 # 100% sampling
+
+    # Metrics to track
+    metrics:
+      - request_duration
+      - request_count
+      - error_count
+      - active_connections
+      - queue_size
+      - memory_usage
+      - cpu_usage
+      - database_connections
+
+  # Performance profiling
+  profiling:
+    enabled: false # Enable in development only
+    sample_rate: 0.01 # 1% sampling
+    max_traces: 1000
+    retention_hours: 24
+
+  # Benchmarking
+  benchmarks:
+    enabled: true
+    interval: 3600 # 1 hour
+
+    # Benchmark tests
+    tests:
+      - name: "database_query_performance"
+        query: "SELECT COUNT(*) FROM users"
+        expected_max_time: 100 # ms
+
+      - name: "cache_performance"
+        operation: "get_set_delete"
+        expected_max_time: 10 # ms
+
+      - name: "api_response_time"
+        endpoint: "/api/v1/monitoring/health"
+        expected_max_time: 500 # ms
+
+# Logging configuration
+logging:
+  # Log levels
+  levels:
+    root: "INFO"
+    monitoring: "DEBUG"
+    error_tracking: "DEBUG"
+    health_check: "INFO"
+    performance: "INFO"
+
+  # Log formatting
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+  # Log rotation
+  rotation:
+    enabled: true
+    max_size: "100MB"
+    backup_count: 10
+    interval: "daily"
+
+  # Structured logging
+  structured:
+    enabled: true
+    format: "json"
+
+    # Additional fields to include
+    fields:
+      - service_name
+      - version
+      - environment
+      - request_id
+      - user_id
+      - session_id
+
+# Dashboard configuration
+dashboard:
+  # Refresh intervals
+  refresh_intervals:
+    default: 30 # seconds
+    fast: 10
+    slow: 300
+
+  # Data retention for dashboard
+  retention:
+    real_time: 3600 # 1 hour
+    historical: 604800 # 1 week
+
+  # Chart configurations
+  charts:
+    response_time:
+      type: "line"
+      time_range: "1h"
+      refresh: 30
+
+    error_rate:
+      type: "area"
+      time_range: "24h"
+      refresh: 60
+
+    system_resources:
+      type: "gauge"
+      refresh: 10
+
+    alert_summary:
+      type: "table"
+      refresh: 30
+
+# Integration settings
+integrations:
+  # Prometheus metrics export
+  prometheus:
+    enabled: false
+    port: 9090
+    path: "/metrics"
+
+    # Metrics to export
+    metrics:
+      - counter: "storysign_requests_total"
+      - histogram: "storysign_request_duration_seconds"
+      - gauge: "storysign_active_connections"
+      - gauge: "storysign_database_connections"
+
+  # Grafana dashboard
+  grafana:
+    enabled: false
+    url: "http://grafana:3000"
+    api_key: "${GRAFANA_API_KEY}"
+
+    # Dashboard templates
+    dashboards:
+      - "storysign-overview"
+      - "storysign-performance"
+      - "storysign-errors"
+
+  # External monitoring services
+  external:
+    datadog:
+      enabled: false
+      api_key: "${DATADOG_API_KEY}"
+      app_key: "${DATADOG_APP_KEY}"
+
+    newrelic:
+      enabled: false
+      license_key: "${NEWRELIC_LICENSE_KEY}"
+
+    sentry:
+      enabled: false
+      dsn: "${SENTRY_DSN}"
+
+# Security and compliance
+security:
+  # Data anonymization
+  anonymization:
+    enabled: true
+
+    # Fields to anonymize in logs and metrics
+    fields:
+      - email
+      - ip_address
+      - user_agent
+      - session_token
+
+  # Access control
+  access_control:
+    monitoring_dashboard:
+      roles: ["admin", "operator"]
+
+    metrics_api:
+      roles: ["admin", "operator", "developer"]
+
+    alerts_management:
+      roles: ["admin", "operator"]
+
+  # Audit logging
+  audit:
+    enabled: true
+    events:
+      - alert_acknowledged
+      - threshold_changed
+      - monitoring_disabled
+      - data_exported
+
+# Environment-specific overrides
+environments:
+  development:
+    monitoring:
+      database_monitoring:
+        interval: 10 # More frequent in dev
+      error_tracking:
+        pattern_threshold: 2 # Lower threshold in dev
+
+    alerting:
+      channels:
+        email:
+          enabled: false # No email alerts in dev
+
+    logging:
+      levels:
+        root: "DEBUG"
+
+  staging:
+    monitoring:
+      database_monitoring:
+        interval: 30
+
+    alerting:
+      channels:
+        email:
+          enabled: true
+          recipients: ["staging-alerts@example.com"]
+
+  production:
+    monitoring:
+      database_monitoring:
+        interval: 60
+        retention_hours: 720 # 30 days in production
+
+    alerting:
+      channels:
+        email:
+          enabled: true
+        webhook:
+          enabled: true
+
+    performance:
+      profiling:
+        enabled: false # Disabled in production
+        sample_rate: 0.001 # Very low sampling if enabled
