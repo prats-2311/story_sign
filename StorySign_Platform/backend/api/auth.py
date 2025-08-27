@@ -9,10 +9,30 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field, EmailStr, validator
 import logging
 
-from ..services.auth_service import AuthService
-from ..repositories.user_repository import UserRepository, UserSessionRepository
-from ..core.database_service import DatabaseService
-from ..models.user import User
+# Import with error handling
+try:
+    from ..services.auth_service import AuthService
+    AUTH_SERVICE_AVAILABLE = True
+except ImportError:
+    AUTH_SERVICE_AVAILABLE = False
+
+try:
+    from ..repositories.user_repository import UserRepository, UserSessionRepository
+    USER_REPO_AVAILABLE = True
+except ImportError:
+    USER_REPO_AVAILABLE = False
+
+try:
+    from ..core.database_service import DatabaseService
+    DB_SERVICE_AVAILABLE = True
+except ImportError:
+    DB_SERVICE_AVAILABLE = False
+
+try:
+    from ..models.user import User
+    USER_MODEL_AVAILABLE = True
+except ImportError:
+    USER_MODEL_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -80,9 +100,12 @@ class MessageResponse(BaseModel):
     message: str
 
 
-# Dependency injection
-async def get_auth_service() -> AuthService:
+# Dependency injection with error handling
+async def get_auth_service():
     """Get authentication service instance"""
+    if not AUTH_SERVICE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Authentication service not available")
+    
     config = {
         "jwt_secret": "your-jwt-secret-key-change-in-production",
         "jwt_algorithm": "HS256"
@@ -92,17 +115,21 @@ async def get_auth_service() -> AuthService:
     return service
 
 
-async def get_user_repository() -> UserRepository:
+async def get_user_repository():
     """Get user repository instance"""
-    # TODO: Implement proper dependency injection with database session
+    if not USER_REPO_AVAILABLE or not DB_SERVICE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="User repository not available")
+    
     db_service = DatabaseService()
     session = await db_service.get_session()
     return UserRepository(session)
 
 
-async def get_session_repository() -> UserSessionRepository:
+async def get_session_repository():
     """Get session repository instance"""
-    # TODO: Implement proper dependency injection with database session
+    if not USER_REPO_AVAILABLE or not DB_SERVICE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Session repository not available")
+    
     db_service = DatabaseService()
     session = await db_service.get_session()
     return UserSessionRepository(session)
@@ -110,9 +137,9 @@ async def get_session_repository() -> UserSessionRepository:
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    auth_service: AuthService = Depends(get_auth_service),
-    session_repo: UserSessionRepository = Depends(get_session_repository)
-) -> User:
+    auth_service = Depends(get_auth_service),
+    session_repo = Depends(get_session_repository)
+):
     """Get current authenticated user from JWT token"""
     try:
         # Verify JWT token
@@ -157,8 +184,8 @@ async def get_current_user(
 async def register(
     request: RegisterRequest,
     client_request: Request,
-    auth_service: AuthService = Depends(get_auth_service),
-    user_repo: UserRepository = Depends(get_user_repository)
+    auth_service = Depends(get_auth_service),
+    user_repo = Depends(get_user_repository)
 ):
     """
     Register a new user account
@@ -223,9 +250,9 @@ async def register(
 async def login(
     request: LoginRequest,
     client_request: Request,
-    auth_service: AuthService = Depends(get_auth_service),
-    user_repo: UserRepository = Depends(get_user_repository),
-    session_repo: UserSessionRepository = Depends(get_session_repository)
+    auth_service = Depends(get_auth_service),
+    user_repo = Depends(get_user_repository),
+    session_repo = Depends(get_session_repository)
 ):
     """
     Authenticate user and create session
@@ -273,8 +300,8 @@ async def login(
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
     request: RefreshTokenRequest,
-    auth_service: AuthService = Depends(get_auth_service),
-    session_repo: UserSessionRepository = Depends(get_session_repository)
+    auth_service = Depends(get_auth_service),
+    session_repo = Depends(get_session_repository)
 ):
     """
     Refresh access token using refresh token
@@ -313,8 +340,8 @@ async def refresh_token(
 @router.post("/logout", response_model=MessageResponse)
 async def logout(
     authorization: str = Header(None),
-    auth_service: AuthService = Depends(get_auth_service),
-    session_repo: UserSessionRepository = Depends(get_session_repository)
+    auth_service = Depends(get_auth_service),
+    session_repo = Depends(get_session_repository)
 ):
     """
     Logout user by deactivating current session
@@ -351,9 +378,9 @@ async def logout(
 
 @router.post("/logout-all", response_model=MessageResponse)
 async def logout_all(
-    current_user: User = Depends(get_current_user),
-    auth_service: AuthService = Depends(get_auth_service),
-    session_repo: UserSessionRepository = Depends(get_session_repository)
+    current_user = Depends(get_current_user),
+    auth_service = Depends(get_auth_service),
+    session_repo = Depends(get_session_repository)
 ):
     """
     Logout user from all sessions
@@ -382,10 +409,10 @@ async def logout_all(
 @router.post("/change-password", response_model=MessageResponse)
 async def change_password(
     request: ChangePasswordRequest,
-    current_user: User = Depends(get_current_user),
-    auth_service: AuthService = Depends(get_auth_service),
-    user_repo: UserRepository = Depends(get_user_repository),
-    session_repo: UserSessionRepository = Depends(get_session_repository)
+    current_user = Depends(get_current_user),
+    auth_service = Depends(get_auth_service),
+    user_repo = Depends(get_user_repository),
+    session_repo = Depends(get_session_repository)
 ):
     """
     Change user password
@@ -423,7 +450,7 @@ async def change_password(
 
 @router.get("/me")
 async def get_current_user_info(
-    current_user: User = Depends(get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """
     Get current user information
@@ -442,8 +469,8 @@ async def get_current_user_info(
 
 @router.get("/sessions")
 async def get_user_sessions(
-    current_user: User = Depends(get_current_user),
-    session_repo: UserSessionRepository = Depends(get_session_repository)
+    current_user = Depends(get_current_user),
+    session_repo = Depends(get_session_repository)
 ):
     """
     Get user's active sessions
@@ -480,8 +507,8 @@ async def get_user_sessions(
 @router.delete("/sessions/{session_id}")
 async def revoke_session(
     session_id: str,
-    current_user: User = Depends(get_current_user),
-    session_repo: UserSessionRepository = Depends(get_session_repository)
+    current_user = Depends(get_current_user),
+    session_repo = Depends(get_session_repository)
 ):
     """
     Revoke a specific session

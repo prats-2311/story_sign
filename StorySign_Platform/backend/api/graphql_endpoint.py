@@ -11,12 +11,51 @@ from strawberry.fastapi import GraphQLRouter
 from strawberry.types import Info
 from fastapi import Depends, HTTPException
 
-from ..models.user import User
-from ..repositories.user_repository import UserRepository
-from ..repositories.progress_repository import ProgressRepository
-from ..repositories.content_repository import ContentRepository
-from ..core.database_service import DatabaseService
-from .auth import get_current_user
+# Import with error handling
+try:
+    from ..models.user import User
+    USER_MODEL_AVAILABLE = True
+except ImportError:
+    USER_MODEL_AVAILABLE = False
+    # Create a simple fallback User class
+    class User:
+        def __init__(self):
+            self.id = "unknown"
+            self.username = "unknown"
+            self.email = "unknown"
+
+try:
+    from ..repositories.user_repository import UserRepository
+    USER_REPO_AVAILABLE = True
+except ImportError:
+    USER_REPO_AVAILABLE = False
+
+try:
+    from ..repositories.progress_repository import ProgressRepository
+    PROGRESS_REPO_AVAILABLE = True
+except ImportError:
+    PROGRESS_REPO_AVAILABLE = False
+
+try:
+    from ..repositories.content_repository import ContentRepository
+    CONTENT_REPO_AVAILABLE = True
+except ImportError:
+    CONTENT_REPO_AVAILABLE = False
+
+try:
+    from ..core.database_service import DatabaseService
+    DB_SERVICE_AVAILABLE = True
+except ImportError:
+    DB_SERVICE_AVAILABLE = False
+
+try:
+    from .auth import get_current_user
+    AUTH_AVAILABLE = True
+except ImportError:
+    AUTH_AVAILABLE = False
+    # Create a fallback function
+    async def get_current_user():
+        return User()
 
 logger = logging.getLogger(__name__)
 
@@ -152,23 +191,32 @@ class AnalyticsTimeRangeInput:
     include_detailed: bool = False
 
 
-# Dependency injection for GraphQL
-async def get_user_repository() -> UserRepository:
+# Dependency injection for GraphQL with error handling
+async def get_user_repository():
     """Get user repository instance"""
+    if not USER_REPO_AVAILABLE or not DB_SERVICE_AVAILABLE:
+        return None
+    
     db_service = DatabaseService()
     session = await db_service.get_session()
     return UserRepository(session)
 
 
-async def get_progress_repository() -> ProgressRepository:
+async def get_progress_repository():
     """Get progress repository instance"""
+    if not PROGRESS_REPO_AVAILABLE or not DB_SERVICE_AVAILABLE:
+        return None
+    
     db_service = DatabaseService()
     session = await db_service.get_session()
     return ProgressRepository(session)
 
 
-async def get_content_repository() -> ContentRepository:
+async def get_content_repository():
     """Get content repository instance"""
+    if not CONTENT_REPO_AVAILABLE or not DB_SERVICE_AVAILABLE:
+        return None
+    
     db_service = DatabaseService()
     session = await db_service.get_session()
     return ContentRepository(session)
@@ -177,10 +225,10 @@ async def get_content_repository() -> ContentRepository:
 # GraphQL Context
 @strawberry.type
 class Context:
-    current_user: Optional[User] = None
-    user_repo: Optional[UserRepository] = None
-    progress_repo: Optional[ProgressRepository] = None
-    content_repo: Optional[ContentRepository] = None
+    current_user: Optional[object] = None
+    user_repo: Optional[object] = None
+    progress_repo: Optional[object] = None
+    content_repo: Optional[object] = None
 
 
 # Query resolvers
@@ -473,8 +521,8 @@ schema = strawberry.Schema(query=Query, mutation=Mutation)
 
 # Context dependency
 async def get_graphql_context(
-    current_user: User = Depends(get_current_user)
-) -> Context:
+    current_user = Depends(get_current_user)
+):
     """Create GraphQL context with dependencies"""
     try:
         user_repo = await get_user_repository()

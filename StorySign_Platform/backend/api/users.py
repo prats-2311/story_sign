@@ -7,10 +7,30 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Path
 from pydantic import BaseModel, Field, EmailStr, validator
 import logging
 
-from ..services.user_service import UserService
-from ..repositories.user_repository import UserRepository
-from ..repositories.progress_repository import ProgressRepository
-from ..core.database_service import DatabaseService
+# Import with error handling
+try:
+    from ..services.user_service import UserService
+    USER_SERVICE_AVAILABLE = True
+except ImportError:
+    USER_SERVICE_AVAILABLE = False
+
+try:
+    from ..repositories.user_repository import UserRepository
+    USER_REPO_AVAILABLE = True
+except ImportError:
+    USER_REPO_AVAILABLE = False
+
+try:
+    from ..repositories.progress_repository import ProgressRepository
+    PROGRESS_REPO_AVAILABLE = True
+except ImportError:
+    PROGRESS_REPO_AVAILABLE = False
+
+try:
+    from ..core.database_service import DatabaseService
+    DB_SERVICE_AVAILABLE = True
+except ImportError:
+    DB_SERVICE_AVAILABLE = False
 from ..models.user import User
 from .auth import get_current_user
 
@@ -88,23 +108,31 @@ class UserAnalyticsResponse(BaseModel):
     engagement_metrics: Dict[str, Any]
 
 
-# Dependency injection
-async def get_user_service() -> UserService:
+# Dependency injection with error handling
+async def get_user_service():
     """Get user service instance"""
-    # TODO: Implement proper dependency injection
+    if not USER_SERVICE_AVAILABLE or not DB_SERVICE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="User service not available")
+    
     db_service = DatabaseService()
     return UserService(db_service)
 
 
-async def get_user_repository() -> UserRepository:
+async def get_user_repository():
     """Get user repository instance"""
+    if not USER_REPO_AVAILABLE or not DB_SERVICE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="User repository not available")
+    
     db_service = DatabaseService()
     session = await db_service.get_session()
     return UserRepository(session)
 
 
-async def get_progress_repository() -> ProgressRepository:
+async def get_progress_repository():
     """Get progress repository instance"""
+    if not PROGRESS_REPO_AVAILABLE or not DB_SERVICE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Progress repository not available")
+    
     db_service = DatabaseService()
     session = await db_service.get_session()
     return ProgressRepository(session)
@@ -114,7 +142,7 @@ async def get_progress_repository() -> ProgressRepository:
 
 @router.get("/profile", response_model=UserResponse)
 async def get_user_profile(
-    current_user: User = Depends(get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """
     Get current user's profile
@@ -151,8 +179,8 @@ async def get_user_profile(
 @router.put("/profile")
 async def update_user_profile(
     request: UserProfileUpdateRequest,
-    current_user: User = Depends(get_current_user),
-    user_repo: UserRepository = Depends(get_user_repository)
+    current_user = Depends(get_current_user),
+    user_repo = Depends(get_user_repository)
 ):
     """
     Update current user's profile
@@ -215,8 +243,8 @@ async def update_user_profile(
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user_by_id(
     user_id: str = Path(..., description="User ID"),
-    current_user: User = Depends(get_current_user),
-    user_repo: UserRepository = Depends(get_user_repository)
+    current_user = Depends(get_current_user),
+    user_repo = Depends(get_user_repository)
 ):
     """
     Get user by ID (public profile information only)
@@ -268,8 +296,8 @@ async def get_user_by_id(
 @router.post("/search", response_model=UserListResponse)
 async def search_users(
     request: UserSearchRequest,
-    current_user: User = Depends(get_current_user),
-    user_repo: UserRepository = Depends(get_user_repository)
+    current_user = Depends(get_current_user),
+    user_repo = Depends(get_user_repository)
 ):
     """
     Search users with filtering
@@ -330,8 +358,8 @@ async def search_users(
 
 @router.get("/progress/summary", response_model=UserProgressResponse)
 async def get_user_progress_summary(
-    current_user: User = Depends(get_current_user),
-    progress_repo: ProgressRepository = Depends(get_progress_repository)
+    current_user = Depends(get_current_user),
+    progress_repo = Depends(get_progress_repository)
 ):
     """
     Get current user's learning progress summary
@@ -365,9 +393,9 @@ async def get_user_progress_summary(
 
 @router.get("/analytics/detailed", response_model=UserAnalyticsResponse)
 async def get_user_analytics(
-    current_user: User = Depends(get_current_user),
+    current_user = Depends(get_current_user),
     days: int = Query(30, ge=1, le=365, description="Number of days to analyze"),
-    progress_repo: ProgressRepository = Depends(get_progress_repository)
+    progress_repo = Depends(get_progress_repository)
 ):
     """
     Get detailed analytics for current user
@@ -400,8 +428,8 @@ async def get_user_analytics(
 
 @router.delete("/account")
 async def delete_user_account(
-    current_user: User = Depends(get_current_user),
-    user_repo: UserRepository = Depends(get_user_repository)
+    current_user = Depends(get_current_user),
+    user_repo = Depends(get_user_repository)
 ):
     """
     Delete current user's account (soft delete - deactivate)
@@ -436,7 +464,7 @@ async def delete_user_account(
 
 @router.get("/preferences")
 async def get_user_preferences(
-    current_user: User = Depends(get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """
     Get current user's preferences
@@ -471,8 +499,8 @@ async def get_user_preferences(
 @router.put("/preferences")
 async def update_user_preferences(
     preferences: Dict[str, Any],
-    current_user: User = Depends(get_current_user),
-    user_repo: UserRepository = Depends(get_user_repository)
+    current_user = Depends(get_current_user),
+    user_repo = Depends(get_user_repository)
 ):
     """
     Update current user's preferences
@@ -508,7 +536,7 @@ async def update_user_preferences(
 
 @router.get("/learning-goals")
 async def get_learning_goals(
-    current_user: User = Depends(get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """
     Get current user's learning goals
@@ -537,8 +565,8 @@ async def get_learning_goals(
 @router.put("/learning-goals")
 async def update_learning_goals(
     learning_goals: List[str],
-    current_user: User = Depends(get_current_user),
-    user_repo: UserRepository = Depends(get_user_repository)
+    current_user = Depends(get_current_user),
+    user_repo = Depends(get_user_repository)
 ):
     """
     Update current user's learning goals
