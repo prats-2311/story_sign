@@ -1,0 +1,241 @@
+# Backup and Disaster Recovery Configuration for StorySign Platform
+
+backup:
+  # Backup storage configuration
+  backup_directory: "/var/backups/storysign"
+  retention_days: 30
+  max_backup_size_gb: 100
+  compression: true
+
+  # Backup scheduling
+  schedule:
+    full_backup_cron: "0 2 * * 0" # Weekly full backup at 2 AM on Sunday
+    incremental_backup_cron: "0 2 * * 1-6" # Daily incremental backup at 2 AM
+
+  # Database connection for backups
+  database:
+    host: "${TIDB_HOST:-localhost}"
+    port: "${TIDB_PORT:-4000}"
+    username: "${TIDB_USER:-root}"
+    password: "${TIDB_PASSWORD:-}"
+    database: "${TIDB_DATABASE:-storysign}"
+
+  # Backup verification
+  verification:
+    enabled: true
+    verify_after_creation: true
+    periodic_verification_days: 7
+
+disaster_recovery:
+  # Auto-recovery settings
+  auto_recovery_enabled: true
+  recovery_timeout_minutes: 60
+
+  # Health check configuration
+  health_checks:
+    interval_seconds: 30
+    max_connection_failures: 3
+    max_query_timeout_seconds: 10
+
+  # Notification endpoints for disaster alerts
+  notification_endpoints:
+    - "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+    - "https://api.pagerduty.com/incidents"
+
+  # Standby database configuration
+  standby_database:
+    enabled: false
+    host: "standby-tidb.example.com"
+    port: 4000
+    username: "root"
+    password: "${STANDBY_TIDB_PASSWORD:-}"
+    database: "storysign"
+
+  # Disaster detection thresholds
+  thresholds:
+    disk_usage_percent: 90
+    memory_usage_percent: 95
+    query_timeout_seconds: 10
+    connection_failure_count: 3
+
+deployment:
+  # Blue-green deployment configuration
+  blue_environment:
+    base_url: "http://blue.storysign.local:8000"
+    app_directory: "/opt/storysign/blue"
+    servers:
+      - "blue-1.storysign.local:8000"
+      - "blue-2.storysign.local:8000"
+    repository_url: "https://github.com/your-org/storysign.git"
+
+    # Environment-specific commands
+    stop_commands:
+      - "systemctl stop storysign-blue"
+      - "pkill -f 'python.*main.py.*blue'"
+
+    start_commands:
+      - "systemctl start storysign-blue"
+
+    build_commands:
+      - "pip install -r requirements.txt"
+      - "npm install && npm run build"
+
+    dependency_commands:
+      - "pip install -r requirements.txt"
+      - "cd frontend && npm install"
+
+    cleanup_paths:
+      - "/opt/storysign/blue/logs"
+      - "/opt/storysign/blue/temp"
+
+    required_directories:
+      - "/opt/storysign/blue/logs"
+      - "/opt/storysign/blue/temp"
+      - "/opt/storysign/blue/uploads"
+
+    environment_variables:
+      ENVIRONMENT: "blue"
+      DATABASE_URL: "mysql://root@localhost:4000/storysign"
+      REDIS_URL: "redis://localhost:6379/1"
+
+    config_updates:
+      "config.yaml":
+        environment: "blue"
+        database:
+          port: 4000
+        redis:
+          db: 1
+
+  green_environment:
+    base_url: "http://green.storysign.local:8000"
+    app_directory: "/opt/storysign/green"
+    servers:
+      - "green-1.storysign.local:8000"
+      - "green-2.storysign.local:8000"
+    repository_url: "https://github.com/your-org/storysign.git"
+
+    # Environment-specific commands
+    stop_commands:
+      - "systemctl stop storysign-green"
+      - "pkill -f 'python.*main.py.*green'"
+
+    start_commands:
+      - "systemctl start storysign-green"
+
+    build_commands:
+      - "pip install -r requirements.txt"
+      - "npm install && npm run build"
+
+    dependency_commands:
+      - "pip install -r requirements.txt"
+      - "cd frontend && npm install"
+
+    cleanup_paths:
+      - "/opt/storysign/green/logs"
+      - "/opt/storysign/green/temp"
+
+    required_directories:
+      - "/opt/storysign/green/logs"
+      - "/opt/storysign/green/temp"
+      - "/opt/storysign/green/uploads"
+
+    environment_variables:
+      ENVIRONMENT: "green"
+      DATABASE_URL: "mysql://root@localhost:4000/storysign"
+      REDIS_URL: "redis://localhost:6379/2"
+
+    config_updates:
+      "config.yaml":
+        environment: "green"
+        database:
+          port: 4000
+        redis:
+          db: 2
+
+  # Load balancer configuration
+  load_balancer:
+    type: "nginx"
+    config_path: "/etc/nginx/conf.d/storysign.conf"
+    reload_command: "nginx -s reload"
+
+  # Deployment timeouts and limits
+  health_check_timeout: 300
+  deployment_timeout: 1800
+
+  # Rollback configuration
+  rollback:
+    enabled: true
+    auto_rollback_on_failure: true
+    rollback_timeout: 600
+
+monitoring:
+  # Metrics collection
+  metrics:
+    enabled: true
+    retention_days: 90
+
+  # Alerting configuration
+  alerts:
+    backup_failure:
+      enabled: true
+      severity: "high"
+
+    disaster_detected:
+      enabled: true
+      severity: "critical"
+
+    deployment_failure:
+      enabled: true
+      severity: "medium"
+
+    data_corruption:
+      enabled: true
+      severity: "high"
+
+  # Log configuration
+  logging:
+    level: "INFO"
+    file: "/var/log/storysign/backup_recovery.log"
+    max_size_mb: 100
+    backup_count: 5
+
+security:
+  # Backup encryption
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key_rotation_days: 90
+
+  # Access control
+  access_control:
+    backup_operations: ["admin", "backup_operator"]
+    disaster_recovery: ["admin", "dr_operator"]
+    deployment_operations: ["admin", "deploy_operator"]
+
+  # Audit logging
+  audit:
+    enabled: true
+    log_file: "/var/log/storysign/backup_audit.log"
+
+# Environment-specific overrides
+environments:
+  development:
+    backup:
+      retention_days: 7
+      backup_directory: "/tmp/storysign_backups"
+    disaster_recovery:
+      auto_recovery_enabled: false
+
+  staging:
+    backup:
+      retention_days: 14
+    disaster_recovery:
+      auto_recovery_enabled: true
+
+  production:
+    backup:
+      retention_days: 90
+      max_backup_size_gb: 500
+    disaster_recovery:
+      auto_recovery_enabled: true
+      recovery_timeout_minutes: 30
