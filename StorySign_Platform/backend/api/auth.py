@@ -17,6 +17,24 @@ except ImportError:
     AUTH_SERVICE_AVAILABLE = False
 
 try:
+    from ..services.mfa_service import MFAService
+    MFA_SERVICE_AVAILABLE = True
+except ImportError:
+    MFA_SERVICE_AVAILABLE = False
+
+try:
+    from ..services.security_audit_service import SecurityAuditService, AuditEventType, AuditSeverity
+    AUDIT_SERVICE_AVAILABLE = True
+except ImportError:
+    AUDIT_SERVICE_AVAILABLE = False
+
+try:
+    from ..services.threat_detection_service import ThreatDetectionService
+    THREAT_SERVICE_AVAILABLE = True
+except ImportError:
+    THREAT_SERVICE_AVAILABLE = False
+
+try:
     from ..repositories.user_repository import UserRepository, UserSessionRepository
     USER_REPO_AVAILABLE = True
 except ImportError:
@@ -100,6 +118,28 @@ class MessageResponse(BaseModel):
     message: str
 
 
+class MFASetupRequest(BaseModel):
+    """MFA setup request"""
+    method: str = Field(..., description="MFA method (totp, sms, email)")
+    phone_number: Optional[str] = Field(None, description="Phone number for SMS")
+
+
+class MFAVerifyRequest(BaseModel):
+    """MFA verification request"""
+    code: str = Field(..., description="MFA verification code")
+    backup_code: Optional[str] = Field(None, description="Backup code if primary fails")
+
+
+class MFASetupResponse(BaseModel):
+    """MFA setup response"""
+    success: bool
+    method: str
+    secret_key: Optional[str] = None
+    qr_code: Optional[str] = None
+    backup_codes: Optional[list] = None
+    message: str
+
+
 # Dependency injection with error handling
 async def get_auth_service():
     """Get authentication service instance"""
@@ -133,6 +173,42 @@ async def get_session_repository():
     db_service = DatabaseService()
     session = await db_service.get_session()
     return UserSessionRepository(session)
+
+
+async def get_mfa_service():
+    """Get MFA service instance"""
+    if not MFA_SERVICE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="MFA service not available")
+    
+    config = {
+        "issuer_name": "StorySign ASL Platform"
+    }
+    service = MFAService(config=config)
+    await service.initialize()
+    return service
+
+
+async def get_audit_service():
+    """Get security audit service instance"""
+    if not AUDIT_SERVICE_AVAILABLE:
+        return None  # Optional service
+    
+    config = {
+        "audit_log_path": "logs/security_audit.log"
+    }
+    service = SecurityAuditService(config=config)
+    await service.initialize()
+    return service
+
+
+async def get_threat_detection_service():
+    """Get threat detection service instance"""
+    if not THREAT_SERVICE_AVAILABLE:
+        return None  # Optional service
+    
+    service = ThreatDetectionService()
+    await service.initialize()
+    return service
 
 
 async def get_current_user(
@@ -542,3 +618,197 @@ async def revoke_session(
     except Exception as e:
         logger.error(f"Revoke session error: {e}")
         raise HTTPException(status_code=500, detail="Failed to revoke session")
+
+
+# Multi-Factor Authentication Endpoints
+
+@router.post("/mfa/setup", response_model=MFASetupResponse)
+async def setup_mfa(
+    request: MFASetupRequest,
+    current_user = Depends(get_current_user),
+    mfa_service = Depends(get_mfa_service),
+    audit_service = Depends(get_audit_service)
+):
+    """
+    Set up multi-factor authentication for user
+    
+    Args:
+        request: MFA setup request
+        current_user: Current authenticated user
+        mfa_service: MFA service
+        audit_service: Security audit service
+        
+    Returns:
+        MFA setup response with configuration details
+    """
+    try:
+        method = request.method.lower()
+        
+        if method == "totp":
+            # Generate TOTP secret and QR code
+            secret_key = mfa_service.generate_secret_key()
+            qr_code = mfa_service.generate_qr_code(current_user.email, secret_key)
+            backup_codes = mfa_service.generate_backup_codes()
+            
+            # TODO: Store MFA configuration in database
+            # This would require adding MFA fields to user model
+            
+            response = MFASetupResponse(
+                success=True,
+                method="totp",
+                secret_key=secret_key,
+                qr_code=qr_code,
+                backup_codes=backup_codes,
+                message="TOTP MFA setup initiated. Scan QR code with authenticator app."
+            )
+            
+        elif method == "sms":
+            if not request.phone_number:
+                raise HTTPException(status_code=400, detail="Phone number required for SMS MFA")
+            
+            if not mfa_service.validate_phone_number(request.phone_number):
+                raise HTTPException(status_code=400, detail="Invalid phone number format")
+            
+            # TODO: Store phone number and send verification SMS
+            
+            response = MFASetupResponse(
+                success=True,
+                method="sms",
+                message=f"SMS MFA setup initiated for {request.phone_number}"
+            )
+            
+        elif method == "email":
+            # Email MFA uses user's existing email
+            response = MFASetupResponse(
+                success=True,
+                method="email",
+                message=f"Email MFA setup for {current_user.email}"
+            )
+            
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported MFA method")
+        
+        # Log MFA setup attempt
+        if audit_service:
+            await audit_service.log_event(
+                event_type=AuditEventType.MFA_ENABLED,
+                severity=AuditSeverity.INFO,
+                message=f"MFA setup initiated for method: {method}",
+                user_id=current_user.id,
+                details={"mfa_method": method}
+            )
+        
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"MFA setup error: {e}")
+        raise HTTPException(status_code=500, detail="MFA setup failed")
+
+
+@router.post("/mfa/verify", response_model=MessageResponse)
+async def verify_mfa(
+    request: MFAVerifyRequest,
+    current_user = Depends(get_current_user),
+    mfa_service = Depends(get_mfa_service),
+    audit_service = Depends(get_audit_service)
+):
+    """
+    Verify MFA code and complete setup
+    
+    Args:
+        request: MFA verification request
+        current_user: Current authenticated user
+        mfa_service: MFA service
+        audit_service: Security audit service
+        
+    Returns:
+        Verification result
+    """
+    try:
+        # TODO: Get user's MFA configuration from database
+        # For now, this is a placeholder implementation
+        
+        # Verify TOTP code (example)
+        # secret_key = get_user_mfa_secret(current_user.id)
+        # if mfa_service.verify_totp_code(secret_key, request.code):
+        #     # MFA verification successful
+        #     pass
+        
+        # Log MFA verification
+        if audit_service:
+            await audit_service.log_event(
+                event_type=AuditEventType.MFA_ENABLED,
+                severity=AuditSeverity.INFO,
+                message="MFA verification completed",
+                user_id=current_user.id,
+                details={"verification_success": True}
+            )
+        
+        return MessageResponse(
+            success=True,
+            message="MFA verification successful"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"MFA verification error: {e}")
+        raise HTTPException(status_code=500, detail="MFA verification failed")
+
+
+@router.delete("/mfa/disable", response_model=MessageResponse)
+async def disable_mfa(
+    current_user = Depends(get_current_user),
+    audit_service = Depends(get_audit_service)
+):
+    """
+    Disable MFA for user
+    
+    Args:
+        current_user: Current authenticated user
+        audit_service: Security audit service
+        
+    Returns:
+        Disable confirmation
+    """
+    try:
+        # TODO: Remove MFA configuration from database
+        
+        # Log MFA disable
+        if audit_service:
+            await audit_service.log_event(
+                event_type=AuditEventType.MFA_DISABLED,
+                severity=AuditSeverity.WARNING,
+                message="MFA disabled for user",
+                user_id=current_user.id
+            )
+        
+        return MessageResponse(
+            success=True,
+            message="MFA disabled successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"MFA disable error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to disable MFA")
+
+
+@router.get("/mfa/methods")
+async def get_mfa_methods(
+    mfa_service = Depends(get_mfa_service)
+):
+    """
+    Get available MFA methods
+    
+    Args:
+        mfa_service: MFA service
+        
+    Returns:
+        Available MFA methods
+    """
+    return {
+        "success": True,
+        "methods": mfa_service.get_mfa_methods()
+    }

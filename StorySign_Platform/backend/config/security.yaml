@@ -1,0 +1,232 @@
+# Security Configuration for StorySign ASL Platform
+
+# Multi-Factor Authentication Settings
+mfa:
+  enabled: true
+  issuer_name: "StorySign ASL Platform"
+  totp:
+    enabled: true
+    window: 1 # 30-second window
+  sms:
+    enabled: true
+    provider: "twilio" # twilio, aws_sns, etc.
+  email:
+    enabled: true
+    provider: "smtp"
+  backup_codes:
+    count: 10
+    length: 8
+
+# Threat Detection Settings
+threat_detection:
+  enabled: true
+  rate_limiting:
+    api_requests_per_hour: 1000
+    user_requests_per_hour: 500
+    login_attempts_per_5min: 5
+  brute_force_protection:
+    max_failed_attempts: 5
+    lockout_duration_minutes: 15
+    progressive_delay: true
+  geo_anomaly_detection:
+    enabled: true
+    max_distance_km: 1000
+    time_window_hours: 1
+  suspicious_patterns:
+    sql_injection_detection: true
+    xss_detection: true
+    path_traversal_detection: true
+    malicious_user_agent_detection: true
+
+# Security Audit Settings
+audit:
+  enabled: true
+  log_file: "logs/security_audit.log"
+  max_log_size_mb: 100
+  retention_days: 365
+  real_time_alerts: true
+  alert_thresholds:
+    failed_logins_per_5min: 5
+    access_denials_per_10min: 10
+    critical_events_per_minute: 1
+  log_levels:
+    authentication: "INFO"
+    authorization: "WARNING"
+    data_access: "INFO"
+    security_events: "WARNING"
+    system_changes: "INFO"
+
+# Vulnerability Scanner Settings
+vulnerability_scanner:
+  enabled: true
+  scan_interval_hours: 24
+  scans:
+    dependencies: true
+    configurations: true
+    network: true
+    web_application: true
+  dependency_scanners:
+    python_safety: true
+    npm_audit: true
+  network_scan:
+    port_scan: true
+    ssl_check: true
+  web_scan:
+    security_headers: true
+    information_disclosure: true
+
+# Password Policy
+password_policy:
+  min_length: 8
+  require_uppercase: true
+  require_lowercase: true
+  require_digits: true
+  require_special_chars: true
+  special_chars: "!@#$%^&*()_+-=[]{}|;:,.<>?"
+  max_age_days: 90
+  history_count: 5
+  lockout_attempts: 5
+  lockout_duration_minutes: 30
+
+# Session Security
+session_security:
+  jwt_secret_rotation_days: 30
+  access_token_expiry_minutes: 15
+  refresh_token_expiry_days: 7
+  session_timeout_minutes: 480 # 8 hours
+  concurrent_sessions_limit: 5
+  ip_binding: false
+  user_agent_binding: true
+
+# API Security
+api_security:
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 60
+    burst_limit: 100
+  cors:
+    allowed_origins: ["http://localhost:3000", "https://localhost:3000"]
+    allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allowed_headers: ["Authorization", "Content-Type", "X-API-Key"]
+    max_age: 86400
+  security_headers:
+    x_frame_options: "DENY"
+    x_content_type_options: "nosniff"
+    x_xss_protection: "1; mode=block"
+    strict_transport_security: "max-age=31536000; includeSubDomains"
+    content_security_policy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+    referrer_policy: "strict-origin-when-cross-origin"
+
+# Database Security
+database_security:
+  encryption_at_rest: true
+  connection_encryption: true
+  query_logging: true
+  sensitive_data_masking: true
+  backup_encryption: true
+  access_logging: true
+
+# File Upload Security
+file_upload:
+  max_file_size_mb: 10
+  allowed_extensions: [".jpg", ".jpeg", ".png", ".gif", ".pdf", ".txt"]
+  virus_scanning: true
+  content_type_validation: true
+  filename_sanitization: true
+  quarantine_suspicious_files: true
+
+# Network Security
+network_security:
+  firewall_rules:
+    - port: 22
+      protocol: "tcp"
+      source: "admin_ips"
+      action: "allow"
+    - port: 80
+      protocol: "tcp"
+      source: "any"
+      action: "allow"
+    - port: 443
+      protocol: "tcp"
+      source: "any"
+      action: "allow"
+    - port: 8000
+      protocol: "tcp"
+      source: "localhost"
+      action: "allow"
+  intrusion_detection:
+    enabled: true
+    log_suspicious_activity: true
+    auto_block_threats: true
+  ddos_protection:
+    enabled: true
+    threshold_requests_per_second: 100
+    mitigation_duration_minutes: 60
+
+# Compliance Settings
+compliance:
+  gdpr:
+    enabled: true
+    data_retention_days: 365
+    consent_tracking: true
+    right_to_deletion: true
+    data_portability: true
+  hipaa:
+    enabled: false
+    audit_trail: true
+    access_controls: true
+    encryption_required: true
+  sox:
+    enabled: false
+    change_management: true
+    access_reviews: true
+
+# Incident Response
+incident_response:
+  enabled: true
+  notification_channels:
+    email: ["security@storysign.com"]
+    slack: "#security-alerts"
+    sms: ["+1234567890"]
+  severity_thresholds:
+    critical: "immediate"
+    high: "within_1_hour"
+    medium: "within_4_hours"
+    low: "within_24_hours"
+  automated_responses:
+    block_suspicious_ips: true
+    disable_compromised_accounts: true
+    quarantine_malicious_files: true
+
+# Security Monitoring
+monitoring:
+  enabled: true
+  metrics:
+    - "failed_login_attempts"
+    - "blocked_requests"
+    - "vulnerability_count"
+    - "security_events_per_hour"
+  dashboards:
+    - "security_overview"
+    - "threat_detection"
+    - "audit_events"
+    - "vulnerability_status"
+  alerts:
+    - name: "high_failed_logins"
+      condition: "failed_logins > 10 in 5 minutes"
+      severity: "high"
+    - name: "critical_vulnerability"
+      condition: "critical_vulnerabilities > 0"
+      severity: "critical"
+    - name: "suspicious_activity"
+      condition: "blocked_requests > 50 in 1 hour"
+      severity: "medium"
+
+# Backup and Recovery
+backup_security:
+  encryption: true
+  offsite_storage: true
+  retention_policy: "3-2-1" # 3 copies, 2 different media, 1 offsite
+  integrity_checks: true
+  access_controls: true
+  recovery_testing: true

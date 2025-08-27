@@ -66,11 +66,59 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             if not self.auth_service:
                 await self._initialize_auth_service()
             
+            # Initialize security services
+            threat_service = await self._get_threat_detection_service()
+            audit_service = await self._get_audit_service()
+            
+            # Analyze request for threats
+            if threat_service:
+                request_data = {
+                    "ip_address": request.client.host if request.client else None,
+                    "user_agent": request.headers.get("user-agent", ""),
+                    "path": request.url.path,
+                    "method": request.method,
+                    "params": dict(request.query_params),
+                    "headers": dict(request.headers)
+                }
+                
+                threat_analysis = await threat_service.analyze_request(request_data)
+                
+                if threat_analysis.get("blocked", False):
+                    # Log blocked request
+                    if audit_service:
+                        await audit_service.log_security_event(
+                            event_type="THREAT_DETECTED",
+                            severity="CRITICAL",
+                            message=f"Request blocked due to threats: {threat_analysis.get('threats', [])}",
+                            ip_address=request_data["ip_address"],
+                            threat_details=threat_analysis
+                        )
+                    
+                    return JSONResponse(
+                        status_code=403,
+                        content={
+                            "error": "request_blocked",
+                            "message": "Request blocked due to security threats",
+                            "timestamp": time.time()
+                        }
+                    )
+            
             # Extract and validate token
             user = await self._authenticate_request(request)
             
             # Add user to request state
             request.state.current_user = user
+            
+            # Log successful authentication
+            if audit_service and user:
+                await audit_service.log_authentication_event(
+                    event_type="ACCESS_GRANTED",
+                    user_identifier=user.email,
+                    success=True,
+                    ip_address=request.client.host if request.client else None,
+                    user_agent=request.headers.get("user-agent"),
+                    details={"path": request.url.path, "method": request.method}
+                )
             
             # Process request
             response = await call_next(request)
@@ -82,6 +130,17 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             return response
             
         except HTTPException as e:
+            # Log failed authentication
+            if hasattr(self, '_audit_service') and self._audit_service:
+                await self._audit_service.log_authentication_event(
+                    event_type="ACCESS_DENIED",
+                    user_identifier="unknown",
+                    success=False,
+                    ip_address=request.client.host if request.client else None,
+                    user_agent=request.headers.get("user-agent"),
+                    details={"error": e.detail, "path": request.url.path}
+                )
+            
             # Return authentication error
             return JSONResponse(
                 status_code=e.status_code,
@@ -384,3 +443,26 @@ class CORSMiddleware(BaseHTTPMiddleware):
         )
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Max-Age"] = "86400"  # 24 hours
+    
+    async def _get_threat_detection_service(self):
+        """Get threat detection service instance"""
+        if not hasattr(self, '_threat_service'):
+            try:
+                from ..services.threat_detection_service import ThreatDetectionService
+                self._threat_service = ThreatDetectionService()
+                await self._threat_service.initialize()
+            except ImportError:
+                self._threat_service = None
+        return self._threat_service
+    
+    async def _get_audit_service(self):
+        """Get audit service instance"""
+        if not hasattr(self, '_audit_service'):
+            try:
+                from ..services.security_audit_service import SecurityAuditService
+                config = {"audit_log_path": "logs/security_audit.log"}
+                self._audit_service = SecurityAuditService(config=config)
+                await self._audit_service.initialize()
+            except ImportError:
+                self._audit_service = None
+        return self._audit_service
