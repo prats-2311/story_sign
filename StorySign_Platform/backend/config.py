@@ -222,22 +222,33 @@ class DatabaseConfig(BaseModel):
             f"/{self.database}"
         ])
         
-        # Add SSL parameters
-        params = []
-        if self.ssl_disabled:
-            params.append("ssl_disabled=true")
-        else:
-            if self.ssl_ca:
-                params.append(f"ssl_ca={self.ssl_ca}")
-            if self.ssl_cert:
-                params.append(f"ssl_cert={self.ssl_cert}")
-            if self.ssl_key:
-                params.append(f"ssl_key={self.ssl_key}")
-        
-        if params:
-            url_parts.append(f"?{'&'.join(params)}")
+        # Add SSL parameter for TiDB Cloud
+        if not self.ssl_disabled:
+            url_parts.append("?ssl=true")
         
         return "".join(url_parts)
+    
+    def get_connect_args(self) -> dict:
+        """
+        Get connection arguments for SQLAlchemy engine
+        
+        Returns:
+            Dictionary of connection arguments
+        """
+        connect_args = {
+            "charset": "utf8mb4",
+            "autocommit": False,
+        }
+        
+        # For TiDB Cloud, add SSL configuration that works
+        if not self.ssl_disabled:
+            connect_args["ssl"] = {
+                "ssl_disabled": False,
+                "ssl_verify_cert": True,
+                "ssl_verify_identity": True,
+            }
+        
+        return connect_args
 
 
 class AppConfig(BaseModel):

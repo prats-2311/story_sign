@@ -64,6 +64,14 @@ const MODULE_DEFINITIONS = [
     description: "Interactive ASL learning environment",
   },
   {
+    id: "plugins",
+    name: "Plugins",
+    route: "/plugins",
+    icon: "🔌",
+    permissions: ["install:plugins"],
+    description: "Manage and configure plugins",
+  },
+  {
     id: "harmony",
     name: "Harmony",
     route: "/harmony",

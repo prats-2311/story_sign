@@ -30,10 +30,11 @@ async def create_progress_tables():
         config = get_config()
         db_config = config.database
         
-        # Create async engine
+        # Create async engine with proper SSL configuration
         engine = create_async_engine(
             db_config.get_connection_url(async_driver=True),
-            echo=db_config.echo_queries
+            echo=db_config.echo_queries,
+            connect_args=db_config.get_connect_args()
         )
         
         logger.info("Creating progress tracking tables...")
@@ -67,10 +68,11 @@ async def drop_progress_tables():
         config = get_config()
         db_config = config.database
         
-        # Create async engine
+        # Create async engine with proper SSL configuration
         engine = create_async_engine(
             db_config.get_connection_url(async_driver=True),
-            echo=db_config.echo_queries
+            echo=db_config.echo_queries,
+            connect_args=db_config.get_connect_args()
         )
         
         logger.warning("Dropping progress tracking tables...")
@@ -100,10 +102,11 @@ async def verify_tables():
         config = get_config()
         db_config = config.database
         
-        # Create async engine
+        # Create async engine with proper SSL configuration
         engine = create_async_engine(
             db_config.get_connection_url(async_driver=True),
-            echo=False
+            echo=False,
+            connect_args=db_config.get_connect_args()
         )
         
         async with engine.begin() as conn:

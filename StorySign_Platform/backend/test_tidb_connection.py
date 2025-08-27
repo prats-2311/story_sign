@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 async def test_tidb_connection(
     host: str = "gateway01.ap-southeast-1.prod.aws.tidbcloud.com",
     port: int = 4000,
-    database: str = "storysign",
-    username: str = "82FPCEB0",
-    password: str = "f53544d9-be1d-4e57-8135-f23cdd513351",
+    database: str = "test",
+    username: str = "28XbMEz3PD5h7d6.root",
+    password: str = "ek1FdpnVe3LDPcns",
     create_tables: bool = False
 ):
     """
@@ -54,7 +54,7 @@ async def test_tidb_connection(
             pool_timeout=30,
             connect_args={
                 "charset": "utf8mb4",
-                "autocommit": False
+                "autocommit": False,
             }
         )
         
@@ -136,9 +136,9 @@ async def test_tidb_connection(
 async def test_progress_tracking_operations(
     host: str = "gateway01.ap-southeast-1.prod.aws.tidbcloud.com",
     port: int = 4000,
-    database: str = "storysign",
-    username: str = "82FPCEB0",
-    password: str = "f53544d9-be1d-4e57-8135-f23cdd513351"
+    database: str = "test",
+    username: str = "28XbMEz3PD5h7d6.root",
+    password: str = "ek1FdpnVe3LDPcns"
 ):
     """
     Test basic progress tracking operations on TiDB
@@ -156,7 +156,7 @@ async def test_progress_tracking_operations(
             echo=False,
             connect_args={
                 "charset": "utf8mb4",
-                "autocommit": False
+                "autocommit": False,
             }
         )
         

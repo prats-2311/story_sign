@@ -225,39 +225,86 @@ class PluginService:
                     )
     
     async def _load_plugin_from_record(self, plugin_record: Plugin):
-        """Load a plugin from database record"""
+        """Load a plugin from database record with enhanced security monitoring"""
         manifest = PluginManifest(**plugin_record.manifest)
+        
+        # Create enhanced security context
+        from core.plugin_security import PluginSecurityManager
+        security_manager = PluginSecurityManager()
+        
+        # Create isolation manager for resource monitoring
+        isolation_manager = security_manager.create_isolation_manager(plugin_record.id)
+        
         security_context = PluginSecurityContext(
             plugin_record.id, manifest.permissions
         )
         
-        # Load plugin
-        plugin_instance = await self.loader.load_plugin(manifest, security_context)
-        
-        # Initialize plugin
-        context = PluginContext(
-            user_id=None,
-            session_id=None,
-            module_name="system",
-            request_data={},
-            platform_services=self.platform_services,
-            plugin_data={},
-            timestamp=datetime.utcnow()
-        )
-        
-        success = await plugin_instance.initialize(context)
-        if not success:
-            raise RuntimeError("Plugin initialization failed")
-        
-        # Register plugin
-        self.loaded_plugins[plugin_record.id] = plugin_instance
-        self.plugin_contexts[plugin_record.id] = security_context
-        
-        # Register hooks
-        await self._register_plugin_hooks(plugin_record.id, plugin_instance)
-        
-        # Emit event
-        await self._emit_event(PluginEventType.PLUGIN_LOADED, plugin_record.id, manifest)
+        try:
+            # Start security monitoring
+            isolation_manager.start_monitoring()
+            
+            # Load plugin with security validation
+            plugin_instance = await self.loader.load_plugin(manifest, security_context)
+            
+            # Initialize plugin in secure context
+            context = PluginContext(
+                user_id=None,
+                session_id=None,
+                module_name="system",
+                request_data={},
+                platform_services=self.platform_services,
+                plugin_data={},
+                timestamp=datetime.utcnow()
+            )
+            
+            # Execute initialization with timeout and monitoring
+            sandbox_manager = security_manager.create_sandbox_manager(
+                plugin_record.id, manifest.permissions
+            )
+            
+            async def init_wrapper():
+                return await plugin_instance.initialize(context)
+            
+            success = await sandbox_manager.execute_plugin_function(init_wrapper)
+            
+            if not success:
+                raise RuntimeError("Plugin initialization failed")
+            
+            # Register plugin
+            self.loaded_plugins[plugin_record.id] = plugin_instance
+            self.plugin_contexts[plugin_record.id] = security_context
+            
+            # Store security manager for this plugin
+            if not hasattr(self, 'security_managers'):
+                self.security_managers = {}
+            self.security_managers[plugin_record.id] = security_manager
+            
+            # Register hooks with security monitoring
+            await self._register_plugin_hooks(plugin_record.id, plugin_instance)
+            
+            # Record successful loading
+            security_manager.record_security_violation(
+                plugin_record.id,
+                "plugin_loaded",
+                "Plugin successfully loaded and initialized",
+                "info"
+            )
+            
+            # Emit event
+            await self._emit_event(PluginEventType.PLUGIN_LOADED, plugin_record.id, manifest)
+            
+        except Exception as e:
+            # Record loading failure
+            security_manager.record_security_violation(
+                plugin_record.id,
+                "loading_failed",
+                f"Plugin loading failed: {str(e)}",
+                "high"
+            )
+            raise
+        finally:
+            # Stop monitoring (will be restarted during execution)
+            isolation_manager.stop_monitoring()
     
     async def _register_plugin_hooks(self, plugin_id: str, plugin: PluginInterface):
         """Register hooks from a plugin"""
@@ -277,7 +324,7 @@ class PluginService:
     
     async def install_plugin(self, install_request: PluginInstallRequest, 
                            user_id: str) -> PluginInfo:
-        """Install a new plugin"""
+        """Install a new plugin with comprehensive security validation"""
         # Validate manifest
         if install_request.manifest_data:
             manifest = install_request.manifest_data
@@ -285,10 +332,42 @@ class PluginService:
             # Download and extract manifest
             raise NotImplementedError("Remote plugin installation not implemented")
         
-        # Validate manifest
-        errors = PluginValidator.validate_manifest(manifest)
-        if errors:
-            raise ValueError(f"Invalid manifest: {errors}")
+        # Enhanced security validation
+        from core.plugin_security import PluginSecurityManager
+        security_manager = PluginSecurityManager()
+        
+        # Validate manifest for security issues
+        manifest_errors = security_manager.validate_plugin_manifest(manifest)
+        if manifest_errors:
+            raise ValueError(f"Security validation failed: {manifest_errors}")
+        
+        # Validate permissions
+        permission_violations = security_manager.validate_plugin_permissions(
+            manifest.id, manifest.permissions
+        )
+        if permission_violations:
+            raise ValueError(f"Permission validation failed: {permission_violations}")
+        
+        # Load and validate plugin code if available
+        plugin_dir = self.plugins_directory / manifest.id
+        if plugin_dir.exists():
+            entry_point_path = plugin_dir / manifest.entry_point
+            if entry_point_path.exists():
+                with open(entry_point_path, 'r') as f:
+                    plugin_code = f.read()
+                
+                code_issues = security_manager.validate_plugin_code(plugin_code, manifest)
+                if code_issues:
+                    # Log security issues but allow installation with warnings
+                    logger.warning(f"Security issues found in plugin {manifest.id}: {code_issues}")
+                    
+                    # For critical issues, block installation
+                    critical_issues = [
+                        issue for issue in code_issues 
+                        if any(keyword in issue.lower() for keyword in ['malicious', 'dangerous', 'exploit'])
+                    ]
+                    if critical_issues:
+                        raise ValueError(f"Critical security issues found: {critical_issues}")
         
         # Check if plugin already exists
         async with self.db.get_session() as session:
@@ -310,7 +389,7 @@ class PluginService:
             created_plugin = await repository.create(plugin_record)
             await session.commit()
             
-            # Load plugin
+            # Load plugin with security monitoring
             try:
                 await self._load_plugin_from_record(created_plugin)
                 
@@ -320,12 +399,28 @@ class PluginService:
                 )
                 await session.commit()
                 
+                # Record successful installation
+                security_manager.record_security_violation(
+                    created_plugin.id,
+                    "plugin_installed",
+                    f"Plugin successfully installed by user {user_id}",
+                    "info"
+                )
+                
             except Exception as e:
                 # Update status to error
                 await repository.update_plugin_status(
                     created_plugin.id, PluginStatus.ERROR, str(e)
                 )
                 await session.commit()
+                
+                # Record installation failure
+                security_manager.record_security_violation(
+                    created_plugin.id,
+                    "installation_failed",
+                    f"Plugin installation failed: {str(e)}",
+                    "high"
+                )
                 raise
             
             return PluginInfo(
@@ -373,7 +468,7 @@ class PluginService:
     
     async def execute_hooks(self, hook_name: str, hook_type: HookType,
                            target_function: str, *args, **kwargs) -> Any:
-        """Execute all registered hooks for a specific event"""
+        """Execute all registered hooks with enhanced security monitoring"""
         if hook_name not in self.hooks:
             return kwargs.get('result')
         
@@ -381,8 +476,13 @@ class PluginService:
         
         for hook in self.hooks[hook_name]:
             if hook['type'] == hook_type:
+                plugin_id = hook['plugin_id']
+                
                 try:
                     start_time = datetime.utcnow()
+                    
+                    # Get security manager for this plugin
+                    security_manager = getattr(self, 'security_managers', {}).get(plugin_id)
                     
                     # Create hook context
                     context = HookContext(
@@ -403,20 +503,56 @@ class PluginService:
                         result=result
                     )
                     
-                    # Execute hook
+                    # Execute hook with security monitoring
                     plugin = hook['plugin']
-                    hook_result = await plugin.execute_hook(context)
+                    
+                    if security_manager:
+                        # Get plugin permissions
+                        plugin_context = self.plugin_contexts.get(plugin_id)
+                        permissions = plugin_context.permissions if plugin_context else []
+                        
+                        # Create sandbox for hook execution
+                        sandbox_manager = security_manager.create_sandbox_manager(plugin_id, permissions)
+                        
+                        # Execute hook in sandbox
+                        async def hook_wrapper():
+                            return await plugin.execute_hook(context)
+                        
+                        hook_result = await sandbox_manager.execute_plugin_function(hook_wrapper)
+                        
+                        # Check for security violations during execution
+                        usage = sandbox_manager.get_resource_usage()
+                        if usage['violation_count'] > 0:
+                            security_manager.record_security_violation(
+                                plugin_id,
+                                "hook_security_violation",
+                                f"Security violations during hook execution: {usage['security_violations']}",
+                                "medium"
+                            )
+                    else:
+                        # Fallback to direct execution (less secure)
+                        logger.warning(f"No security manager found for plugin {plugin_id}, executing hook directly")
+                        hook_result = await plugin.execute_hook(context)
                     
                     if hook['type'] == HookType.REPLACE:
                         result = hook_result
                     elif hook['type'] == HookType.FILTER:
                         result = hook_result
                     
-                    # Record execution time
+                    # Record successful execution
                     execution_time = (datetime.utcnow() - start_time).total_seconds()
+                    
+                    if security_manager:
+                        security_manager.record_security_violation(
+                            plugin_id,
+                            "hook_executed",
+                            f"Hook {hook_name} executed successfully in {execution_time:.3f}s",
+                            "info"
+                        )
+                    
                     await self._emit_event(
                         PluginEventType.HOOK_EXECUTED,
-                        hook['plugin_id'],
+                        plugin_id,
                         {
                             'hook_name': hook_name,
                             'execution_time': execution_time,
@@ -425,10 +561,23 @@ class PluginService:
                     )
                     
                 except Exception as e:
-                    logger.error(f"Hook execution failed: {hook_name} in plugin {hook['plugin_id']}: {e}")
+                    logger.error(f"Hook execution failed: {hook_name} in plugin {plugin_id}: {e}")
+                    
+                    # Record security violation if applicable
+                    if hasattr(self, 'security_managers') and plugin_id in self.security_managers:
+                        security_manager = self.security_managers[plugin_id]
+                        
+                        severity = "critical" if isinstance(e, SecurityViolationError) else "high"
+                        security_manager.record_security_violation(
+                            plugin_id,
+                            "hook_execution_failed",
+                            f"Hook {hook_name} execution failed: {str(e)}",
+                            severity
+                        )
+                    
                     await self._emit_event(
                         PluginEventType.PLUGIN_ERROR,
-                        hook['plugin_id'],
+                        plugin_id,
                         e
                     )
         
@@ -500,3 +649,67 @@ class PluginService:
     def add_event_handler(self, handler: PluginEventHandler):
         """Add plugin event handler"""
         self.event_handlers.append(handler)
+    
+    async def get_plugin_security_report(self, plugin_id: str) -> Optional[Dict[str, Any]]:
+        """Get comprehensive security report for a plugin"""
+        if not hasattr(self, 'security_managers') or plugin_id not in self.security_managers:
+            return None
+        
+        security_manager = self.security_managers[plugin_id]
+        return security_manager.get_security_report(plugin_id)
+    
+    async def get_all_security_reports(self) -> Dict[str, Dict[str, Any]]:
+        """Get security reports for all loaded plugins"""
+        reports = {}
+        
+        if hasattr(self, 'security_managers'):
+            for plugin_id, security_manager in self.security_managers.items():
+                reports[plugin_id] = security_manager.get_security_report(plugin_id)
+        
+        return reports
+    
+    async def validate_plugin_security(self, plugin_id: str) -> Dict[str, Any]:
+        """Perform comprehensive security validation for a plugin"""
+        if plugin_id not in self.loaded_plugins:
+            raise ValueError(f"Plugin {plugin_id} is not loaded")
+        
+        # Get plugin record
+        async with self.db.get_session() as session:
+            repository = PluginRepository(session)
+            plugin_record = await repository.get_by_id(plugin_id)
+            
+            if not plugin_record:
+                raise ValueError(f"Plugin {plugin_id} not found in database")
+        
+        manifest = PluginManifest(**plugin_record.manifest)
+        
+        # Get security manager
+        security_manager = getattr(self, 'security_managers', {}).get(plugin_id)
+        if not security_manager:
+            from core.plugin_security import PluginSecurityManager
+            security_manager = PluginSecurityManager()
+        
+        # Perform validation
+        validation_results = {
+            'plugin_id': plugin_id,
+            'manifest_validation': security_manager.validate_plugin_manifest(manifest),
+            'permission_validation': security_manager.validate_plugin_permissions(
+                plugin_id, manifest.permissions
+            ),
+            'security_report': security_manager.get_security_report(plugin_id),
+            'validation_timestamp': datetime.utcnow().isoformat()
+        }
+        
+        # Validate code if available
+        plugin_dir = self.plugins_directory / plugin_id
+        if plugin_dir.exists():
+            entry_point_path = plugin_dir / manifest.entry_point
+            if entry_point_path.exists():
+                with open(entry_point_path, 'r') as f:
+                    plugin_code = f.read()
+                
+                validation_results['code_validation'] = security_manager.validate_plugin_code(
+                    plugin_code, manifest
+                )
+        
+        return validation_results

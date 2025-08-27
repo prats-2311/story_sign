@@ -120,7 +120,7 @@
   - Test basic plugin loading and execution
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 14. Implement plugin security and isolation
+- [x] 14. Implement plugin security and isolation
 
   - Create permission system for plugin access control
   - Implement plugin sandboxing and resource limits
@@ -129,7 +129,7 @@
   - Test plugin security measures and isolation
   - _Requirements: 4.4, 4.5, 4.6_
 
-- [ ] 15. Create plugin management interface
+- [x] 15. Create plugin management interface
   - Build plugin installation and management UI
   - Implement plugin store and discovery features
   - Add plugin configuration and settings management

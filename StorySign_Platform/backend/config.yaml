@@ -55,11 +55,11 @@ ollama_config:
 # TiDB Database configuration
 database:
   # Connection settings
-  host: "localhost" # TiDB server host
+  host: "gateway01.ap-southeast-1.prod.aws.tidbcloud.com" # TiDB Cloud server host
   port: 4000 # TiDB server port (default: 4000)
-  database: "storysign" # Database name
-  username: "root" # Database username
-  password: "" # Database password (empty for local development)
+  database: "test" # Database name (from TiDB Cloud screenshot)
+  username: "28XbMEz3PD5h7d6.root" # Database username (from TiDB Cloud connection string)
+  password: "ek1FdpnVe3LDPcns" # Database password from TiDB Cloud
 
   # Connection pool settings
   pool_size: 10 # Connection pool size (1-100)
@@ -67,15 +67,15 @@ database:
   pool_timeout: 30 # Pool timeout in seconds (5-300)
   pool_recycle: 3600 # Pool recycle time in seconds (300-86400)
 
-  # SSL settings (disabled for local development)
-  ssl_disabled: true # Disable SSL for local development
-  ssl_ca: null # SSL CA certificate path
+  # SSL settings (enabled for TiDB Cloud)
+  ssl_disabled: false # Enable SSL for TiDB Cloud
+  ssl_ca: null # SSL CA certificate path (TiDB Cloud handles this)
   ssl_cert: null # SSL certificate path
   ssl_key: null # SSL private key path
 
   # Query settings
   query_timeout: 30 # Query timeout in seconds (5-300)
-  echo_queries: false # Echo SQL queries for debugging
+  echo_queries: true # Echo SQL queries for debugging (set to false in production)
 
   # Health check settings
   health_check_interval: 30 # Health check interval in seconds (10-300)

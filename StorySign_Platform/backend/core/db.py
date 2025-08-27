@@ -62,6 +62,28 @@ class DatabaseManager:
             safe_url = connection_url.replace(f":{self.config.password}@", ":***@") if self.config.password else connection_url
             logger.info(f"Connecting to database: {safe_url}")
             
+            # Prepare connect_args for asyncmy driver
+            connect_args = {
+                "connect_timeout": self.config.query_timeout,
+                "charset": "utf8mb4",
+                "autocommit": False,
+            }
+            
+            # Add SSL configuration for asyncmy
+            if self.config.ssl_disabled:
+                connect_args["ssl"] = False
+            else:
+                ssl_config = {}
+                if self.config.ssl_ca:
+                    ssl_config["ca"] = self.config.ssl_ca
+                if self.config.ssl_cert:
+                    ssl_config["cert"] = self.config.ssl_cert
+                if self.config.ssl_key:
+                    ssl_config["key"] = self.config.ssl_key
+                
+                if ssl_config:
+                    connect_args["ssl"] = ssl_config
+            
             self._engine = create_async_engine(
                 connection_url,
                 poolclass=QueuePool,
@@ -71,12 +93,7 @@ class DatabaseManager:
                 pool_recycle=self.config.pool_recycle,
                 echo=self.config.echo_queries,
                 future=True,
-                # TiDB specific optimizations
-                connect_args={
-                    "connect_timeout": self.config.query_timeout,
-                    "charset": "utf8mb4",
-                    "autocommit": False,
-                }
+                connect_args=connect_args
             )
             
             # Add connection event listeners for monitoring

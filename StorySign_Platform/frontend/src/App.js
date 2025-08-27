@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import "./App.css";
 import "./components/performance/PerformanceMonitor.css";
 import { MainDashboard, ASLWorldPage } from "./pages";
+import PluginManagementPage from "./pages/PluginManagementPage";
 import { PlatformShell } from "./components";
 import PlatformShellDemo from "./components/shell/PlatformShellDemo";
 
@@ -242,6 +243,7 @@ function App() {
             />
           }
         />
+        <Route path="/plugins" element={<PluginManagementPage />} />
         <Route path="/platform-demo" element={<PlatformShellDemo />} />
         {/* Default redirect to main dashboard */}
         <Route path="*" element={<Navigate to="/" replace />} />
