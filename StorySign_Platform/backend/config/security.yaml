@@ -171,15 +171,38 @@ compliance:
     consent_tracking: true
     right_to_deletion: true
     data_portability: true
+    right_to_rectification: true
+    right_to_restrict_processing: true
+    right_to_object: true
+    data_breach_notification_hours: 72
+    consent_withdrawal_processing_days: 30
+    data_export_expiry_hours: 72
+    anonymization_enabled: true
+    pseudonymization_enabled: true
+    privacy_by_design: true
+    privacy_impact_assessments: true
   hipaa:
     enabled: false
     audit_trail: true
     access_controls: true
     encryption_required: true
+    minimum_necessary_standard: true
+    business_associate_agreements: true
   sox:
     enabled: false
     change_management: true
     access_reviews: true
+    financial_reporting_controls: true
+  coppa:
+    enabled: true
+    age_verification_required: true
+    parental_consent_required: true
+    data_minimization: true
+  ferpa:
+    enabled: true
+    educational_records_protection: true
+    directory_information_controls: true
+    disclosure_logging: true
 
 # Incident Response
 incident_response:

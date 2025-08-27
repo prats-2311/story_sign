@@ -288,7 +288,7 @@
   - Test security measures and compliance
   - _Requirements: 6.4, 10.1, 10.2_
 
-- [ ] 32. Ensure privacy and compliance
+- [x] 32. Ensure privacy and compliance
 
   - Implement GDPR compliance features
   - Add data retention and deletion policies
