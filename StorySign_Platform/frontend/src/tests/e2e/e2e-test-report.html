@@ -1,0 +1,372 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StorySign E2E Test Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .metric { background: #f8f9fa; padding: 15px; border-radius: 6px; text-align: center; }
+        .metric h3 { margin: 0 0 10px 0; color: #333; }
+        .metric .value { font-size: 2em; font-weight: bold; }
+        .passed { color: #28a745; }
+        .failed { color: #dc3545; }
+        .section { margin-bottom: 30px; }
+        .section h2 { border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        .test-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+        .test-item { background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #007bff; }
+        .test-item.passed { border-left-color: #28a745; }
+        .test-item.failed { border-left-color: #dc3545; }
+        .benchmark { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; }
+        .benchmark-value { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 StorySign Platform E2E Test Report</h1>
+            <p>Generated on 9/10/2025, 12:47:38 PM</p>
+        </div>
+
+        <div class="summary">
+            <div class="metric">
+                <h3>Total Tests</h3>
+                <div class="value">23</div>
+            </div>
+            <div class="metric">
+                <h3>Passed</h3>
+                <div class="value passed">12</div>
+            </div>
+            <div class="metric">
+                <h3>Failed</h3>
+                <div class="value failed">11</div>
+            </div>
+            <div class="metric">
+                <h3>Pass Rate</h3>
+                <div class="value">52.17%</div>
+            </div>
+            <div class="metric">
+                <h3>Duration</h3>
+                <div class="value">0s</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📋 User Journey Tests</h2>
+            <p>Pass Rate: 83.33% (5/6)</p>
+            <div class="test-grid">
+                
+                    <div class="test-item failed">
+                        <h4>Registration and Login Workflow</h4>
+                        <p><strong>Status:</strong> ❌ FAILED</p>
+                        <p><strong>Duration:</strong> 1891ms</p>
+                        <p><strong>Error:</strong> Simulated test failure</p>
+                    </div>
+                
+                    <div class="test-item passed">
+                        <h4>ASL World Story Generation and Practice Workflow</h4>
+                        <p><strong>Status:</strong> ✅ PASSED</p>
+                        <p><strong>Duration:</strong> 903ms</p>
+                        
+                    </div>
+                
+                    <div class="test-item passed">
+                        <h4>Harmony Facial Expression Practice Workflow</h4>
+                        <p><strong>Status:</strong> ✅ PASSED</p>
+                        <p><strong>Duration:</strong> 752ms</p>
+                        
+                    </div>
+                
+                    <div class="test-item passed">
+                        <h4>Reconnect Therapeutic Movement Workflow</h4>
+                        <p><strong>Status:</strong> ✅ PASSED</p>
+                        <p><strong>Duration:</strong> 1498ms</p>
+                        
+                    </div>
+                
+                    <div class="test-item passed">
+                        <h4>Cross-Module Navigation and State Management</h4>
+                        <p><strong>Status:</strong> ✅ PASSED</p>
+                        <p><strong>Duration:</strong> 2246ms</p>
+                        
+                    </div>
+                
+                    <div class="test-item passed">
+                        <h4>Error Handling and Recovery</h4>
+                        <p><strong>Status:</strong> ✅ PASSED</p>
+                        <p><strong>Duration:</strong> 1626ms</p>
+                        
+                    </div>
+                
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>⚡ Performance & Integration Tests</h2>
+            <p>Pass Rate: 41.18% (7/17)</p>
+            <div class="test-grid">
+                
+                    <div class="test-item passed">
+                        <h4>Video Processing Performance - latency</h4>
+                        <p><strong>Status:</strong> ✅ PASSED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">70ms</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>100ms</span>
+                        </div>
+                        <p><strong>Duration:</strong> 892ms</p>
+                        
+                    </div>
+                
+                    <div class="test-item passed">
+                        <h4>Video Processing Performance - frameRate</h4>
+                        <p><strong>Status:</strong> ✅ PASSED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">27.1fps</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>24fps</span>
+                        </div>
+                        <p><strong>Duration:</strong> 599ms</p>
+                        
+                    </div>
+                
+                    <div class="test-item failed">
+                        <h4>Video Processing Performance - highResolution</h4>
+                        <p><strong>Status:</strong> ❌ FAILED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">6score</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>80score</span>
+                        </div>
+                        <p><strong>Duration:</strong> 331ms</p>
+                        <p><strong>Error:</strong> Performance below threshold: 6score (threshold: 80score)</p>
+                    </div>
+                
+                    <div class="test-item passed">
+                        <h4>WebSocket Communication Reliability - connectionTime</h4>
+                        <p><strong>Status:</strong> ✅ PASSED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">151ms</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>1000ms</span>
+                        </div>
+                        <p><strong>Duration:</strong> 327ms</p>
+                        
+                    </div>
+                
+                    <div class="test-item passed">
+                        <h4>WebSocket Communication Reliability - throughput</h4>
+                        <p><strong>Status:</strong> ✅ PASSED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">100msg/sec</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>50msg/sec</span>
+                        </div>
+                        <p><strong>Duration:</strong> 1013ms</p>
+                        
+                    </div>
+                
+                    <div class="test-item failed">
+                        <h4>WebSocket Communication Reliability - recovery</h4>
+                        <p><strong>Status:</strong> ❌ FAILED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">27score</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>80score</span>
+                        </div>
+                        <p><strong>Duration:</strong> 651ms</p>
+                        <p><strong>Error:</strong> Performance below threshold: 27score (threshold: 80score)</p>
+                    </div>
+                
+                    <div class="test-item passed">
+                        <h4>Database Integration - aslWorldPersistence</h4>
+                        <p><strong>Status:</strong> ✅ PASSED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">85score</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>80score</span>
+                        </div>
+                        <p><strong>Duration:</strong> 574ms</p>
+                        
+                    </div>
+                
+                    <div class="test-item failed">
+                        <h4>Database Integration - harmonyStorage</h4>
+                        <p><strong>Status:</strong> ❌ FAILED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">16score</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>80score</span>
+                        </div>
+                        <p><strong>Duration:</strong> 849ms</p>
+                        <p><strong>Error:</strong> Performance below threshold: 16score (threshold: 80score)</p>
+                    </div>
+                
+                    <div class="test-item failed">
+                        <h4>Database Integration - reconnectAnalytics</h4>
+                        <p><strong>Status:</strong> ❌ FAILED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">45score</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>80score</span>
+                        </div>
+                        <p><strong>Duration:</strong> 205ms</p>
+                        <p><strong>Error:</strong> Performance below threshold: 45score (threshold: 80score)</p>
+                    </div>
+                
+                    <div class="test-item passed">
+                        <h4>Database Integration - concurrentOps</h4>
+                        <p><strong>Status:</strong> ✅ PASSED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">86score</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>80score</span>
+                        </div>
+                        <p><strong>Duration:</strong> 517ms</p>
+                        
+                    </div>
+                
+                    <div class="test-item failed">
+                        <h4>API Integration - communicationLatency</h4>
+                        <p><strong>Status:</strong> ❌ FAILED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">53score</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>80score</span>
+                        </div>
+                        <p><strong>Duration:</strong> 544ms</p>
+                        <p><strong>Error:</strong> Performance below threshold: 53score (threshold: 80score)</p>
+                    </div>
+                
+                    <div class="test-item failed">
+                        <h4>API Integration - rateLimiting</h4>
+                        <p><strong>Status:</strong> ❌ FAILED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">31score</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>80score</span>
+                        </div>
+                        <p><strong>Duration:</strong> 799ms</p>
+                        <p><strong>Error:</strong> Performance below threshold: 31score (threshold: 80score)</p>
+                    </div>
+                
+                    <div class="test-item failed">
+                        <h4>API Integration - errorHandling</h4>
+                        <p><strong>Status:</strong> ❌ FAILED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">72score</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>80score</span>
+                        </div>
+                        <p><strong>Duration:</strong> 852ms</p>
+                        <p><strong>Error:</strong> Performance below threshold: 72score (threshold: 80score)</p>
+                    </div>
+                
+                    <div class="test-item failed">
+                        <h4>Error Handling and Recovery - gracefulDegradation</h4>
+                        <p><strong>Status:</strong> ❌ FAILED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">6score</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>80score</span>
+                        </div>
+                        <p><strong>Duration:</strong> 993ms</p>
+                        <p><strong>Error:</strong> Performance below threshold: 6score (threshold: 80score)</p>
+                    </div>
+                
+                    <div class="test-item failed">
+                        <h4>Error Handling and Recovery - websocketRecovery</h4>
+                        <p><strong>Status:</strong> ❌ FAILED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">73score</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>80score</span>
+                        </div>
+                        <p><strong>Duration:</strong> 521ms</p>
+                        <p><strong>Error:</strong> Performance below threshold: 73score (threshold: 80score)</p>
+                    </div>
+                
+                    <div class="test-item passed">
+                        <h4>Error Handling and Recovery - memoryUsage</h4>
+                        <p><strong>Status:</strong> ✅ PASSED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">19.1MB</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>50MB</span>
+                        </div>
+                        <p><strong>Duration:</strong> 595ms</p>
+                        
+                    </div>
+                
+                    <div class="test-item failed">
+                        <h4>Error Handling and Recovery - concurrentSessions</h4>
+                        <p><strong>Status:</strong> ❌ FAILED</p>
+                        <div class="benchmark">
+                            <span>Performance:</span>
+                            <span class="benchmark-value">48score</span>
+                        </div>
+                        <div class="benchmark">
+                            <span>Threshold:</span>
+                            <span>80score</span>
+                        </div>
+                        <p><strong>Duration:</strong> 939ms</p>
+                        <p><strong>Error:</strong> Performance below threshold: 48score (threshold: 80score)</p>
+                    </div>
+                
+            </div>
+        </div>
+    </div>
+</body>
+</html>

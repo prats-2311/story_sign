@@ -1,0 +1,403 @@
+{
+  "summary": {
+    "timestamp": "2025-09-10T07:17:38.291Z",
+    "duration": 0,
+    "totalTests": 23,
+    "passed": 12,
+    "failed": 11,
+    "passRate": "52.17"
+  },
+  "userJourneys": {
+    "summary": {
+      "total": 6,
+      "passed": 5,
+      "failed": 1,
+      "passRate": "83.33"
+    },
+    "tests": [
+      {
+        "name": "Registration and Login Workflow",
+        "type": "user-journey",
+        "passed": false,
+        "duration": 1891,
+        "error": "Simulated test failure",
+        "timestamp": "2025-09-10T07:17:20.035Z"
+      },
+      {
+        "name": "ASL World Story Generation and Practice Workflow",
+        "type": "user-journey",
+        "passed": true,
+        "duration": 903,
+        "error": null,
+        "timestamp": "2025-09-10T07:17:20.941Z"
+      },
+      {
+        "name": "Harmony Facial Expression Practice Workflow",
+        "type": "user-journey",
+        "passed": true,
+        "duration": 752,
+        "error": null,
+        "timestamp": "2025-09-10T07:17:21.695Z"
+      },
+      {
+        "name": "Reconnect Therapeutic Movement Workflow",
+        "type": "user-journey",
+        "passed": true,
+        "duration": 1498,
+        "error": null,
+        "timestamp": "2025-09-10T07:17:23.193Z"
+      },
+      {
+        "name": "Cross-Module Navigation and State Management",
+        "type": "user-journey",
+        "passed": true,
+        "duration": 2246,
+        "error": null,
+        "timestamp": "2025-09-10T07:17:25.442Z"
+      },
+      {
+        "name": "Error Handling and Recovery",
+        "type": "user-journey",
+        "passed": true,
+        "duration": 1626,
+        "error": null,
+        "timestamp": "2025-09-10T07:17:27.069Z"
+      }
+    ]
+  },
+  "performance": {
+    "summary": {
+      "total": 17,
+      "passed": 7,
+      "failed": 10,
+      "passRate": "41.18"
+    },
+    "benchmarks": {
+      "Video Processing Performance_latency": {
+        "value": 70,
+        "unit": "ms",
+        "threshold": 100
+      },
+      "Video Processing Performance_frameRate": {
+        "value": 27.1,
+        "unit": "fps",
+        "threshold": 24
+      },
+      "Video Processing Performance_highResolution": {
+        "value": 6,
+        "unit": "score",
+        "threshold": 80
+      },
+      "WebSocket Communication Reliability_connectionTime": {
+        "value": 151,
+        "unit": "ms",
+        "threshold": 1000
+      },
+      "WebSocket Communication Reliability_throughput": {
+        "value": 100,
+        "unit": "msg/sec",
+        "threshold": 50
+      },
+      "WebSocket Communication Reliability_recovery": {
+        "value": 27,
+        "unit": "score",
+        "threshold": 80
+      },
+      "Database Integration_aslWorldPersistence": {
+        "value": 85,
+        "unit": "score",
+        "threshold": 80
+      },
+      "Database Integration_harmonyStorage": {
+        "value": 16,
+        "unit": "score",
+        "threshold": 80
+      },
+      "Database Integration_reconnectAnalytics": {
+        "value": 45,
+        "unit": "score",
+        "threshold": 80
+      },
+      "Database Integration_concurrentOps": {
+        "value": 86,
+        "unit": "score",
+        "threshold": 80
+      },
+      "API Integration_communicationLatency": {
+        "value": 53,
+        "unit": "score",
+        "threshold": 80
+      },
+      "API Integration_rateLimiting": {
+        "value": 31,
+        "unit": "score",
+        "threshold": 80
+      },
+      "API Integration_errorHandling": {
+        "value": 72,
+        "unit": "score",
+        "threshold": 80
+      },
+      "Error Handling and Recovery_gracefulDegradation": {
+        "value": 6,
+        "unit": "score",
+        "threshold": 80
+      },
+      "Error Handling and Recovery_websocketRecovery": {
+        "value": 73,
+        "unit": "score",
+        "threshold": 80
+      },
+      "Error Handling and Recovery_memoryUsage": {
+        "value": 19.1,
+        "unit": "MB",
+        "threshold": 50
+      },
+      "Error Handling and Recovery_concurrentSessions": {
+        "value": 48,
+        "unit": "score",
+        "threshold": 80
+      }
+    },
+    "tests": [
+      {
+        "name": "Video Processing Performance - latency",
+        "category": "Video Processing Performance",
+        "benchmark": "latency",
+        "passed": true,
+        "duration": 892,
+        "metrics": {
+          "value": 70,
+          "unit": "ms",
+          "threshold": 100
+        },
+        "error": null,
+        "timestamp": "2025-09-10T07:17:27.963Z"
+      },
+      {
+        "name": "Video Processing Performance - frameRate",
+        "category": "Video Processing Performance",
+        "benchmark": "frameRate",
+        "passed": true,
+        "duration": 599,
+        "metrics": {
+          "value": 27.1,
+          "unit": "fps",
+          "threshold": 24
+        },
+        "error": null,
+        "timestamp": "2025-09-10T07:17:28.562Z"
+      },
+      {
+        "name": "Video Processing Performance - highResolution",
+        "category": "Video Processing Performance",
+        "benchmark": "highResolution",
+        "passed": false,
+        "duration": 331,
+        "metrics": {
+          "value": 6,
+          "unit": "score",
+          "threshold": 80
+        },
+        "error": "Performance below threshold: 6score (threshold: 80score)",
+        "timestamp": "2025-09-10T07:17:28.895Z"
+      },
+      {
+        "name": "WebSocket Communication Reliability - connectionTime",
+        "category": "WebSocket Communication Reliability",
+        "benchmark": "connectionTime",
+        "passed": true,
+        "duration": 327,
+        "metrics": {
+          "value": 151,
+          "unit": "ms",
+          "threshold": 1000
+        },
+        "error": null,
+        "timestamp": "2025-09-10T07:17:29.224Z"
+      },
+      {
+        "name": "WebSocket Communication Reliability - throughput",
+        "category": "WebSocket Communication Reliability",
+        "benchmark": "throughput",
+        "passed": true,
+        "duration": 1013,
+        "metrics": {
+          "value": 100,
+          "unit": "msg/sec",
+          "threshold": 50
+        },
+        "error": null,
+        "timestamp": "2025-09-10T07:17:30.238Z"
+      },
+      {
+        "name": "WebSocket Communication Reliability - recovery",
+        "category": "WebSocket Communication Reliability",
+        "benchmark": "recovery",
+        "passed": false,
+        "duration": 651,
+        "metrics": {
+          "value": 27,
+          "unit": "score",
+          "threshold": 80
+        },
+        "error": "Performance below threshold: 27score (threshold: 80score)",
+        "timestamp": "2025-09-10T07:17:30.891Z"
+      },
+      {
+        "name": "Database Integration - aslWorldPersistence",
+        "category": "Database Integration",
+        "benchmark": "aslWorldPersistence",
+        "passed": true,
+        "duration": 574,
+        "metrics": {
+          "value": 85,
+          "unit": "score",
+          "threshold": 80
+        },
+        "error": null,
+        "timestamp": "2025-09-10T07:17:31.466Z"
+      },
+      {
+        "name": "Database Integration - harmonyStorage",
+        "category": "Database Integration",
+        "benchmark": "harmonyStorage",
+        "passed": false,
+        "duration": 849,
+        "metrics": {
+          "value": 16,
+          "unit": "score",
+          "threshold": 80
+        },
+        "error": "Performance below threshold: 16score (threshold: 80score)",
+        "timestamp": "2025-09-10T07:17:32.316Z"
+      },
+      {
+        "name": "Database Integration - reconnectAnalytics",
+        "category": "Database Integration",
+        "benchmark": "reconnectAnalytics",
+        "passed": false,
+        "duration": 205,
+        "metrics": {
+          "value": 45,
+          "unit": "score",
+          "threshold": 80
+        },
+        "error": "Performance below threshold: 45score (threshold: 80score)",
+        "timestamp": "2025-09-10T07:17:32.523Z"
+      },
+      {
+        "name": "Database Integration - concurrentOps",
+        "category": "Database Integration",
+        "benchmark": "concurrentOps",
+        "passed": true,
+        "duration": 517,
+        "metrics": {
+          "value": 86,
+          "unit": "score",
+          "threshold": 80
+        },
+        "error": null,
+        "timestamp": "2025-09-10T07:17:33.042Z"
+      },
+      {
+        "name": "API Integration - communicationLatency",
+        "category": "API Integration",
+        "benchmark": "communicationLatency",
+        "passed": false,
+        "duration": 544,
+        "metrics": {
+          "value": 53,
+          "unit": "score",
+          "threshold": 80
+        },
+        "error": "Performance below threshold: 53score (threshold: 80score)",
+        "timestamp": "2025-09-10T07:17:33.587Z"
+      },
+      {
+        "name": "API Integration - rateLimiting",
+        "category": "API Integration",
+        "benchmark": "rateLimiting",
+        "passed": false,
+        "duration": 799,
+        "metrics": {
+          "value": 31,
+          "unit": "score",
+          "threshold": 80
+        },
+        "error": "Performance below threshold: 31score (threshold: 80score)",
+        "timestamp": "2025-09-10T07:17:34.386Z"
+      },
+      {
+        "name": "API Integration - errorHandling",
+        "category": "API Integration",
+        "benchmark": "errorHandling",
+        "passed": false,
+        "duration": 852,
+        "metrics": {
+          "value": 72,
+          "unit": "score",
+          "threshold": 80
+        },
+        "error": "Performance below threshold: 72score (threshold: 80score)",
+        "timestamp": "2025-09-10T07:17:35.239Z"
+      },
+      {
+        "name": "Error Handling and Recovery - gracefulDegradation",
+        "category": "Error Handling and Recovery",
+        "benchmark": "gracefulDegradation",
+        "passed": false,
+        "duration": 993,
+        "metrics": {
+          "value": 6,
+          "unit": "score",
+          "threshold": 80
+        },
+        "error": "Performance below threshold: 6score (threshold: 80score)",
+        "timestamp": "2025-09-10T07:17:36.233Z"
+      },
+      {
+        "name": "Error Handling and Recovery - websocketRecovery",
+        "category": "Error Handling and Recovery",
+        "benchmark": "websocketRecovery",
+        "passed": false,
+        "duration": 521,
+        "metrics": {
+          "value": 73,
+          "unit": "score",
+          "threshold": 80
+        },
+        "error": "Performance below threshold: 73score (threshold: 80score)",
+        "timestamp": "2025-09-10T07:17:36.754Z"
+      },
+      {
+        "name": "Error Handling and Recovery - memoryUsage",
+        "category": "Error Handling and Recovery",
+        "benchmark": "memoryUsage",
+        "passed": true,
+        "duration": 595,
+        "metrics": {
+          "value": 19.1,
+          "unit": "MB",
+          "threshold": 50
+        },
+        "error": null,
+        "timestamp": "2025-09-10T07:17:37.350Z"
+      },
+      {
+        "name": "Error Handling and Recovery - concurrentSessions",
+        "category": "Error Handling and Recovery",
+        "benchmark": "concurrentSessions",
+        "passed": false,
+        "duration": 939,
+        "metrics": {
+          "value": 48,
+          "unit": "score",
+          "threshold": 80
+        },
+        "error": "Performance below threshold: 48score (threshold: 80score)",
+        "timestamp": "2025-09-10T07:17:38.290Z"
+      }
+    ]
+  }
+}
