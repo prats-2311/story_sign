@@ -1,0 +1,431 @@
+/* Emotion Metrics Component Styles */
+.emotion-metrics {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  height: fit-content;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.metrics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.metrics-header h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  color: white;
+}
+
+.session-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #00b894;
+  font-weight: 500;
+}
+
+.recording-dot {
+  width: 8px;
+  height: 8px;
+  background: #e17055;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Section Styles */
+.target-emotion-section,
+.current-detection-section,
+.session-stats,
+.practice-tips {
+  margin-bottom: 1.5rem;
+}
+
+.target-emotion-section h4,
+.current-detection-section h4,
+.session-stats h4,
+.practice-tips h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: white;
+  opacity: 0.9;
+}
+
+/* Emotion Display */
+.emotion-display {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.emotion-display.target {
+  border-color: rgba(116, 185, 255, 0.3);
+  background: rgba(116, 185, 255, 0.1);
+}
+
+.emotion-display.current {
+  border-color: rgba(0, 184, 148, 0.3);
+  background: rgba(0, 184, 148, 0.1);
+}
+
+.emotion-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.emotion-icon.large {
+  width: 50px;
+  height: 50px;
+  font-size: 1.8rem;
+}
+
+.emotion-icon.small {
+  width: 30px;
+  height: 30px;
+  font-size: 1rem;
+}
+
+.emotion-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.emotion-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: white;
+}
+
+.emotion-label {
+  font-size: 0.9rem;
+  color: white;
+  opacity: 0.7;
+}
+
+/* Confidence Display */
+.confidence-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.confidence-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.confidence-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: white;
+}
+
+/* Match Indicator */
+.match-indicator {
+  font-size: 1.5rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.match-indicator.match {
+  background: rgba(0, 184, 148, 0.2);
+}
+
+.match-indicator.no-match {
+  background: rgba(231, 76, 60, 0.2);
+}
+
+/* No Detection State */
+.no-detection {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: white;
+  opacity: 0.7;
+}
+
+.no-detection-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.no-detection span {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.no-detection p {
+  font-size: 0.9rem;
+  margin: 0;
+  opacity: 0.8;
+}
+
+/* Session Statistics */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #74b9ff;
+  margin-bottom: 0.3rem;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: white;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Progress Section */
+.progress-section {
+  margin-bottom: 1.5rem;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: white;
+  font-weight: 500;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.5s ease, background-color 0.3s ease;
+}
+
+/* Top Emotions */
+.top-emotions h5 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: white;
+  opacity: 0.9;
+}
+
+.emotions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.emotion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.emotion-item .rank {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #74b9ff;
+  min-width: 20px;
+}
+
+.emotion-item .emotion-name {
+  flex: 1;
+  font-size: 0.9rem;
+  color: white;
+  font-weight: 500;
+}
+
+.emotion-item .emotion-percentage {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #74b9ff;
+}
+
+/* Practice Tips */
+.practice-tips ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.practice-tips li {
+  padding: 0.5rem 0;
+  color: white;
+  opacity: 0.8;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.practice-tips li::before {
+  content: "•";
+  color: #74b9ff;
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .emotion-metrics {
+    padding: 1rem;
+    max-height: none;
+  }
+
+  .metrics-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .emotion-display {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.8rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+
+  .emotion-item {
+    gap: 0.5rem;
+  }
+
+  .emotion-icon.large {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .emotion-metrics {
+    padding: 0.8rem;
+  }
+
+  .metrics-header h3 {
+    font-size: 1.3rem;
+  }
+
+  .emotion-name {
+    font-size: 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.3rem;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .recording-dot {
+    animation: none;
+  }
+
+  .confidence-fill,
+  .progress-fill {
+    transition: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .emotion-metrics {
+    background: #000;
+    border: 2px solid #fff;
+    color: #fff;
+  }
+
+  .emotion-display {
+    background: #333;
+    border: 1px solid #fff;
+  }
+
+  .stat-item {
+    background: #333;
+    border: 1px solid #fff;
+  }
+
+  .emotion-item {
+    background: #333;
+    border: 1px solid #fff;
+  }
+
+  .confidence-bar,
+  .progress-bar {
+    background: #333;
+    border: 1px solid #fff;
+  }
+}

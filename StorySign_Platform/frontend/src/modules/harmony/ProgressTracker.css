@@ -1,0 +1,500 @@
+/* Progress Tracker Component Styles */
+.progress-tracker {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  color: white;
+}
+
+.results-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.results-header h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.results-header p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+  margin: 0;
+  color: white;
+}
+
+/* Overall Score */
+.overall-score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 3rem;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.score-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    #e17055 0deg,
+    #fd79a8 25%,
+    #fdcb6e 50%,
+    #00b894 75%,
+    #00b894 100%
+  );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.score-circle::before {
+  content: "";
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  backdrop-filter: blur(10px);
+}
+
+.score-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: white;
+  z-index: 1;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.score-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: white;
+  opacity: 0.9;
+  z-index: 1;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.score-details {
+  text-align: left;
+}
+
+.score-details h3 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.score-details p {
+  font-size: 1.1rem;
+  margin: 0.5rem 0;
+  opacity: 0.9;
+}
+
+/* Key Metrics */
+.key-metrics {
+  margin-bottom: 3rem;
+}
+
+.key-metrics h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 1.5rem 0;
+  color: white;
+  text-align: center;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.metric-card {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #74b9ff;
+  margin-bottom: 0.5rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  color: white;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Emotion Breakdown */
+.emotion-breakdown,
+.confidence-distribution {
+  margin-bottom: 3rem;
+}
+
+.emotion-breakdown h3,
+.confidence-distribution h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 1.5rem 0;
+  color: white;
+  text-align: center;
+}
+
+.breakdown-chart,
+.distribution-chart {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.breakdown-item,
+.distribution-item {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.breakdown-item.target {
+  border-color: rgba(116, 185, 255, 0.5);
+  background: rgba(116, 185, 255, 0.1);
+}
+
+.emotion-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
+.emotion-icon {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.emotion-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: white;
+  flex: 1;
+}
+
+.target-badge {
+  background: #74b9ff;
+  color: white;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.breakdown-bar,
+.distribution-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.breakdown-fill,
+.distribution-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s ease;
+}
+
+.breakdown-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: white;
+  opacity: 0.8;
+}
+
+/* Confidence Distribution */
+.distribution-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.confidence-level {
+  font-size: 1rem;
+  font-weight: 500;
+  color: white;
+}
+
+.confidence-count {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #74b9ff;
+}
+
+.distribution-percentage {
+  font-size: 0.9rem;
+  color: white;
+  opacity: 0.8;
+  text-align: right;
+  display: block;
+  margin-top: 0.3rem;
+}
+
+/* Recommendations */
+.recommendations {
+  margin-bottom: 3rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.recommendations h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: white;
+}
+
+.recommendations ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recommendations li {
+  padding: 0.8rem 0;
+  color: white;
+  opacity: 0.9;
+  font-size: 1rem;
+  line-height: 1.5;
+  position: relative;
+  padding-left: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.recommendations li:last-child {
+  border-bottom: none;
+}
+
+.recommendations li::before {
+  content: "💡";
+  position: absolute;
+  left: 0;
+  top: 0.8rem;
+}
+
+/* Session Actions */
+.session-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.new-session-button {
+  font-size: 1.1rem;
+  padding: 1rem 2rem;
+  min-width: 200px;
+}
+
+/* Motivational Message */
+.motivational-message {
+  text-align: center;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.motivational-message p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin: 0;
+  color: white;
+  opacity: 0.9;
+  font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .progress-tracker {
+    padding: 1rem;
+  }
+
+  .results-header h2 {
+    font-size: 2rem;
+  }
+
+  .overall-score {
+    flex-direction: column;
+    gap: 1.5rem;
+    text-align: center;
+  }
+
+  .score-details {
+    text-align: center;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+  }
+
+  .emotion-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .session-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .new-session-button {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .results-header h2 {
+    font-size: 1.8rem;
+  }
+
+  .score-circle {
+    width: 100px;
+    height: 100px;
+  }
+
+  .score-circle::before {
+    width: 80px;
+    height: 80px;
+  }
+
+  .score-value {
+    font-size: 2rem;
+  }
+
+  .score-details h3 {
+    font-size: 1.5rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .breakdown-chart,
+  .distribution-chart {
+    padding: 1rem;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .progress-tracker {
+    background: white;
+    color: black;
+  }
+
+  .session-actions {
+    display: none;
+  }
+
+  .overall-score,
+  .breakdown-chart,
+  .distribution-chart,
+  .recommendations,
+  .motivational-message {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .metric-card {
+    transition: none;
+  }
+
+  .metric-card:hover {
+    transform: none;
+  }
+
+  .breakdown-fill,
+  .distribution-fill {
+    transition: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .progress-tracker {
+    background: #000;
+    color: #fff;
+  }
+
+  .overall-score,
+  .breakdown-chart,
+  .distribution-chart,
+  .recommendations,
+  .motivational-message,
+  .metric-card,
+  .breakdown-item,
+  .distribution-item {
+    background: #000;
+    border: 2px solid #fff;
+    color: #fff;
+  }
+
+  .score-circle {
+    background: #fff;
+    color: #000;
+  }
+}
