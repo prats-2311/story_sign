@@ -1485,3 +1485,103 @@ select:focus {
 .platform-demo-section strong {
   color: #1976d2;
 }
+/* Network Status Indicator */
+.network-status-offline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #dc3545;
+  color: white;
+  padding: 0.5rem 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 9999;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  animation: slideDown 0.3s ease-out;
+}
+
+.network-status-offline span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Adjust main content when network status is shown */
+.network-status-offline ~ * {
+  margin-top: 2.5rem;
+}
+
+/* App Error Fallback Styles (legacy support) */
+.app-error-fallback {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.app-error-fallback .error-content {
+  max-width: 600px;
+  text-align: center;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.app-error-fallback h1 {
+  color: #dc3545;
+  margin-bottom: 1rem;
+}
+
+.app-error-fallback p {
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+}
+
+.app-error-fallback button {
+  margin: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  background: #007bff;
+  color: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.app-error-fallback button:hover {
+  background: #0056b3;
+}
+
+.app-error-fallback button:last-child {
+  background: #6c757d;
+}
+
+.app-error-fallback button:last-child:hover {
+  background: #545b62;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .network-status-offline {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+  }
+
+  .network-status-offline ~ * {
+    margin-top: 2rem;
+  }
+}

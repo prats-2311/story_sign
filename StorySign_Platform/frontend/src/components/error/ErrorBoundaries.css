@@ -1,0 +1,316 @@
+/* Error Boundary Styles */
+.error-boundary-fallback {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  margin: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.error-content {
+  max-width: 600px;
+  text-align: center;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.error-header {
+  margin-bottom: 1.5rem;
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.error-title {
+  color: #dc3545;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+}
+
+.error-message {
+  color: #6c757d;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.retry-info {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: #856404;
+}
+
+.error-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.error-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.error-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-button.primary {
+  background: #007bff;
+  color: white;
+}
+
+.error-button.primary:hover:not(:disabled) {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+.error-button.secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.error-button.secondary:hover:not(:disabled) {
+  background: #545b62;
+  transform: translateY(-1px);
+}
+
+.error-button.tertiary {
+  background: transparent;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+}
+
+.error-button.tertiary:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+}
+
+.error-button.disabled {
+  background: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+.error-details {
+  text-align: left;
+  margin-bottom: 1.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.error-details summary {
+  background: #f8f9fa;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  font-weight: 500;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.error-details summary:hover {
+  background: #e9ecef;
+}
+
+.error-info {
+  padding: 1rem;
+}
+
+.error-section {
+  margin-bottom: 1rem;
+}
+
+.error-section:last-child {
+  margin-bottom: 0;
+}
+
+.error-section h4 {
+  color: #495057;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.error-text,
+.error-stack {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 0.75rem;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #495057;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.error-stack {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.error-suggestions {
+  text-align: left;
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.error-suggestions h3 {
+  color: #495057;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+}
+
+.error-suggestions ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #6c757d;
+}
+
+.error-suggestions li {
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+}
+
+/* Error type specific styles */
+.error-boundary-fallback[data-error-type="network"] .error-icon {
+  color: #17a2b8;
+}
+
+.error-boundary-fallback[data-error-type="authentication"] .error-icon {
+  color: #ffc107;
+}
+
+.error-boundary-fallback[data-error-type="component"] .error-icon {
+  color: #fd7e14;
+}
+
+.error-boundary-fallback[data-error-type="chunk"] .error-icon {
+  color: #6f42c1;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .error-boundary-fallback {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+
+  .error-content {
+    padding: 1.5rem;
+  }
+
+  .error-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .error-button {
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .error-icon {
+    font-size: 2.5rem;
+  }
+
+  .error-title {
+    font-size: 1.25rem;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .error-button {
+    transition: none;
+  }
+
+  .error-button:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .error-boundary-fallback {
+    border: 2px solid #000;
+  }
+
+  .error-content {
+    border: 1px solid #000;
+  }
+
+  .error-button {
+    border: 1px solid #000;
+  }
+}
+
+/* Focus styles for accessibility */
+.error-button:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+.error-details summary:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Loading state for retry button */
+.error-button.loading {
+  position: relative;
+  color: transparent;
+}
+
+.error-button.loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}

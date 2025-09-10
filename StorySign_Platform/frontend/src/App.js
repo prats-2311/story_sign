@@ -1,6 +1,5 @@
-import { useEffect, lazy, Suspense, useState, useCallback } from "react";
+import React, { useEffect, lazy, Suspense, useState, useCallback } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { ErrorBoundary } from "react-error-boundary";
 
 import { PlatformShell } from "./components";
 import { ProtectedRoute } from "./components/auth";
@@ -21,9 +20,61 @@ import {
   useRoutePreloader,
 } from "./components/routing/LazyRouteWrapper";
 import PerformanceMonitor from "./components/debug/PerformanceMonitor";
+import {
+  EnhancedErrorFallback,
+  NetworkErrorBoundary,
+  AuthenticationErrorBoundary,
+  ComponentLoadingErrorBoundary,
+  RouteErrorBoundary,
+} from "./components/error/ErrorBoundaries";
+import { useErrorRecovery } from "./services/ErrorRecoveryService";
+import { useAuthErrorHandler } from "./utils/authErrorHandler";
+
+// Custom ErrorBoundary component to replace react-error-boundary
+class AppErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    this.setState({ errorInfo });
+    if (this.props.onError) {
+      this.props.onError(error, errorInfo);
+    }
+  }
+
+  handleReset = () => {
+    this.setState({ hasError: false, error: null, errorInfo: null });
+    if (this.props.onReset) {
+      this.props.onReset();
+    }
+  };
+
+  render() {
+    if (this.state.hasError) {
+      const FallbackComponent = this.props.FallbackComponent;
+      return (
+        <FallbackComponent
+          error={this.state.error}
+          resetErrorBoundary={this.handleReset}
+        />
+      );
+    }
+
+    return this.props.children;
+  }
+}
+import { useErrorRecovery } from "./services/ErrorRecoveryService";
+import { useAuthErrorHandler } from "./utils/authErrorHandler";
 import "./App.css";
 import "./styles/accessibility.css";
 import "./styles/responsive.css";
+import "./components/error/ErrorBoundaries.css";
 
 // Lazy load page components for better performance
 const MainDashboard = lazy(() =>
@@ -68,20 +119,21 @@ const RegisterPage = lazy(() =>
   })
 );
 
-// Error fallback component for the entire app
+// Enhanced error fallback component for the entire app
 const AppErrorFallback = ({ error, resetErrorBoundary }) => (
-  <div className="app-error-fallback" role="alert">
-    <div className="error-content">
-      <h1>Something went wrong</h1>
-      <p>The application encountered an unexpected error.</p>
-      <details>
-        <summary>Error details</summary>
-        <pre>{error.message}</pre>
-      </details>
-      <button onClick={resetErrorBoundary}>Try again</button>
-      <button onClick={() => window.location.reload()}>Reload page</button>
-    </div>
-  </div>
+  <EnhancedErrorFallback
+    error={error}
+    resetErrorBoundary={resetErrorBoundary}
+    errorType="general"
+    componentName="StorySign Application"
+    customActions={[
+      {
+        label: "Contact Support",
+        type: "secondary",
+        onClick: () => window.open("mailto:support@storysign.com", "_blank"),
+      },
+    ]}
+  />
 );
 
 // Routes to preload for better performance
@@ -103,6 +155,7 @@ const AppContent = () => {
     useRouteTransitionPerformance();
   const location = useLocation();
   const [previousRoute, setPreviousRoute] = useState(location.pathname);
+  const { recoverFromError, isOnline } = useErrorRecovery();
 
   // Track route transitions for performance monitoring
   useEffect(() => {
@@ -120,8 +173,22 @@ const AppContent = () => {
     }
   }, [location.pathname, previousRoute, startTransition, endTransition]);
 
+  // Network status indicator
+  const NetworkStatusIndicator = () => {
+    if (!isOnline) {
+      return (
+        <div className="network-status-offline" role="alert">
+          <span>⚠️ No internet connection. Some features may not work.</span>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <>
+      <NetworkStatusIndicator />
+
       <RouteTransitionLoader
         isTransitioning={isTransitioning}
         fromRoute={previousRoute}
@@ -148,9 +215,13 @@ const AppContent = () => {
             isAuthenticated ? (
               <Navigate to="/dashboard" replace />
             ) : (
-              <Suspense fallback={<ComponentSkeleton type="default" />}>
-                <LoginPage />
-              </Suspense>
+              <AuthenticationErrorBoundary>
+                <ComponentLoadingErrorBoundary componentName="Login Page">
+                  <Suspense fallback={<ComponentSkeleton type="default" />}>
+                    <LoginPage />
+                  </Suspense>
+                </ComponentLoadingErrorBoundary>
+              </AuthenticationErrorBoundary>
             )
           }
         />
@@ -160,9 +231,13 @@ const AppContent = () => {
             isAuthenticated ? (
               <Navigate to="/dashboard" replace />
             ) : (
-              <Suspense fallback={<ComponentSkeleton type="default" />}>
-                <RegisterPage />
-              </Suspense>
+              <AuthenticationErrorBoundary>
+                <ComponentLoadingErrorBoundary componentName="Register Page">
+                  <Suspense fallback={<ComponentSkeleton type="default" />}>
+                    <RegisterPage />
+                  </Suspense>
+                </ComponentLoadingErrorBoundary>
+              </AuthenticationErrorBoundary>
             )
           }
         />
@@ -171,53 +246,87 @@ const AppContent = () => {
         <Route
           path="/*"
           element={
-            <ProtectedRoute>
-              <PlatformShell>
-                <Routes>
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <Suspense
-                        fallback={<ComponentSkeleton type="dashboard" />}
-                      >
-                        <MainDashboard />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/asl-world"
-                    element={
-                      <Suspense
-                        fallback={<ComponentSkeleton type="asl-world" />}
-                      >
-                        <ASLWorldPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/harmony"
-                    element={
-                      <Suspense fallback={<ComponentSkeleton type="default" />}>
-                        <HarmonyPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/reconnect"
-                    element={
-                      <Suspense fallback={<ComponentSkeleton type="default" />}>
-                        <ReconnectPage />
-                      </Suspense>
-                    }
-                  />
-                  {/* Catch-all for unknown protected routes */}
-                  <Route
-                    path="*"
-                    element={<Navigate to="/dashboard" replace />}
-                  />
-                </Routes>
-              </PlatformShell>
-            </ProtectedRoute>
+            <NetworkErrorBoundary componentName="Protected Routes">
+              <ProtectedRoute>
+                <PlatformShell>
+                  <Routes>
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <RouteErrorBoundary
+                          routeName="Dashboard"
+                          fallbackRoute="/dashboard"
+                        >
+                          <ComponentLoadingErrorBoundary componentName="Dashboard">
+                            <Suspense
+                              fallback={<ComponentSkeleton type="dashboard" />}
+                            >
+                              <MainDashboard />
+                            </Suspense>
+                          </ComponentLoadingErrorBoundary>
+                        </RouteErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/asl-world"
+                      element={
+                        <RouteErrorBoundary
+                          routeName="ASL World"
+                          fallbackRoute="/dashboard"
+                        >
+                          <ComponentLoadingErrorBoundary componentName="ASL World">
+                            <Suspense
+                              fallback={<ComponentSkeleton type="asl-world" />}
+                            >
+                              <ASLWorldPage />
+                            </Suspense>
+                          </ComponentLoadingErrorBoundary>
+                        </RouteErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/harmony"
+                      element={
+                        <RouteErrorBoundary
+                          routeName="Harmony"
+                          fallbackRoute="/dashboard"
+                        >
+                          <ComponentLoadingErrorBoundary componentName="Harmony">
+                            <Suspense
+                              fallback={<ComponentSkeleton type="default" />}
+                            >
+                              <HarmonyPage />
+                            </Suspense>
+                          </ComponentLoadingErrorBoundary>
+                        </RouteErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/reconnect"
+                      element={
+                        <RouteErrorBoundary
+                          routeName="Reconnect"
+                          fallbackRoute="/dashboard"
+                        >
+                          <ComponentLoadingErrorBoundary componentName="Reconnect">
+                            <Suspense
+                              fallback={<ComponentSkeleton type="default" />}
+                            >
+                              <ReconnectPage />
+                            </Suspense>
+                          </ComponentLoadingErrorBoundary>
+                        </RouteErrorBoundary>
+                      }
+                    />
+                    {/* Catch-all for unknown protected routes */}
+                    <Route
+                      path="*"
+                      element={<Navigate to="/dashboard" replace />}
+                    />
+                  </Routes>
+                </PlatformShell>
+              </ProtectedRoute>
+            </NetworkErrorBoundary>
           }
         />
       </Routes>
@@ -227,10 +336,13 @@ const AppContent = () => {
 
 function App() {
   const location = useLocation();
-  const { isLoading } = useAuth();
+  const { isLoading, error: authError } = useAuth();
   const { memoryUsage, checkMemoryLeak } = usePerformanceMonitoring();
   const { registerInterval, registerCleanup } = useMemoryManagement("App");
   const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false);
+  const { recoverFromError, getRecoveryStats } = useErrorRecovery();
+  const authContext = useAuth();
+  const authErrorHandler = useAuthErrorHandler(authContext);
 
   // Preload routes for better performance
   const { preloadStatus, isPreloading } = useRoutePreloader(
@@ -292,38 +404,84 @@ function App() {
     return () => clearInterval(metricsInterval);
   }, [registerInterval]);
 
+  // Handle authentication errors during initialization
+  useEffect(() => {
+    if (authError) {
+      console.error("Authentication initialization error:", authError);
+      // Attempt recovery for auth errors
+      recoverFromError(
+        authError,
+        async () => {
+          // Retry auth initialization
+          window.location.reload();
+        },
+        {
+          operationId: "auth_init",
+          returnUrl: location.pathname,
+        }
+      ).catch(recoveryError => {
+        console.error("Failed to recover from auth error:", recoveryError);
+      });
+    }
+  }, [authError, recoverFromError, location.pathname]);
+
   // Show optimized loading screen while authentication state is being determined
   if (isLoading) {
     return (
-      <OptimizedLoadingScreen
-        message="Initializing StorySign Platform..."
-        showProgress={false}
-        timeout={15000}
-        onTimeout={() => {
-          console.warn("Authentication initialization timeout");
-        }}
-      />
+      <NetworkErrorBoundary componentName="Authentication Initialization">
+        <OptimizedLoadingScreen
+          message="Initializing StorySign Platform..."
+          showProgress={false}
+          timeout={15000}
+          onTimeout={() => {
+            console.warn("Authentication initialization timeout");
+            // Attempt to recover from timeout
+            recoverFromError(
+              new Error("Authentication initialization timeout"),
+              () => window.location.reload(),
+              { operationId: "auth_timeout" }
+            );
+          }}
+        />
+      </NetworkErrorBoundary>
     );
   }
 
   return (
-    <ErrorBoundary
+    <AppErrorBoundary
       FallbackComponent={AppErrorFallback}
       onError={(error, errorInfo) => {
         console.error("App-level error:", error, errorInfo);
         performanceMonitor.recordRouteTransition("error", "app-level", 0);
+
+        // Report to error tracking service if available
+        if (window.errorTracker) {
+          window.errorTracker.captureException(error, {
+            context: "App-level",
+            extra: errorInfo,
+            tags: { component: "App" },
+          });
+        }
+      }}
+      onReset={() => {
+        // Clear any error state and attempt recovery
+        console.log("App error boundary reset");
+        const stats = getRecoveryStats();
+        console.log("Recovery stats:", stats);
       }}
     >
       <AppContent />
 
       {/* Performance Monitor for development */}
       {process.env.NODE_ENV === "development" && (
-        <PerformanceMonitor
-          isVisible={showPerformanceMonitor}
-          onToggle={() => setShowPerformanceMonitor(!showPerformanceMonitor)}
-        />
+        <ComponentLoadingErrorBoundary componentName="Performance Monitor">
+          <PerformanceMonitor
+            isVisible={showPerformanceMonitor}
+            onToggle={() => setShowPerformanceMonitor(!showPerformanceMonitor)}
+          />
+        </ComponentLoadingErrorBoundary>
       )}
-    </ErrorBoundary>
+    </AppErrorBoundary>
   );
 }
 
