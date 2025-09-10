@@ -1,124 +1,122 @@
 import React, {
-  useRef,
   useEffect,
-  useState,
   useCallback,
   forwardRef,
   useImperativeHandle,
 } from "react";
+import useWebSocket from "../../hooks/useWebSocket";
 
 const VideoStreamingClient = forwardRef(
   (
     { isActive = false, onConnectionChange, onProcessedFrame, onError },
     ref
   ) => {
-    const wsRef = useRef(null);
-    const reconnectTimeoutRef = useRef(null);
-    const reconnectAttemptsRef = useRef(0);
-    const lastFrameSentRef = useRef(0);
-
-    const [connectionStatus, setConnectionStatus] = useState("disconnected"); // disconnected, connecting, connected, error
-    const [framesSent, setFramesSent] = useState(0);
-    const [framesReceived, setFramesReceived] = useState(0);
-    const [lastError, setLastError] = useState("");
-
     // WebSocket configuration - optimized for low latency
     const WS_URL = "ws://localhost:8000/ws/video";
-    const MAX_RECONNECT_ATTEMPTS = 5;
-    const INITIAL_RECONNECT_DELAY = 500; // Reduced from 1000ms
-    const FRAME_THROTTLE_MS = 50; // Increased to 20 FPS for lower latency
+
+    // Use centralized WebSocket hook
+    const {
+      connectionState,
+      isConnected,
+      error: wsError,
+      stats,
+      sendMessage,
+      addMessageListener,
+      removeMessageListener,
+      connect,
+      disconnect,
+    } = useWebSocket(WS_URL, {
+      maxReconnectAttempts: 5,
+      initialReconnectDelay: 500,
+      frameThrottleMs: 50,
+      autoConnect: false, // We'll control connection manually based on isActive
+    });
 
     // Send frame data to server with enhanced message format
-    const sendFrame = useCallback((message) => {
-      if (wsRef.current?.readyState !== WebSocket.OPEN) {
-        console.warn("WebSocket not connected, cannot send frame");
-        return false;
-      }
+    const sendFrame = useCallback(
+      (message) => {
+        if (!isConnected) {
+          console.warn("WebSocket not connected, cannot send frame");
+          return false;
+        }
 
-      // Optimized throttling for low latency
-      const processingCapability =
-        message.metadata?.processing_capability || 1.0;
-      const adaptiveThrottleMs = Math.max(
-        33, // Minimum 30 FPS (33ms interval)
-        FRAME_THROTTLE_MS * (1.5 - processingCapability * 0.5)
-      );
+        // Optimized throttling for low latency
+        const processingCapability =
+          message.metadata?.processing_capability || 1.0;
 
-      const now = Date.now();
-      if (now - lastFrameSentRef.current < adaptiveThrottleMs) {
-        return false; // Skip this frame
-      }
-      lastFrameSentRef.current = now;
+        // Use adaptive throttling - better performance gets higher frame rates
+        const shouldThrottle = processingCapability < 0.8;
 
-      try {
-        const messageStr = JSON.stringify(message);
-        console.log(
-          `Sending frame ${message.metadata?.frame_number}, size: ${
-            messageStr.length
-          } bytes, FPS: ${message.metadata?.adaptive_fps}, capability: ${(
-            processingCapability * 100
-          ).toFixed(0)}%`
-        );
-        wsRef.current.send(messageStr);
-        setFramesSent((prev) => prev + 1);
-        return true;
-      } catch (error) {
-        console.error("Error sending frame:", error);
-        setLastError(`Failed to send frame: ${error.message}`);
-        return false;
-      }
-    }, []);
+        try {
+          console.log(
+            `Sending frame ${message.metadata?.frame_number}, size: ${
+              JSON.stringify(message).length
+            } bytes, FPS: ${message.metadata?.adaptive_fps}, capability: ${(
+              processingCapability * 100
+            ).toFixed(0)}%`
+          );
+
+          return sendMessage(message, { throttle: shouldThrottle });
+        } catch (error) {
+          console.error("Error sending frame:", error);
+          onError?.(`Failed to send frame: ${error.message}`);
+          return false;
+        }
+      },
+      [isConnected, sendMessage, onError]
+    );
 
     // Send practice control messages for ASL World
-    const sendPracticeControl = useCallback((action, data = {}) => {
-      if (wsRef.current?.readyState !== WebSocket.OPEN) {
-        console.warn("WebSocket not connected, cannot send practice control");
-        return false;
-      }
+    const sendPracticeControl = useCallback(
+      (action, data = {}) => {
+        if (!isConnected) {
+          console.warn("WebSocket not connected, cannot send practice control");
+          return false;
+        }
 
-      try {
-        const controlMessage = {
-          type: "control",
-          action: action,
-          data: data,
-          timestamp: new Date().toISOString(),
-        };
+        try {
+          const controlMessage = {
+            type: "control",
+            action: action,
+            data: data,
+            timestamp: new Date().toISOString(),
+          };
 
-        const messageStr = JSON.stringify(controlMessage);
-        console.log(`Sending practice control: ${action}`, data);
-        wsRef.current.send(messageStr);
-        return true;
-      } catch (error) {
-        console.error("Error sending practice control:", error);
-        setLastError(`Failed to send practice control: ${error.message}`);
-        return false;
-      }
-    }, []);
+          console.log(`Sending practice control: ${action}`, data);
+          return sendMessage(controlMessage, { throttle: false });
+        } catch (error) {
+          console.error("Error sending practice control:", error);
+          onError?.(`Failed to send practice control: ${error.message}`);
+          return false;
+        }
+      },
+      [isConnected, sendMessage, onError]
+    );
 
     // Backward-compatible generic control sender exposed to parent via ref
-    // Accepts a full message object and sends as-is over WebSocket
-    const sendControlMessage = useCallback((message) => {
-      if (wsRef.current?.readyState !== WebSocket.OPEN) {
-        console.warn("WebSocket not connected, cannot send control message");
-        return false;
-      }
-      try {
-        const msg =
-          typeof message === "string" ? message : JSON.stringify(message);
-        wsRef.current.send(msg);
-        return true;
-      } catch (error) {
-        console.error("Error sending control message:", error);
-        setLastError(`Failed to send control message: ${error.message}`);
-        return false;
-      }
-    }, []);
+    const sendControlMessage = useCallback(
+      (message) => {
+        if (!isConnected) {
+          console.warn("WebSocket not connected, cannot send control message");
+          return false;
+        }
 
-    // Handle incoming messages from server
+        try {
+          return sendMessage(message, { throttle: false });
+        } catch (error) {
+          console.error("Error sending control message:", error);
+          onError?.(`Failed to send control message: ${error.message}`);
+          return false;
+        }
+      },
+      [isConnected, sendMessage, onError]
+    );
+
+    // Handle incoming messages from server using message listeners
     const handleIncomingMessage = useCallback(
       (message) => {
         switch (message.type) {
           case "processed_frame":
-            setFramesReceived((prev) => prev + 1);
             onProcessedFrame?.(message);
             break;
 
@@ -151,53 +149,22 @@ const VideoStreamingClient = forwardRef(
               onProcessedFrame?.(enhancedMessage);
             } else {
               console.error("Invalid ASL feedback data structure:", message);
-              setLastError("Received invalid feedback data from server");
+              onError?.("Received invalid feedback data from server");
             }
             break;
 
           case "control_response":
-            // Handle practice control responses (next_sentence, try_again, etc.)
-            console.log("Received control response:", message);
-            onProcessedFrame?.(message);
-            break;
-
           case "practice_session_response":
-            // Handle practice session management responses
-            console.log("Received practice session response:", message);
-            onProcessedFrame?.(message);
-            break;
-
           case "session_complete":
-            // Handle story completion notifications
-            console.log("Received session complete:", message);
+            // Handle practice control responses
+            console.log(`Received ${message.type}:`, message);
             onProcessedFrame?.(message);
             break;
 
           case "pong":
-            // Handle pong response to ping
-            console.debug("Received pong from server");
-            break;
-
           case "keepalive":
-            // Handle keepalive message from server
-            console.debug("Received keepalive from server");
-            break;
-
-          case "error":
-            console.error("Server error:", message.message);
-            setLastError(`Server error: ${message.message}`);
-            onError?.(message.message);
-            break;
-
-          case "critical_error":
-            console.error("Critical server error:", message.message);
-            setLastError(`Critical error: ${message.message}`);
-            onError?.(message.message);
-            // Critical errors may require reconnection
-            if (message.metadata?.requires_reconnection) {
-              disconnect();
-              setTimeout(() => connect(), 2000);
-            }
+            // System messages handled by hook
+            console.debug(`Received ${message.type} from server`);
             break;
 
           default:
@@ -209,155 +176,23 @@ const VideoStreamingClient = forwardRef(
       [onProcessedFrame, onError]
     );
 
-    // Connect to WebSocket
-    const connect = useCallback(() => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        return; // Already connected
+    // Setup message listener for all incoming messages
+    useEffect(() => {
+      const cleanup = addMessageListener("*", handleIncomingMessage);
+      return cleanup;
+    }, [addMessageListener, handleIncomingMessage]);
+
+    // Handle connection state changes
+    useEffect(() => {
+      onConnectionChange?.(connectionState);
+    }, [connectionState, onConnectionChange]);
+
+    // Handle WebSocket errors
+    useEffect(() => {
+      if (wsError) {
+        onError?.(wsError.message);
       }
-
-      setConnectionStatus("connecting");
-      setLastError("");
-
-      try {
-        wsRef.current = new WebSocket(WS_URL);
-
-        wsRef.current.onopen = () => {
-          console.log("WebSocket connected successfully");
-          setConnectionStatus("connected");
-          reconnectAttemptsRef.current = 0;
-          setLastError("");
-          onConnectionChange?.("connected");
-        };
-
-        wsRef.current.onmessage = (event) => {
-          try {
-            const message = JSON.parse(event.data);
-            console.log(
-              "Received WebSocket message:",
-              message.type,
-              message.metadata?.frame_number
-            );
-            handleIncomingMessage(message);
-          } catch (error) {
-            console.error(
-              "Error parsing WebSocket message:",
-              error,
-              "Raw data:",
-              event.data
-            );
-            setLastError("Invalid message format received");
-          }
-        };
-
-        wsRef.current.onclose = (event) => {
-          console.log("WebSocket closed:", event.code, event.reason);
-          setConnectionStatus("disconnected");
-          onConnectionChange?.("disconnected");
-
-          // Provide more specific error messages based on close codes
-          let closeReason = "";
-          if (event.code === 1006) {
-            closeReason =
-              "Connection lost unexpectedly. The server may be unavailable.";
-          } else if (event.code === 1011) {
-            closeReason =
-              "Server encountered an error while processing the connection.";
-          } else if (event.code === 1012) {
-            closeReason = "Server is restarting. Please wait and try again.";
-          } else if (event.code !== 1000 && event.code !== 1001) {
-            closeReason = `Connection closed with code ${event.code}: ${
-              event.reason || "Unknown reason"
-            }`;
-          }
-
-          if (closeReason) {
-            setLastError(closeReason);
-          }
-
-          // Attempt reconnection if we're still active and it wasn't a manual disconnect
-          // Only skip reconnection for manual disconnects (when isActive becomes false)
-          if (isActive && event.code !== 1000) {
-            // 1000 is normal closure
-            console.log(
-              "Connection lost while streaming active, attempting reconnection..."
-            );
-            // Call scheduleReconnect directly to avoid dependency issues
-            if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-              const errorMsg = `Max reconnection attempts (${MAX_RECONNECT_ATTEMPTS}) reached. ${closeReason}`;
-              setLastError(errorMsg);
-              setConnectionStatus("error");
-              onError?.(errorMsg);
-              return;
-            }
-
-            const delay = Math.min(
-              INITIAL_RECONNECT_DELAY *
-                Math.pow(2, reconnectAttemptsRef.current),
-              30000 // Max 30 seconds
-            );
-            reconnectAttemptsRef.current++;
-
-            console.log(
-              `Scheduling reconnection attempt ${reconnectAttemptsRef.current} in ${delay}ms`
-            );
-
-            reconnectTimeoutRef.current = setTimeout(() => {
-              if (isActive) {
-                connect();
-              }
-            }, delay);
-          }
-        };
-
-        wsRef.current.onerror = (error) => {
-          console.error("WebSocket error:", error);
-          let errorMsg = "WebSocket connection error";
-
-          // Provide more specific error messages when possible
-          if (
-            error.type === "error" &&
-            wsRef.current?.readyState === WebSocket.CONNECTING
-          ) {
-            errorMsg =
-              "Failed to connect to video processing server. Please check if the backend is running.";
-          } else if (
-            error.type === "error" &&
-            wsRef.current?.readyState === WebSocket.OPEN
-          ) {
-            errorMsg =
-              "Connection error during video streaming. The connection may be unstable.";
-          }
-
-          setLastError(errorMsg);
-          setConnectionStatus("error");
-          onConnectionChange?.("error");
-          onError?.(errorMsg);
-        };
-      } catch (error) {
-        console.error("Error creating WebSocket:", error);
-        const errorMsg = `Failed to create WebSocket connection: ${error.message}`;
-        setLastError(errorMsg);
-        setConnectionStatus("error");
-        onError?.(errorMsg);
-      }
-    }, [isActive, onConnectionChange, onError, handleIncomingMessage]);
-
-    // Disconnect WebSocket
-    const disconnect = useCallback(() => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-
-      if (wsRef.current) {
-        wsRef.current.close(1000, "Normal closure");
-        wsRef.current = null;
-      }
-
-      setConnectionStatus("disconnected");
-      reconnectAttemptsRef.current = 0;
-      onConnectionChange?.("disconnected");
-    }, [onConnectionChange]);
+    }, [wsError, onError]);
 
     // Expose methods and stats to parent component
     useImperativeHandle(
@@ -368,10 +203,10 @@ const VideoStreamingClient = forwardRef(
         sendFrame,
         sendPracticeControl,
         sendControlMessage,
-        framesSent,
-        framesReceived,
-        connectionStatus,
-        lastError,
+        framesSent: stats.messagesSent,
+        framesReceived: stats.messagesReceived,
+        connectionStatus: connectionState,
+        lastError: wsError?.message || "",
       }),
       [
         connect,
@@ -379,10 +214,10 @@ const VideoStreamingClient = forwardRef(
         sendFrame,
         sendPracticeControl,
         sendControlMessage,
-        framesSent,
-        framesReceived,
-        connectionStatus,
-        lastError,
+        stats.messagesSent,
+        stats.messagesReceived,
+        connectionState,
+        wsError,
       ]
     );
 
@@ -393,52 +228,10 @@ const VideoStreamingClient = forwardRef(
       } else {
         disconnect();
       }
-
-      return () => {
-        disconnect();
-      };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isActive]); // Remove connect/disconnect from dependencies to prevent recreation
-
-    // Add periodic connection health check
-    useEffect(() => {
-      if (!isActive || connectionStatus !== "connected") {
-        return;
-      }
-
-      const healthCheckInterval = setInterval(() => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-          // Send ping to keep connection alive
-          try {
-            const pingMessage = {
-              type: "ping",
-              timestamp: new Date().toISOString(),
-            };
-            wsRef.current.send(JSON.stringify(pingMessage));
-          } catch (error) {
-            console.warn("Failed to send ping:", error);
-          }
-        } else if (wsRef.current?.readyState === WebSocket.CLOSED) {
-          console.log(
-            "Connection lost during health check, attempting reconnection..."
-          );
-          connect();
-        }
-      }, 10000); // Check every 10 seconds
-
-      return () => clearInterval(healthCheckInterval);
-    }, [isActive, connectionStatus, connect]);
-
-    // Reset counters when connection changes
-    useEffect(() => {
-      if (connectionStatus === "connecting") {
-        setFramesSent(0);
-        setFramesReceived(0);
-      }
-    }, [connectionStatus]);
+    }, [isActive, connect, disconnect]);
 
     const getStatusColor = () => {
-      switch (connectionStatus) {
+      switch (connectionState) {
         case "connected":
           return "#4CAF50";
         case "error":
@@ -451,14 +244,14 @@ const VideoStreamingClient = forwardRef(
     };
 
     const getStatusText = () => {
-      switch (connectionStatus) {
+      switch (connectionState) {
         case "connected":
-          return `Connected (↑${framesSent} ↓${framesReceived})`;
+          return `Connected (↑${stats.messagesSent} ↓${stats.messagesReceived})`;
         case "error":
           return "Connection Error";
         case "connecting":
-          return reconnectAttemptsRef.current > 0
-            ? `Reconnecting (${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS})...`
+          return stats.reconnectAttempts > 0
+            ? `Reconnecting (${stats.reconnectAttempts}/5)...`
             : "Connecting...";
         default:
           return "Disconnected";
@@ -475,16 +268,14 @@ const VideoStreamingClient = forwardRef(
           <span className="status-text">{getStatusText()}</span>
         </div>
 
-        {lastError && (
+        {wsError && (
           <div className="error-message">
-            <p>{lastError}</p>
-            {connectionStatus === "error" && (
+            <p>{wsError.message}</p>
+            {connectionState === "error" && (
               <div className="error-actions">
                 <button
                   className="retry-btn"
                   onClick={() => {
-                    setLastError("");
-                    reconnectAttemptsRef.current = 0;
                     connect();
                   }}
                 >
@@ -497,16 +288,22 @@ const VideoStreamingClient = forwardRef(
 
         <div className="streaming-stats">
           <div className="stat">
-            <span className="stat-label">Frames Sent:</span>
-            <span className="stat-value">{framesSent}</span>
+            <span className="stat-label">Messages Sent:</span>
+            <span className="stat-value">{stats.messagesSent}</span>
           </div>
           <div className="stat">
-            <span className="stat-label">Frames Received:</span>
-            <span className="stat-value">{framesReceived}</span>
+            <span className="stat-label">Messages Received:</span>
+            <span className="stat-value">{stats.messagesReceived}</span>
           </div>
           <div className="stat">
             <span className="stat-label">Connection:</span>
-            <span className="stat-value">{connectionStatus}</span>
+            <span className="stat-value">{connectionState}</span>
+          </div>
+          <div className="stat">
+            <span className="stat-label">Uptime:</span>
+            <span className="stat-value">
+              {Math.round(stats.connectionUptime / 1000)}s
+            </span>
           </div>
         </div>
       </div>
