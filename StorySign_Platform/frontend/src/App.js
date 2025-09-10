@@ -15,7 +15,7 @@ import AuthNavigation from "./components/navigation/AuthNavigation";
 import pwaService from "./services/PWAService";
 import { useResponsive } from "./hooks/useResponsive";
 import { buildHealthCheckUrl } from "./config/api";
-
+import { buildHealthCheckUrl } from "./config/api";
 function App() {
   const navigate = useNavigate();
   const { isMobile, shouldUseVideoOptimizations, getVideoQuality } =
@@ -63,8 +63,6 @@ function App() {
     setIsLoading(true);
     setConnectionStatus("testing");
     setShowTroubleshooting(false);
-
-    import { buildHealthCheckUrl } from "./config/api";
 
     try {
       const response = await fetch(buildHealthCheckUrl(), {

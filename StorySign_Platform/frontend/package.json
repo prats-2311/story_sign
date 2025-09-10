@@ -7,14 +7,20 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:production": "REACT_APP_ENVIRONMENT=production GENERATE_SOURCEMAP=false react-scripts build",
     "test": "react-scripts test",
+    "test:ci": "react-scripts test --coverage --watchAll=false",
     "eject": "react-scripts eject",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint src --ext .js,.jsx,.ts,.tsx --fix",
+    "lint:ci": "eslint src --ext .js,.jsx,.ts,.tsx --max-warnings 0",
     "electron": "electron .",
     "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron-pack": "npm run build && electron-builder",
-    "preelectron-pack": "npm run build"
+    "preelectron-pack": "npm run build",
+    "analyze": "npm run build && npx serve -s build",
+    "deploy:preview": "npm run build && netlify deploy",
+    "deploy:production": "npm run build:production && netlify deploy --prod"
   },
   "dependencies": {
     "chart.js": "^4.5.0",

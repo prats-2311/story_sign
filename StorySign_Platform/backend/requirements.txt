@@ -1,5 +1,6 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
+gunicorn==21.2.0
 websockets==12.0
 opencv-python>=4.8.0
 # mediapipe>=0.10.0  # Not available for Python 3.13 yet

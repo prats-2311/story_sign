@@ -305,6 +305,25 @@ class CacheConfig(BaseModel):
         return v.strip()
 
 
+class AuthConfig(BaseModel):
+    """Configuration for authentication and security"""
+    
+    jwt_secret: str = Field(default="your-secret-key-change-in-production", description="JWT secret key")
+    jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
+    jwt_expiration_hours: int = Field(default=24, ge=1, le=168, description="JWT token expiration in hours")
+    bcrypt_rounds: int = Field(default=12, ge=10, le=15, description="Bcrypt hashing rounds")
+    
+    @field_validator('jwt_secret')
+    @classmethod
+    def validate_jwt_secret(cls, v):
+        """Validate JWT secret is not empty and warn if using default"""
+        if not v or not v.strip():
+            raise ValueError("JWT secret cannot be empty")
+        if v.strip() == "your-secret-key-change-in-production":
+            logger.warning("Using default JWT secret - change this in production!")
+        return v.strip()
+
+
 class OptimizationConfig(BaseModel):
     """Configuration for database optimization"""
     
@@ -337,6 +356,7 @@ class AppConfig(BaseModel):
     gesture_detection: GestureDetectionConfig = Field(default_factory=GestureDetectionConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     cache: CacheConfig = Field(default_factory=CacheConfig)
+    auth: AuthConfig = Field(default_factory=AuthConfig)
     optimization: OptimizationConfig = Field(default_factory=OptimizationConfig)
 
     class Config:
@@ -420,17 +440,18 @@ class ConfigManager:
         if os.getenv('STORYSIGN_MEDIAPIPE__REFINE_FACE_LANDMARKS'):
             env_vars.setdefault('mediapipe', {})['refine_face_landmarks'] = os.getenv('STORYSIGN_MEDIAPIPE__REFINE_FACE_LANDMARKS').lower() == 'true'
 
-        # Server configuration from environment
-        if os.getenv('STORYSIGN_SERVER__HOST'):
-            env_vars.setdefault('server', {})['host'] = os.getenv('STORYSIGN_SERVER__HOST')
-        if os.getenv('STORYSIGN_SERVER__PORT'):
-            env_vars.setdefault('server', {})['port'] = int(os.getenv('STORYSIGN_SERVER__PORT'))
-        if os.getenv('STORYSIGN_SERVER__RELOAD'):
-            env_vars.setdefault('server', {})['reload'] = os.getenv('STORYSIGN_SERVER__RELOAD').lower() == 'true'
-        if os.getenv('STORYSIGN_SERVER__LOG_LEVEL'):
-            env_vars.setdefault('server', {})['log_level'] = os.getenv('STORYSIGN_SERVER__LOG_LEVEL')
-        if os.getenv('STORYSIGN_SERVER__MAX_CONNECTIONS'):
-            env_vars.setdefault('server', {})['max_connections'] = int(os.getenv('STORYSIGN_SERVER__MAX_CONNECTIONS'))
+        # Server configuration from environment (support both standard and prefixed names)
+        if os.getenv('HOST') or os.getenv('STORYSIGN_SERVER__HOST'):
+            env_vars.setdefault('server', {})['host'] = os.getenv('HOST') or os.getenv('STORYSIGN_SERVER__HOST')
+        if os.getenv('PORT') or os.getenv('STORYSIGN_SERVER__PORT'):
+            env_vars.setdefault('server', {})['port'] = int(os.getenv('PORT') or os.getenv('STORYSIGN_SERVER__PORT'))
+        if os.getenv('DEBUG') or os.getenv('STORYSIGN_SERVER__RELOAD'):
+            debug_val = os.getenv('DEBUG') or os.getenv('STORYSIGN_SERVER__RELOAD')
+            env_vars.setdefault('server', {})['reload'] = debug_val.lower() in ('true', '1', 'yes') if debug_val else False
+        if os.getenv('LOG_LEVEL') or os.getenv('STORYSIGN_SERVER__LOG_LEVEL'):
+            env_vars.setdefault('server', {})['log_level'] = os.getenv('LOG_LEVEL') or os.getenv('STORYSIGN_SERVER__LOG_LEVEL')
+        if os.getenv('MAX_CONNECTIONS') or os.getenv('STORYSIGN_SERVER__MAX_CONNECTIONS'):
+            env_vars.setdefault('server', {})['max_connections'] = int(os.getenv('MAX_CONNECTIONS') or os.getenv('STORYSIGN_SERVER__MAX_CONNECTIONS'))
 
         # Local vision configuration from environment
         if os.getenv('STORYSIGN_LOCAL_VISION__SERVICE_URL'):
@@ -446,15 +467,13 @@ class ConfigManager:
         if os.getenv('STORYSIGN_LOCAL_VISION__ENABLED'):
             env_vars.setdefault('local_vision', {})['enabled'] = os.getenv('STORYSIGN_LOCAL_VISION__ENABLED').lower() == 'true'
 
-        # Groq configuration from environment
-        if os.getenv('GROQ_API_KEY'):
-            env_vars.setdefault('groq', {})['api_key'] = os.getenv('GROQ_API_KEY')
-        if os.getenv('STORYSIGN_GROQ__API_KEY'):
-            env_vars.setdefault('groq', {})['api_key'] = os.getenv('STORYSIGN_GROQ__API_KEY')
-        if os.getenv('STORYSIGN_GROQ__BASE_URL'):
-            env_vars.setdefault('groq', {})['base_url'] = os.getenv('STORYSIGN_GROQ__BASE_URL')
-        if os.getenv('STORYSIGN_GROQ__MODEL_NAME'):
-            env_vars.setdefault('groq', {})['model_name'] = os.getenv('STORYSIGN_GROQ__MODEL_NAME')
+        # Groq configuration from environment (support both standard and prefixed names)
+        if os.getenv('GROQ_API_KEY') or os.getenv('STORYSIGN_GROQ__API_KEY'):
+            env_vars.setdefault('groq', {})['api_key'] = os.getenv('GROQ_API_KEY') or os.getenv('STORYSIGN_GROQ__API_KEY')
+        if os.getenv('GROQ_BASE_URL') or os.getenv('STORYSIGN_GROQ__BASE_URL'):
+            env_vars.setdefault('groq', {})['base_url'] = os.getenv('GROQ_BASE_URL') or os.getenv('STORYSIGN_GROQ__BASE_URL')
+        if os.getenv('GROQ_MODEL_NAME') or os.getenv('STORYSIGN_GROQ__MODEL_NAME'):
+            env_vars.setdefault('groq', {})['model_name'] = os.getenv('GROQ_MODEL_NAME') or os.getenv('STORYSIGN_GROQ__MODEL_NAME')
         if os.getenv('STORYSIGN_GROQ__TIMEOUT_SECONDS'):
             env_vars.setdefault('groq', {})['timeout_seconds'] = int(os.getenv('STORYSIGN_GROQ__TIMEOUT_SECONDS'))
         if os.getenv('STORYSIGN_GROQ__MAX_RETRIES'):
@@ -463,8 +482,41 @@ class ConfigManager:
             env_vars.setdefault('groq', {})['max_tokens'] = int(os.getenv('STORYSIGN_GROQ__MAX_TOKENS'))
         if os.getenv('STORYSIGN_GROQ__TEMPERATURE'):
             env_vars.setdefault('groq', {})['temperature'] = float(os.getenv('STORYSIGN_GROQ__TEMPERATURE'))
-        if os.getenv('STORYSIGN_GROQ__ENABLED'):
+        
+        # Enable Groq if API key is provided and environment is production
+        if env_vars.get('groq', {}).get('api_key') or os.getenv('ENVIRONMENT') == 'production':
+            env_vars.setdefault('groq', {})['enabled'] = True
+        elif os.getenv('STORYSIGN_GROQ__ENABLED'):
             env_vars.setdefault('groq', {})['enabled'] = os.getenv('STORYSIGN_GROQ__ENABLED').lower() == 'true'
+
+        # Authentication configuration from environment
+        if os.getenv('JWT_SECRET'):
+            env_vars.setdefault('auth', {})['jwt_secret'] = os.getenv('JWT_SECRET')
+        if os.getenv('JWT_ALGORITHM'):
+            env_vars.setdefault('auth', {})['jwt_algorithm'] = os.getenv('JWT_ALGORITHM')
+        if os.getenv('JWT_EXPIRATION_HOURS'):
+            env_vars.setdefault('auth', {})['jwt_expiration_hours'] = int(os.getenv('JWT_EXPIRATION_HOURS'))
+
+        # Redis configuration from environment
+        if os.getenv('REDIS_URL'):
+            # Parse Redis URL for individual components
+            import urllib.parse
+            parsed = urllib.parse.urlparse(os.getenv('REDIS_URL'))
+            env_vars.setdefault('cache', {})['host'] = parsed.hostname or 'localhost'
+            env_vars.setdefault('cache', {})['port'] = parsed.port or 6379
+            if parsed.password:
+                env_vars.setdefault('cache', {})['password'] = parsed.password
+            if parsed.path and len(parsed.path) > 1:
+                env_vars.setdefault('cache', {})['db'] = int(parsed.path[1:])
+
+        # Environment-specific settings
+        environment = os.getenv('ENVIRONMENT', 'development')
+        if environment == 'production':
+            # Production-specific overrides
+            env_vars.setdefault('server', {})['reload'] = False
+            env_vars.setdefault('server', {})['log_level'] = os.getenv('LOG_LEVEL', 'info')
+            env_vars.setdefault('database', {})['ssl_disabled'] = False
+            env_vars.setdefault('database', {})['echo_queries'] = False
 
         # Ollama configuration from environment
         if os.getenv('STORYSIGN_OLLAMA__SERVICE_URL'):
@@ -498,17 +550,17 @@ class ConfigManager:
         if os.getenv('STORYSIGN_GESTURE_DETECTION__ENABLED'):
             env_vars.setdefault('gesture_detection', {})['enabled'] = os.getenv('STORYSIGN_GESTURE_DETECTION__ENABLED').lower() == 'true'
 
-        # Database configuration from environment
-        if os.getenv('STORYSIGN_DATABASE__HOST'):
-            env_vars.setdefault('database', {})['host'] = os.getenv('STORYSIGN_DATABASE__HOST')
-        if os.getenv('STORYSIGN_DATABASE__PORT'):
-            env_vars.setdefault('database', {})['port'] = int(os.getenv('STORYSIGN_DATABASE__PORT'))
-        if os.getenv('STORYSIGN_DATABASE__DATABASE'):
-            env_vars.setdefault('database', {})['database'] = os.getenv('STORYSIGN_DATABASE__DATABASE')
-        if os.getenv('STORYSIGN_DATABASE__USERNAME'):
-            env_vars.setdefault('database', {})['username'] = os.getenv('STORYSIGN_DATABASE__USERNAME')
-        if os.getenv('STORYSIGN_DATABASE__PASSWORD'):
-            env_vars.setdefault('database', {})['password'] = os.getenv('STORYSIGN_DATABASE__PASSWORD')
+        # Database configuration from environment (support both standard and prefixed names)
+        if os.getenv('DATABASE_HOST') or os.getenv('STORYSIGN_DATABASE__HOST'):
+            env_vars.setdefault('database', {})['host'] = os.getenv('DATABASE_HOST') or os.getenv('STORYSIGN_DATABASE__HOST')
+        if os.getenv('DATABASE_PORT') or os.getenv('STORYSIGN_DATABASE__PORT'):
+            env_vars.setdefault('database', {})['port'] = int(os.getenv('DATABASE_PORT') or os.getenv('STORYSIGN_DATABASE__PORT'))
+        if os.getenv('DATABASE_NAME') or os.getenv('STORYSIGN_DATABASE__DATABASE'):
+            env_vars.setdefault('database', {})['database'] = os.getenv('DATABASE_NAME') or os.getenv('STORYSIGN_DATABASE__DATABASE')
+        if os.getenv('DATABASE_USER') or os.getenv('STORYSIGN_DATABASE__USERNAME'):
+            env_vars.setdefault('database', {})['username'] = os.getenv('DATABASE_USER') or os.getenv('STORYSIGN_DATABASE__USERNAME')
+        if os.getenv('DATABASE_PASSWORD') or os.getenv('STORYSIGN_DATABASE__PASSWORD'):
+            env_vars.setdefault('database', {})['password'] = os.getenv('DATABASE_PASSWORD') or os.getenv('STORYSIGN_DATABASE__PASSWORD')
         if os.getenv('STORYSIGN_DATABASE__POOL_SIZE'):
             env_vars.setdefault('database', {})['pool_size'] = int(os.getenv('STORYSIGN_DATABASE__POOL_SIZE'))
         if os.getenv('STORYSIGN_DATABASE__MAX_OVERFLOW'):

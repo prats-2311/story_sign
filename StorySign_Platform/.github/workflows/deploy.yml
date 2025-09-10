@@ -1,0 +1,256 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  NODE_VERSION: "18"
+
+jobs:
+  # Pre-deployment checks
+  pre-deployment:
+    name: Pre-deployment Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if deployment is allowed
+        run: |
+          # Only allow deployment from main branch or manual trigger
+          if [[ "${{ github.ref }}" != "refs/heads/main" ]] && [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            echo "❌ Deployment only allowed from main branch or manual trigger"
+            exit 1
+          fi
+          echo "✅ Deployment check passed"
+
+      - name: Validate deployment readiness
+        run: |
+          # Check if all required files exist
+          test -f render.yaml || (echo "❌ render.yaml not found" && exit 1)
+          test -f netlify.toml || (echo "❌ netlify.toml not found" && exit 1)
+          test -f frontend/.env.production || (echo "❌ .env.production not found" && exit 1)
+          echo "✅ All deployment files present"
+
+  # Build and test before deployment
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    needs: pre-deployment
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          npm run test:ci
+        env:
+          CI: true
+
+      - name: Build frontend for production
+        run: |
+          cd frontend
+          npm run build:production
+        env:
+          REACT_APP_API_URL: https://storysign-backend.onrender.com
+          REACT_APP_WS_URL: wss://storysign-backend.onrender.com
+          REACT_APP_USE_PROXY: true
+          REACT_APP_ENVIRONMENT: production
+          GENERATE_SOURCEMAP: false
+          CI: true
+
+      - name: Upload production build
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-build
+          path: frontend/build/
+          retention-days: 30
+
+  # Deploy to Netlify
+  deploy-frontend:
+    name: Deploy Frontend to Netlify
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+      url: ${{ steps.deploy.outputs.deploy-url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download production build
+        uses: actions/download-artifact@v4
+        with:
+          name: production-build
+          path: frontend/build/
+
+      - name: Deploy to Netlify
+        id: deploy
+        uses: nwtgck/actions-netlify@v2.0
+        with:
+          publish-dir: "./frontend/build"
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions - ${{ github.sha }}"
+          enable-pull-request-comment: false
+          enable-commit-comment: true
+          overwrites-pull-request-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+      - name: Update deployment status
+        run: |
+          echo "🚀 Frontend deployed successfully!"
+          echo "Deploy URL: ${{ steps.deploy.outputs.deploy-url }}"
+          echo "Preview URL: ${{ steps.deploy.outputs.preview-url }}"
+
+  # Notify Render to deploy backend (Render auto-deploys on push to main)
+  notify-backend-deployment:
+    name: Notify Backend Deployment
+    runs-on: ubuntu-latest
+    needs: pre-deployment
+
+    steps:
+      - name: Trigger Render deployment
+        run: |
+          echo "🔄 Backend deployment will be triggered automatically by Render"
+          echo "Monitor deployment at: https://dashboard.render.com"
+
+          # Optional: Use Render API to trigger deployment if webhook is configured
+          if [[ -n "${{ secrets.RENDER_DEPLOY_HOOK }}" ]]; then
+            curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+            echo "✅ Render deployment webhook triggered"
+          fi
+
+  # Post-deployment health checks
+  health-check:
+    name: Post-deployment Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy-frontend, notify-backend-deployment]
+
+    steps:
+      - name: Wait for deployments to complete
+        run: |
+          echo "⏳ Waiting for deployments to stabilize..."
+          sleep 60
+
+      - name: Check backend health
+        run: |
+          echo "🔍 Checking backend health..."
+
+          # Check backend health endpoint
+          BACKEND_URL="https://storysign-backend.onrender.com"
+
+          for i in {1..5}; do
+            if curl -f -s "$BACKEND_URL/health" > /dev/null; then
+              echo "✅ Backend health check passed"
+              break
+            else
+              echo "⚠️ Backend health check failed (attempt $i/5)"
+              if [ $i -eq 5 ]; then
+                echo "❌ Backend health check failed after 5 attempts"
+                exit 1
+              fi
+              sleep 30
+            fi
+          done
+
+      - name: Check frontend health
+        run: |
+          echo "🔍 Checking frontend health..."
+
+          # Check frontend deployment
+          FRONTEND_URL="https://storysign-platform.netlify.app"
+
+          for i in {1..3}; do
+            if curl -f -s "$FRONTEND_URL" > /dev/null; then
+              echo "✅ Frontend health check passed"
+              break
+            else
+              echo "⚠️ Frontend health check failed (attempt $i/3)"
+              if [ $i -eq 3 ]; then
+                echo "❌ Frontend health check failed after 3 attempts"
+                exit 1
+              fi
+              sleep 15
+            fi
+          done
+
+      - name: Run smoke tests
+        run: |
+          echo "🧪 Running smoke tests..."
+
+          # Test API endpoints
+          BACKEND_URL="https://storysign-backend.onrender.com"
+
+          # Test health endpoint
+          curl -f "$BACKEND_URL/health" | jq '.status' | grep -q "healthy" || (echo "❌ Health endpoint failed" && exit 1)
+
+          # Test API root
+          curl -f "$BACKEND_URL/" | jq '.message' | grep -q "StorySign" || (echo "❌ API root failed" && exit 1)
+
+          echo "✅ Smoke tests passed"
+
+  # Deployment notification
+  notify-deployment:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [health-check]
+    if: always()
+
+    steps:
+      - name: Deployment Success Notification
+        if: needs.health-check.result == 'success'
+        run: |
+          echo "🎉 Deployment completed successfully!"
+          echo "Frontend: https://storysign-platform.netlify.app"
+          echo "Backend: https://storysign-backend.onrender.com"
+          echo "Commit: ${{ github.sha }}"
+
+      - name: Deployment Failure Notification
+        if: needs.health-check.result == 'failure'
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Please check the logs and fix any issues."
+          echo "Commit: ${{ github.sha }}"
+          exit 1
+
+      # Optional: Send notifications to Slack, Discord, etc.
+      - name: Send Slack notification
+        if: always() && secrets.SLACK_WEBHOOK_URL != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: "#deployments"
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

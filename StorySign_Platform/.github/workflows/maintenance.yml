@@ -1,0 +1,388 @@
+name: Maintenance and Security
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  # Security audit
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Frontend security audit
+        run: |
+          cd frontend
+          npm audit --audit-level=moderate > frontend-audit.txt 2>&1 || true
+
+          if grep -q "found.*vulnerabilities" frontend-audit.txt; then
+            echo "⚠️ Frontend vulnerabilities found"
+            cat frontend-audit.txt
+          else
+            echo "✅ No frontend vulnerabilities found"
+          fi
+
+      - name: Backend security audit
+        run: |
+          cd backend
+          pip install safety
+          safety check > backend-audit.txt 2>&1 || true
+
+          if grep -q "vulnerability" backend-audit.txt; then
+            echo "⚠️ Backend vulnerabilities found"
+            cat backend-audit.txt
+          else
+            echo "✅ No backend vulnerabilities found"
+          fi
+
+      - name: Create security issue if vulnerabilities found
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let frontendAudit = '';
+            let backendAudit = '';
+
+            try {
+              frontendAudit = fs.readFileSync('frontend/frontend-audit.txt', 'utf8');
+            } catch (error) {
+              frontendAudit = 'Could not read frontend audit results.';
+            }
+
+            try {
+              backendAudit = fs.readFileSync('backend/backend-audit.txt', 'utf8');
+            } catch (error) {
+              backendAudit = 'Could not read backend audit results.';
+            }
+
+            const hasFrontendVulns = frontendAudit.includes('vulnerabilities');
+            const hasBackendVulns = backendAudit.includes('vulnerability');
+
+            if (hasFrontendVulns || hasBackendVulns) {
+              const title = `🚨 Security Vulnerabilities Detected - ${new Date().toISOString().split('T')[0]}`;
+              const body = `## Security Audit Results
+
+            **Date:** ${new Date().toISOString()}
+
+            ### Frontend Audit Results
+            \`\`\`
+            ${frontendAudit}
+            \`\`\`
+
+            ### Backend Audit Results
+            \`\`\`
+            ${backendAudit}
+            \`\`\`
+
+            ### Recommended Actions
+            1. Review the vulnerabilities listed above
+            2. Update affected dependencies to secure versions
+            3. Test the application after updates
+            4. Close this issue once all vulnerabilities are resolved
+
+            ### Automation
+            This issue was created automatically by the maintenance workflow.`;
+
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['security', 'maintenance', 'high-priority']
+              });
+            }
+
+  # Dependency updates
+  dependency-updates:
+    name: Check Dependency Updates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Check for outdated npm packages
+        run: |
+          cd frontend
+          npm outdated > outdated-packages.txt 2>&1 || true
+
+          if [ -s outdated-packages.txt ]; then
+            echo "📦 Outdated packages found:"
+            cat outdated-packages.txt
+          else
+            echo "✅ All npm packages are up to date"
+          fi
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Check for outdated Python packages
+        run: |
+          cd backend
+          pip install pip-check-reqs
+          pip list --outdated > outdated-python-packages.txt 2>&1 || true
+
+          if [ -s outdated-python-packages.txt ]; then
+            echo "🐍 Outdated Python packages found:"
+            cat outdated-python-packages.txt
+          else
+            echo "✅ All Python packages are up to date"
+          fi
+
+  # Health monitoring
+  health-monitoring:
+    name: Production Health Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check production backend health
+        run: |
+          echo "🔍 Checking production backend health..."
+
+          BACKEND_URL="https://storysign-backend.onrender.com"
+
+          # Check health endpoint
+          HEALTH_RESPONSE=$(curl -s -w "%{http_code}" "$BACKEND_URL/health")
+          HTTP_CODE="${HEALTH_RESPONSE: -3}"
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Backend health check passed"
+            
+            # Parse health response
+            HEALTH_DATA=$(echo "$HEALTH_RESPONSE" | head -c -3)
+            echo "Health data: $HEALTH_DATA"
+            
+            # Check if status is healthy
+            if echo "$HEALTH_DATA" | jq -e '.status == "healthy"' > /dev/null; then
+              echo "✅ Backend reports healthy status"
+            else
+              echo "⚠️ Backend reports non-healthy status"
+              exit 1
+            fi
+          else
+            echo "❌ Backend health check failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Check production frontend health
+        run: |
+          echo "🔍 Checking production frontend health..."
+
+          FRONTEND_URL="https://storysign-platform.netlify.app"
+
+          # Check if frontend loads
+          HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null "$FRONTEND_URL")
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Frontend health check passed"
+          else
+            echo "❌ Frontend health check failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Create health issue if checks fail
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `🚨 Production Health Check Failed - ${new Date().toISOString().split('T')[0]}`;
+            const body = `## Production Health Check Failure
+
+            **Date:** ${new Date().toISOString()}
+            **Workflow:** ${{ github.workflow }}
+            **Run ID:** ${{ github.run_id }}
+
+            ### Issue Details
+            The automated health check for production services has failed.
+
+            ### Services Checked
+            - **Backend:** https://storysign-backend.onrender.com/health
+            - **Frontend:** https://storysign-platform.netlify.app
+
+            ### Recommended Actions
+            1. Check the deployment status on Render and Netlify
+            2. Review recent deployments for any issues
+            3. Check service logs for error messages
+            4. Verify all environment variables are properly configured
+            5. Test the services manually
+
+            ### Monitoring
+            - [Render Dashboard](https://dashboard.render.com)
+            - [Netlify Dashboard](https://app.netlify.com)
+
+            This issue was created automatically by the maintenance workflow.`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['production', 'health-check', 'critical']
+            });
+
+  # Performance monitoring
+  performance-monitoring:
+    name: Performance Monitoring
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli
+
+      - name: Run Lighthouse on production
+        run: |
+          echo "📊 Running Lighthouse performance check..."
+
+          FRONTEND_URL="https://storysign-platform.netlify.app"
+
+          # Create Lighthouse config
+          cat > lighthouserc.json << EOF
+          {
+            "ci": {
+              "collect": {
+                "url": ["$FRONTEND_URL"],
+                "numberOfRuns": 1
+              },
+              "assert": {
+                "assertions": {
+                  "categories:performance": ["warn", {"minScore": 0.6}],
+                  "categories:accessibility": ["error", {"minScore": 0.9}],
+                  "categories:best-practices": ["warn", {"minScore": 0.8}],
+                  "categories:seo": ["warn", {"minScore": 0.8}]
+                }
+              }
+            }
+          }
+          EOF
+
+          # Run Lighthouse
+          lhci autorun --config=lighthouserc.json > lighthouse-results.txt 2>&1 || true
+
+          # Check results
+          if grep -q "Assertion failed" lighthouse-results.txt; then
+            echo "⚠️ Performance issues detected"
+            cat lighthouse-results.txt
+          else
+            echo "✅ Performance check passed"
+          fi
+
+  # Cleanup old artifacts
+  cleanup-artifacts:
+    name: Cleanup Old Artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delete old artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            let deletedCount = 0;
+
+            for (const artifact of artifacts.data.artifacts) {
+              const createdAt = new Date(artifact.created_at);
+              
+              if (createdAt < thirtyDaysAgo) {
+                try {
+                  await github.rest.actions.deleteArtifact({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    artifact_id: artifact.id
+                  });
+                  deletedCount++;
+                  console.log(`Deleted artifact: ${artifact.name} (${artifact.created_at})`);
+                } catch (error) {
+                  console.log(`Failed to delete artifact ${artifact.name}: ${error.message}`);
+                }
+              }
+            }
+
+            console.log(`Cleanup completed. Deleted ${deletedCount} old artifacts.`);
+
+  # Generate maintenance report
+  maintenance-report:
+    name: Generate Maintenance Report
+    runs-on: ubuntu-latest
+    needs:
+      [
+        security-audit,
+        dependency-updates,
+        health-monitoring,
+        performance-monitoring,
+      ]
+    if: always()
+
+    steps:
+      - name: Generate report
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const jobs = [
+              { name: 'Security Audit', result: '${{ needs.security-audit.result }}' },
+              { name: 'Dependency Updates', result: '${{ needs.dependency-updates.result }}' },
+              { name: 'Health Monitoring', result: '${{ needs.health-monitoring.result }}' },
+              { name: 'Performance Monitoring', result: '${{ needs.performance-monitoring.result }}' }
+            ];
+
+            const passedJobs = jobs.filter(job => job.result === 'success').length;
+            const totalJobs = jobs.length;
+            const overallStatus = passedJobs === totalJobs ? '✅ All Checks Passed' : '⚠️ Some Checks Failed';
+
+            console.log(`## 📋 Maintenance Report - ${new Date().toISOString().split('T')[0]}`);
+            console.log(`\n**Overall Status:** ${overallStatus} (${passedJobs}/${totalJobs})`);
+            console.log('\n### Job Results:');
+
+            jobs.forEach(job => {
+              const status = job.result === 'success' ? '✅' : 
+                            job.result === 'failure' ? '❌' : 
+                            job.result === 'cancelled' ? '⏹️' : '⚠️';
+              console.log(`- ${status} ${job.name}: ${job.result}`);
+            });
+
+            console.log('\n### Next Steps:');
+            if (passedJobs < totalJobs) {
+              console.log('- Review failed jobs and address any issues');
+              console.log('- Check for new security issues or performance degradation');
+            } else {
+              console.log('- All maintenance checks passed successfully');
+            }
+
+            console.log('\n---');
+            console.log('*This report was generated automatically by the maintenance workflow.*');

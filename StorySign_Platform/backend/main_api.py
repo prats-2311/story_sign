@@ -195,19 +195,79 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Comprehensive health check endpoint for production deployment"""
+    health_status = "healthy"
+    services = {}
+    
+    try:
+        # Check configuration
+        config = get_config()
+        services["configuration"] = "healthy"
+        
+        # Check Groq API if configured
+        if config.groq.is_configured():
+            try:
+                from local_vision_service import get_vision_service
+                vision_service = await get_vision_service()
+                if hasattr(vision_service, 'check_health'):
+                    groq_healthy = await vision_service.check_health()
+                    services["groq_api"] = "healthy" if groq_healthy else "unhealthy"
+                    if not groq_healthy:
+                        health_status = "degraded"
+                else:
+                    services["groq_api"] = "unknown"
+            except Exception as e:
+                services["groq_api"] = f"error: {str(e)[:50]}"
+                health_status = "degraded"
+        else:
+            services["groq_api"] = "not_configured"
+        
+        # Check database connection (if available)
+        try:
+            # This is a basic check - in a real implementation you'd test the actual connection
+            db_config = config.database
+            if db_config.host and db_config.database:
+                services["database"] = "configured"
+            else:
+                services["database"] = "not_configured"
+        except Exception as e:
+            services["database"] = f"error: {str(e)[:50]}"
+            health_status = "degraded"
+        
+        # Check authentication configuration
+        try:
+            auth_config = config.auth
+            if auth_config.jwt_secret and auth_config.jwt_secret != "your-secret-key-change-in-production":
+                services["authentication"] = "healthy"
+            else:
+                services["authentication"] = "using_default_secret"
+                health_status = "degraded"
+        except Exception as e:
+            services["authentication"] = f"error: {str(e)[:50]}"
+            health_status = "unhealthy"
+        
+        # Basic system checks
+        services["rate_limiting"] = "healthy"
+        services["cors"] = "healthy"
+        
+    except Exception as e:
+        health_status = "unhealthy"
+        services["system"] = f"error: {str(e)[:50]}"
+    
     return {
-        "status": "healthy",
+        "status": health_status,
         "timestamp": datetime.utcnow().isoformat(),
         "uptime_seconds": time.time() - startup_time,
         "version": "1.0.0",
+        "environment": os.getenv("ENVIRONMENT", "development"),
         "request_count": request_count,
         "error_count": error_count,
-        "error_rate": (error_count / max(1, request_count)) * 100,
-        "services": {
-            "database": "healthy",  # TODO: Implement actual health checks
-            "auth": "healthy",
-            "rate_limiting": "healthy"
+        "error_rate": round((error_count / max(1, request_count)) * 100, 2),
+        "services": services,
+        "deployment": {
+            "platform": "render" if os.getenv("RENDER") else "local",
+            "port": os.getenv("PORT", "8000"),
+            "workers": os.getenv("MAX_WORKERS", "4")
         }
     }
 
