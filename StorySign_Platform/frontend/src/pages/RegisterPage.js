@@ -17,8 +17,20 @@ const RegisterPage = () => {
     score: 0,
     feedback: [],
   });
+  const [lastAttemptData, setLastAttemptData] = useState(null);
+  const [isRetrying, setIsRetrying] = useState(false);
 
-  const { register, isLoading, error, clearError } = useAuth();
+  const {
+    register,
+    isLoading,
+    error,
+    errorType,
+    canRetry,
+    retryCount,
+    maxRetries,
+    clearError,
+    retryAuthentication,
+  } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,7 +57,7 @@ const RegisterPage = () => {
     };
   }, [error, clearError]);
 
-  const calculatePasswordStrength = (password) => {
+  const calculatePasswordStrength = password => {
     let score = 0;
     const feedback = [];
 
@@ -123,9 +135,9 @@ const RegisterPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = e => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: value,
     }));
@@ -138,14 +150,14 @@ const RegisterPage = () => {
 
     // Clear error for this field when user starts typing
     if (errors[name]) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         [name]: "",
       }));
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -157,6 +169,17 @@ const RegisterPage = () => {
     }
 
     setErrors({});
+
+    // Store attempt data for potential retry
+    const attemptData = {
+      type: "register",
+      userData: {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+      },
+    };
+    setLastAttemptData(attemptData);
 
     try {
       const response = await register({
@@ -179,18 +202,69 @@ const RegisterPage = () => {
       });
     } catch (error) {
       console.error("Registration error:", error);
+
+      // Enhanced error handling with retry information
+      let errorMessage =
+        error.message || "Registration failed. Please try again.";
+
+      if (error.canRetry && error.retryCount < error.maxRetries) {
+        errorMessage += ` (Attempt ${error.retryCount} of ${error.maxRetries})`;
+      }
+
       setErrors({
-        submit: error.message || "Registration failed. Please try again.",
+        submit: errorMessage,
       });
-      announceToScreenReader(
-        `Registration failed: ${error.message || "Please try again."}`
-      );
+
+      announceToScreenReader(`Registration failed: ${errorMessage}`);
     } finally {
       // Loading state is managed by AuthContext
     }
   };
 
-  const togglePasswordVisibility = (field) => {
+  const handleRetry = async () => {
+    if (!canRetry || !lastAttemptData || retryCount >= maxRetries) {
+      return;
+    }
+
+    setIsRetrying(true);
+    setErrors({});
+
+    try {
+      const response = await retryAuthentication(lastAttemptData);
+
+      console.log("Registration successful on retry:", response);
+      announceToScreenReader(
+        "Registration successful. Redirecting to login..."
+      );
+
+      // Navigate to login page with success message
+      navigate("/login", {
+        state: {
+          message:
+            "Account created successfully! Please sign in with your new credentials.",
+        },
+      });
+    } catch (error) {
+      console.error("Retry registration error:", error);
+
+      let errorMessage =
+        error.message || "Registration failed. Please try again.";
+
+      if (error.canRetry && error.retryCount < error.maxRetries) {
+        errorMessage += ` (Attempt ${error.retryCount} of ${error.maxRetries})`;
+      }
+
+      setErrors({
+        submit: errorMessage,
+      });
+
+      announceToScreenReader(`Registration retry failed: ${errorMessage}`);
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
+  const togglePasswordVisibility = field => {
     if (field === "password") {
       setShowPassword(!showPassword);
     } else if (field === "confirmPassword") {
@@ -198,7 +272,7 @@ const RegisterPage = () => {
     }
   };
 
-  const announceToScreenReader = (message) => {
+  const announceToScreenReader = message => {
     const announcement = document.getElementById("sr-announcement");
     if (announcement) {
       announcement.textContent = message;
@@ -406,7 +480,53 @@ const RegisterPage = () => {
 
           {errors.submit && (
             <div className="error-message submit-error" role="alert">
-              {errors.submit}
+              <div className="error-content">
+                <span className="error-text">{errors.submit}</span>
+                {errorType && (
+                  <span className="error-type">
+                    {errorType === "network" && "🌐 Network Error"}
+                    {errorType === "server" && "⚠️ Server Error"}
+                    {errorType === "auth" && "🔒 Authentication Error"}
+                    {errorType === "validation" && "📝 Validation Error"}
+                  </span>
+                )}
+              </div>
+              {canRetry && retryCount < maxRetries && (
+                <div className="retry-section">
+                  <button
+                    type="button"
+                    onClick={handleRetry}
+                    disabled={isRetrying || isLoading}
+                    className="retry-button"
+                    aria-describedby="retry-button-description"
+                  >
+                    {isRetrying ? (
+                      <>
+                        <span
+                          className="loading-spinner"
+                          aria-hidden="true"
+                        ></span>
+                        Retrying...
+                      </>
+                    ) : (
+                      <>
+                        🔄 Try Again ({maxRetries - retryCount} attempts left)
+                      </>
+                    )}
+                  </button>
+                  <div id="retry-button-description" className="sr-only">
+                    Click to retry the registration attempt
+                  </div>
+                </div>
+              )}
+              {retryCount >= maxRetries &&
+                errorType !== "auth" &&
+                errorType !== "validation" && (
+                  <div className="max-retries-message">
+                    Maximum retry attempts reached. Please check your connection
+                    and refresh the page to try again.
+                  </div>
+                )}
             </div>
           )}
 

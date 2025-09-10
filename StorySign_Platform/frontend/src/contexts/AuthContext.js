@@ -11,6 +11,8 @@ const AUTH_ACTIONS = {
   UPDATE_USER: "UPDATE_USER",
   SET_LOADING: "SET_LOADING",
   CLEAR_ERROR: "CLEAR_ERROR",
+  SET_RETRY_COUNT: "SET_RETRY_COUNT",
+  RESET_RETRY_COUNT: "RESET_RETRY_COUNT",
 };
 
 // Initial state for authentication
@@ -20,6 +22,10 @@ const initialState = {
   isAuthenticated: false,
   isLoading: true,
   error: null,
+  errorType: null, // 'network', 'validation', 'server', 'auth'
+  retryCount: 0,
+  maxRetries: 3,
+  canRetry: false,
 };
 
 // Auth reducer to manage authentication state
@@ -50,6 +56,8 @@ const authReducer = (state, action) => {
         isAuthenticated: false,
         isLoading: false,
         error: action.payload.error,
+        errorType: action.payload.errorType || "auth",
+        canRetry: action.payload.canRetry || false,
       };
 
     case AUTH_ACTIONS.LOGOUT:
@@ -85,11 +93,101 @@ const authReducer = (state, action) => {
       return {
         ...state,
         error: null,
+        errorType: null,
+        canRetry: false,
+      };
+
+    case AUTH_ACTIONS.SET_RETRY_COUNT:
+      return {
+        ...state,
+        retryCount: action.payload.retryCount,
+      };
+
+    case AUTH_ACTIONS.RESET_RETRY_COUNT:
+      return {
+        ...state,
+        retryCount: 0,
       };
 
     default:
       return state;
   }
+};
+
+// Helper function to categorize errors and determine retry eligibility
+const categorizeError = error => {
+  const errorMessage = error.message || error.toString();
+
+  // Network errors - can retry
+  if (
+    errorMessage.includes("Unable to connect") ||
+    errorMessage.includes("network") ||
+    errorMessage.includes("fetch") ||
+    errorMessage.includes("NetworkError") ||
+    error.name === "TypeError"
+  ) {
+    return {
+      type: "network",
+      canRetry: true,
+      userMessage:
+        "Connection failed. Please check your internet connection and try again.",
+    };
+  }
+
+  // Server errors (5xx) - can retry
+  if (
+    errorMessage.includes("server error") ||
+    errorMessage.includes("Server temporarily unavailable") ||
+    errorMessage.includes("500") ||
+    errorMessage.includes("502") ||
+    errorMessage.includes("503") ||
+    errorMessage.includes("504") ||
+    (error.status && error.status >= 500)
+  ) {
+    return {
+      type: "server",
+      canRetry: true,
+      userMessage:
+        "Server temporarily unavailable. Please try again in a moment.",
+    };
+  }
+
+  // Authentication errors - cannot retry without user action
+  if (
+    errorMessage.includes("Invalid credentials") ||
+    errorMessage.includes("incorrect password") ||
+    errorMessage.includes("user not found") ||
+    errorMessage.includes("invalid email") ||
+    errorMessage.includes("unauthorized")
+  ) {
+    return {
+      type: "auth",
+      canRetry: false,
+      userMessage:
+        "Invalid email or password. Please check your credentials and try again.",
+    };
+  }
+
+  // Validation errors - cannot retry without user action
+  if (
+    errorMessage.includes("validation") ||
+    errorMessage.includes("required") ||
+    errorMessage.includes("invalid format") ||
+    errorMessage.includes("already exists")
+  ) {
+    return {
+      type: "validation",
+      canRetry: false,
+      userMessage: errorMessage, // Use the specific validation message
+    };
+  }
+
+  // Default to auth error if we can't categorize
+  return {
+    type: "auth",
+    canRetry: false,
+    userMessage: errorMessage || "Authentication failed. Please try again.",
+  };
 };
 
 // Create the AuthContext
@@ -198,12 +296,20 @@ export const AuthProvider = ({ children }) => {
     };
   }, [state.isAuthenticated, state.token]);
 
-  // Login function
-  const login = async (email, password, rememberMe = false) => {
+  // Login function with retry logic
+  const login = async (
+    email,
+    password,
+    rememberMe = false,
+    isRetry = false
+  ) => {
     dispatch({ type: AUTH_ACTIONS.LOGIN_START });
 
     try {
       const response = await authService.login(email, password, rememberMe);
+
+      // Reset retry count on success
+      dispatch({ type: AUTH_ACTIONS.RESET_RETRY_COUNT });
 
       dispatch({
         type: AUTH_ACTIONS.LOGIN_SUCCESS,
@@ -215,20 +321,47 @@ export const AuthProvider = ({ children }) => {
 
       return response;
     } catch (error) {
+      const errorInfo = categorizeError(error);
+      const currentRetryCount = isRetry ? state.retryCount + 1 : 1;
+
+      // Update retry count
+      dispatch({
+        type: AUTH_ACTIONS.SET_RETRY_COUNT,
+        payload: { retryCount: currentRetryCount },
+      });
+
+      const canRetry =
+        errorInfo.canRetry && currentRetryCount < state.maxRetries;
+
       dispatch({
         type: AUTH_ACTIONS.LOGIN_FAILURE,
-        payload: { error: error.message },
+        payload: {
+          error: errorInfo.userMessage,
+          errorType: errorInfo.type,
+          canRetry: canRetry,
+        },
       });
-      throw error;
+
+      // Add retry count info to error for UI display
+      const enhancedError = new Error(errorInfo.userMessage);
+      enhancedError.type = errorInfo.type;
+      enhancedError.canRetry = canRetry;
+      enhancedError.retryCount = currentRetryCount;
+      enhancedError.maxRetries = state.maxRetries;
+
+      throw enhancedError;
     }
   };
 
-  // Register function
-  const register = async (userData) => {
+  // Register function with retry logic
+  const register = async (userData, isRetry = false) => {
     dispatch({ type: AUTH_ACTIONS.LOGIN_START });
 
     try {
       const response = await authService.register(userData);
+
+      // Reset retry count on success
+      dispatch({ type: AUTH_ACTIONS.RESET_RETRY_COUNT });
 
       // Registration successful, but don't auto-login
       dispatch({
@@ -238,11 +371,35 @@ export const AuthProvider = ({ children }) => {
 
       return response;
     } catch (error) {
+      const errorInfo = categorizeError(error);
+      const currentRetryCount = isRetry ? state.retryCount + 1 : 1;
+
+      // Update retry count
+      dispatch({
+        type: AUTH_ACTIONS.SET_RETRY_COUNT,
+        payload: { retryCount: currentRetryCount },
+      });
+
+      const canRetry =
+        errorInfo.canRetry && currentRetryCount < state.maxRetries;
+
       dispatch({
         type: AUTH_ACTIONS.LOGIN_FAILURE,
-        payload: { error: error.message },
+        payload: {
+          error: errorInfo.userMessage,
+          errorType: errorInfo.type,
+          canRetry: canRetry,
+        },
       });
-      throw error;
+
+      // Add retry count info to error for UI display
+      const enhancedError = new Error(errorInfo.userMessage);
+      enhancedError.type = errorInfo.type;
+      enhancedError.canRetry = canRetry;
+      enhancedError.retryCount = currentRetryCount;
+      enhancedError.maxRetries = state.maxRetries;
+
+      throw enhancedError;
     }
   };
 
@@ -258,7 +415,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Update user profile
-  const updateProfile = async (profileData) => {
+  const updateProfile = async profileData => {
     try {
       const updatedUser = await authService.updateProfile(profileData);
 
@@ -289,7 +446,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Request password reset
-  const requestPasswordReset = async (email) => {
+  const requestPasswordReset = async email => {
     try {
       const response = await authService.requestPasswordReset(email);
       return response;
@@ -316,12 +473,32 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Check if user has specific role or permission
-  const hasRole = (role) => {
+  const hasRole = role => {
     return state.user?.roles?.includes(role) || false;
   };
 
-  const hasPermission = (permission) => {
+  const hasPermission = permission => {
     return state.user?.permissions?.includes(permission) || false;
+  };
+
+  // Retry last failed authentication attempt
+  const retryAuthentication = async lastAttemptData => {
+    if (!state.canRetry || state.retryCount >= state.maxRetries) {
+      throw new Error("Maximum retry attempts reached");
+    }
+
+    if (lastAttemptData.type === "login") {
+      return await login(
+        lastAttemptData.email,
+        lastAttemptData.password,
+        lastAttemptData.rememberMe,
+        true // isRetry
+      );
+    } else if (lastAttemptData.type === "register") {
+      return await register(lastAttemptData.userData, true); // isRetry
+    }
+
+    throw new Error("Invalid retry attempt type");
   };
 
   // Context value
@@ -332,6 +509,10 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: state.isAuthenticated,
     isLoading: state.isLoading,
     error: state.error,
+    errorType: state.errorType,
+    retryCount: state.retryCount,
+    maxRetries: state.maxRetries,
+    canRetry: state.canRetry,
 
     // Actions
     login,
@@ -342,6 +523,7 @@ export const AuthProvider = ({ children }) => {
     requestPasswordReset,
     resetPassword,
     clearError,
+    retryAuthentication,
 
     // Utilities
     hasRole,

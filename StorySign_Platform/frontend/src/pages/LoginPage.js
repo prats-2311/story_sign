@@ -11,8 +11,20 @@ const LoginPage = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [lastAttemptData, setLastAttemptData] = useState(null);
+  const [isRetrying, setIsRetrying] = useState(false);
 
-  const { login, isLoading, error, clearError } = useAuth();
+  const {
+    login,
+    isLoading,
+    error,
+    errorType,
+    canRetry,
+    retryCount,
+    maxRetries,
+    clearError,
+    retryAuthentication,
+  } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -93,6 +105,15 @@ const LoginPage = () => {
 
     setErrors({});
 
+    // Store attempt data for potential retry
+    const attemptData = {
+      type: "login",
+      email: formData.email,
+      password: formData.password,
+      rememberMe: rememberMe,
+    };
+    setLastAttemptData(attemptData);
+
     try {
       const response = await login(
         formData.email,
@@ -107,18 +128,60 @@ const LoginPage = () => {
       navigate(from, { replace: true });
     } catch (error) {
       console.error("Login error:", error);
+
+      // Enhanced error handling with retry information
+      let errorMessage =
+        error.message ||
+        "Login failed. Please check your credentials and try again.";
+
+      if (error.canRetry && error.retryCount < error.maxRetries) {
+        errorMessage += ` (Attempt ${error.retryCount} of ${error.maxRetries})`;
+      }
+
       setErrors({
-        submit:
-          error.message ||
-          "Login failed. Please check your credentials and try again.",
+        submit: errorMessage,
       });
-      announceToScreenReader(
-        `Login failed: ${
-          error.message || "Please check your credentials and try again."
-        }`
-      );
+
+      announceToScreenReader(`Login failed: ${errorMessage}`);
     } finally {
       // Loading state is managed by AuthContext
+    }
+  };
+
+  const handleRetry = async () => {
+    if (!canRetry || !lastAttemptData || retryCount >= maxRetries) {
+      return;
+    }
+
+    setIsRetrying(true);
+    setErrors({});
+
+    try {
+      const response = await retryAuthentication(lastAttemptData);
+
+      console.log("Login successful on retry:", response.user.email);
+      announceToScreenReader("Login successful. Redirecting...");
+
+      // Navigate to intended destination or home
+      navigate(from, { replace: true });
+    } catch (error) {
+      console.error("Retry login error:", error);
+
+      let errorMessage =
+        error.message ||
+        "Login failed. Please check your credentials and try again.";
+
+      if (error.canRetry && error.retryCount < error.maxRetries) {
+        errorMessage += ` (Attempt ${error.retryCount} of ${error.maxRetries})`;
+      }
+
+      setErrors({
+        submit: errorMessage,
+      });
+
+      announceToScreenReader(`Login retry failed: ${errorMessage}`);
+    } finally {
+      setIsRetrying(false);
     }
   };
 
@@ -225,7 +288,53 @@ const LoginPage = () => {
 
           {errors.submit && (
             <div className="error-message submit-error" role="alert">
-              {errors.submit}
+              <div className="error-content">
+                <span className="error-text">{errors.submit}</span>
+                {errorType && (
+                  <span className="error-type">
+                    {errorType === "network" && "🌐 Network Error"}
+                    {errorType === "server" && "⚠️ Server Error"}
+                    {errorType === "auth" && "🔒 Authentication Error"}
+                    {errorType === "validation" && "📝 Validation Error"}
+                  </span>
+                )}
+              </div>
+              {canRetry && retryCount < maxRetries && (
+                <div className="retry-section">
+                  <button
+                    type="button"
+                    onClick={handleRetry}
+                    disabled={isRetrying || isLoading}
+                    className="retry-button"
+                    aria-describedby="retry-button-description"
+                  >
+                    {isRetrying ? (
+                      <>
+                        <span
+                          className="loading-spinner"
+                          aria-hidden="true"
+                        ></span>
+                        Retrying...
+                      </>
+                    ) : (
+                      <>
+                        🔄 Try Again ({maxRetries - retryCount} attempts left)
+                      </>
+                    )}
+                  </button>
+                  <div id="retry-button-description" className="sr-only">
+                    Click to retry the login attempt
+                  </div>
+                </div>
+              )}
+              {retryCount >= maxRetries &&
+                errorType !== "auth" &&
+                errorType !== "validation" && (
+                  <div className="max-retries-message">
+                    Maximum retry attempts reached. Please check your connection
+                    and refresh the page to try again.
+                  </div>
+                )}
             </div>
           )}
 

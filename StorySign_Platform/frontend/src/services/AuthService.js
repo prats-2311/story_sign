@@ -180,7 +180,27 @@ class AuthService {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || data.detail || "Login failed");
+        // Create more specific error messages based on status code
+        let errorMessage = data.message || data.detail || "Login failed";
+
+        if (response.status === 401) {
+          errorMessage =
+            "Invalid email or password. Please check your credentials and try again.";
+        } else if (response.status === 429) {
+          errorMessage =
+            "Too many login attempts. Please wait a moment before trying again.";
+        } else if (response.status >= 500) {
+          errorMessage =
+            "Server temporarily unavailable. Please try again in a moment.";
+        } else if (response.status === 400) {
+          errorMessage =
+            data.message || "Invalid login request. Please check your input.";
+        }
+
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        error.originalMessage = data.message || data.detail;
+        throw error;
       }
 
       // Store authentication data
@@ -227,7 +247,28 @@ class AuthService {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || data.detail || "Registration failed");
+        // Create more specific error messages based on status code
+        let errorMessage = data.message || data.detail || "Registration failed";
+
+        if (response.status === 409) {
+          errorMessage =
+            "An account with this email already exists. Please use a different email or try logging in.";
+        } else if (response.status === 400) {
+          errorMessage =
+            data.message ||
+            "Invalid registration data. Please check your input.";
+        } else if (response.status === 429) {
+          errorMessage =
+            "Too many registration attempts. Please wait a moment before trying again.";
+        } else if (response.status >= 500) {
+          errorMessage =
+            "Server temporarily unavailable. Please try again in a moment.";
+        }
+
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        error.originalMessage = data.message || data.detail;
+        throw error;
       }
 
       return data;
