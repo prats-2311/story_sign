@@ -27,6 +27,18 @@ const AppContent = () => {
 
   return (
     <Routes>
+      {/* Root path redirect - authenticated users go to dashboard, unauthenticated to login */}
+      <Route
+        path="/"
+        element={
+          isAuthenticated ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+
       {/* Public Routes - accessible without authentication */}
       <Route
         path="/login"
@@ -56,10 +68,7 @@ const AppContent = () => {
                 <Route path="/asl-world" element={<ASLWorldPage />} />
                 <Route path="/harmony" element={<HarmonyPage />} />
                 <Route path="/reconnect" element={<ReconnectPage />} />
-                <Route
-                  path="/"
-                  element={<Navigate to="/dashboard" replace />}
-                />
+                {/* Catch-all for unknown protected routes */}
                 <Route
                   path="*"
                   element={<Navigate to="/dashboard" replace />}

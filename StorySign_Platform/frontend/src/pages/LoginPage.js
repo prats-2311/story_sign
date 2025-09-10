@@ -16,8 +16,8 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get the intended destination from location state
-  const from = location.state?.from?.pathname || "/";
+  // Get the intended destination from location state, default to dashboard
+  const from = location.state?.from?.pathname || "/dashboard";
 
   // Handle context errors
   useEffect(() => {
@@ -64,23 +64,23 @@ const LoginPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = e => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: value,
     }));
 
     // Clear error for this field when user starts typing
     if (errors[name]) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         [name]: "",
       }));
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -126,7 +126,7 @@ const LoginPage = () => {
     setShowPassword(!showPassword);
   };
 
-  const announceToScreenReader = (message) => {
+  const announceToScreenReader = message => {
     const announcement = document.getElementById("sr-announcement");
     if (announcement) {
       announcement.textContent = message;
@@ -216,7 +216,7 @@ const LoginPage = () => {
               <input
                 type="checkbox"
                 checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
+                onChange={e => setRememberMe(e.target.checked)}
                 className="checkbox-input"
               />
               <span className="checkbox-text">Remember me</span>

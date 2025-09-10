@@ -36,7 +36,7 @@
   - Add `/reconnect` route to render ReconnectPage component for movement analysis
   - _Requirements: 2.4, 3.3, 5.4_
 
-- [ ] 6. Implement default navigation and redirects
+- [x] 6. Implement default navigation and redirects
 
   - Configure root path (`/`) to redirect authenticated users to `/dashboard`
   - Set up automatic redirect to `/login` for unauthenticated users accessing protected routes
