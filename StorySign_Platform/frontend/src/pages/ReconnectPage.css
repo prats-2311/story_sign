@@ -1,0 +1,189 @@
+/* ReconnectPage.css */
+
+.reconnect-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.page-header {
+  padding: 2rem;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.page-header h1 {
+  font-size: 3rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.page-header p {
+  font-size: 1.2rem;
+  margin: 0 0 1rem 0;
+  opacity: 0.9;
+}
+
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+.status-indicator {
+  font-size: 1rem;
+}
+
+.page-content {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Practice Container */
+.reconnect-practice-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.practice-video-section {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 2rem;
+  align-items: start;
+}
+
+.practice-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.end-session-button {
+  padding: 1rem 2rem;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+
+.end-session-button:hover:not(:disabled) {
+  background: #c0392b;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+.end-session-button:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Error View */
+.error-view {
+  text-align: center;
+  padding: 3rem;
+  background: rgba(231, 76, 60, 0.1);
+  border: 2px solid rgba(231, 76, 60, 0.3);
+  border-radius: 12px;
+  margin: 2rem 0;
+}
+
+.error-view h2 {
+  color: #e74c3c;
+  margin-bottom: 1rem;
+}
+
+.error-view p {
+  opacity: 0.8;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .practice-video-section {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    padding: 1.5rem;
+  }
+
+  .page-header h1 {
+    font-size: 2.5rem;
+  }
+
+  .page-header p {
+    font-size: 1rem;
+  }
+
+  .page-content {
+    padding: 1rem;
+  }
+
+  .reconnect-practice-container {
+    gap: 1rem;
+  }
+
+  .practice-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .end-session-button {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .end-session-button {
+    transition: none;
+  }
+
+  .end-session-button:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* Focus styles for keyboard navigation */
+.end-session-button:focus {
+  outline: 3px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .reconnect-page {
+    background: #000;
+    color: #fff;
+  }
+
+  .page-header {
+    background: rgba(255, 255, 255, 0.1);
+    border-bottom: 2px solid #fff;
+  }
+
+  .connection-status {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid #fff;
+  }
+}
