@@ -21,7 +21,7 @@
   - Ensure public routes are accessible regardless of authentication state
   - _Requirements: 4.1, 4.2_
 
-- [ ] 4. Set up protected route wrapper with nested routing
+- [x] 4. Set up protected route wrapper with nested routing
 
   - Create protected route wrapper that combines ProtectedRoute and PlatformShell components
   - Implement nested Routes component within the protected wrapper for authenticated pages
