@@ -210,3 +210,34 @@ class DatabaseService(BaseService):
         self.logger.info("Schema migration will be implemented with migration tools")
         # TODO: Implement schema migrations
         pass
+
+
+# Global database service instance
+_database_service: Optional[DatabaseService] = None
+
+
+async def get_database_service() -> DatabaseService:
+    """
+    Get or create global database service instance.
+    
+    Returns:
+        DatabaseService: Global database service instance
+    """
+    global _database_service
+    
+    if _database_service is None:
+        _database_service = DatabaseService()
+        await _database_service.initialize()
+    
+    return _database_service
+
+
+async def cleanup_database_service() -> None:
+    """
+    Cleanup global database service instance.
+    """
+    global _database_service
+    
+    if _database_service is not None:
+        await _database_service.cleanup()
+        _database_service = None
