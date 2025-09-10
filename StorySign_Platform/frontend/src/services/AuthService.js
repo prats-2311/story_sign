@@ -172,7 +172,7 @@ class AuthService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: email.toLowerCase().trim(),
+          identifier: email.toLowerCase().trim(),
           password,
         }),
       });

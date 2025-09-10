@@ -34,6 +34,12 @@ class PWAService {
 
   async registerServiceWorker() {
     try {
+      // Check if service worker file exists first
+      const response = await fetch("/sw.js", { method: "HEAD" });
+      if (!response.ok) {
+        throw new Error(`Service Worker file not found: ${response.status}`);
+      }
+
       this.registration = await navigator.serviceWorker.register("/sw.js", {
         scope: "/",
       });
@@ -64,7 +70,7 @@ class PWAService {
 
   setupEventListeners() {
     // Install prompt handling
-    window.addEventListener("beforeinstallprompt", (event) => {
+    window.addEventListener("beforeinstallprompt", event => {
       event.preventDefault();
       this.deferredPrompt = event;
       console.log("PWA: Install prompt available");
