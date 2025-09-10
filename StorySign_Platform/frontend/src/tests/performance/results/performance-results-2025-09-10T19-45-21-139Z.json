@@ -1,0 +1,116 @@
+{
+  "timestamp": "2025-09-10T19-45-21-139Z",
+  "tests": {
+    "routeTransitions": {
+      "totalTransitions": 5,
+      "passedTransitions": 1,
+      "failedTransitions": 4,
+      "averageTime": 850,
+      "maxTime": 1178.6311863009641,
+      "details": [
+        {
+          "from": "/",
+          "to": "/dashboard",
+          "actualTime": 803,
+          "expectedTime": 500,
+          "passed": false
+        },
+        {
+          "from": "/dashboard",
+          "to": "/asl-world",
+          "actualTime": 1179,
+          "expectedTime": 800,
+          "passed": false
+        },
+        {
+          "from": "/asl-world",
+          "to": "/harmony",
+          "actualTime": 402,
+          "expectedTime": 600,
+          "passed": true
+        },
+        {
+          "from": "/harmony",
+          "to": "/reconnect",
+          "actualTime": 1036,
+          "expectedTime": 600,
+          "passed": false
+        },
+        {
+          "from": "/reconnect",
+          "to": "/dashboard",
+          "actualTime": 832,
+          "expectedTime": 500,
+          "passed": false
+        }
+      ],
+      "passed": false,
+      "successRate": 20
+    },
+    "memoryUsage": {
+      "initialMemory": 45,
+      "finalMemory": 63,
+      "peakMemory": 75,
+      "memoryIncrease": 18,
+      "peakIncrease": 30,
+      "hasLeak": false,
+      "passed": true
+    },
+    "componentLoading": {
+      "totalComponents": 6,
+      "passedComponents": 3,
+      "failedComponents": 3,
+      "averageTime": 151,
+      "details": [
+        {
+          "name": "MainDashboard",
+          "actualTime": 182,
+          "expectedTime": 100,
+          "passed": false
+        },
+        {
+          "name": "ASLWorldPage",
+          "actualTime": 162,
+          "expectedTime": 200,
+          "passed": true
+        },
+        {
+          "name": "HarmonyPage",
+          "actualTime": 100,
+          "expectedTime": 150,
+          "passed": true
+        },
+        {
+          "name": "ReconnectPage",
+          "actualTime": 136,
+          "expectedTime": 150,
+          "passed": true
+        },
+        {
+          "name": "LoginPage",
+          "actualTime": 146,
+          "expectedTime": 80,
+          "passed": false
+        },
+        {
+          "name": "RegisterPage",
+          "actualTime": 177,
+          "expectedTime": 80,
+          "passed": false
+        }
+      ],
+      "passed": false,
+      "successRate": 50
+    },
+    "bundleSize": {
+      "skipped": true,
+      "reason": "Static JS directory not found"
+    }
+  },
+  "summary": {
+    "totalTests": 3,
+    "passedTests": 1,
+    "failedTests": 2,
+    "duration": 1
+  }
+}
