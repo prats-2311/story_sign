@@ -1,0 +1,273 @@
+/* StorySetup Component Styles */
+.story-setup {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.story-setup-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.story-setup-header h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.story-setup-header p {
+  font-size: 1.125rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+.connection-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 0.5rem;
+  color: #92400e;
+  font-weight: 500;
+  margin-top: 1rem;
+}
+
+.generation-error {
+  margin-bottom: 1.5rem;
+}
+
+.error-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 0.5rem;
+  color: #991b1b;
+}
+
+.error-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.error-text {
+  flex: 1;
+}
+
+.error-text strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.error-text p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.generation-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 1rem;
+}
+
+.generation-tabs button {
+  flex: 1;
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.generation-content {
+  min-height: 400px;
+}
+
+.generation-panel {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.generation-panel h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.generation-panel p {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+}
+
+/* Video Preview Styles */
+.video-preview {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto 1.5rem;
+  background-color: #000;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  aspect-ratio: 4/3;
+}
+
+.preview-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scan-controls {
+  text-align: center;
+}
+
+/* Word Grid Styles */
+.word-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.word-chip {
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.word-chip:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.generation-status {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+/* Custom Prompt Form Styles */
+.custom-prompt-form {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.input-group {
+  margin-bottom: 1.5rem;
+}
+
+.input-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.prompt-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-height: 44px; /* WCAG touch target */
+}
+
+.prompt-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.prompt-input:disabled {
+  background-color: #f9fafb;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.input-help {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+.custom-prompt-form button {
+  width: 100%;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .story-setup {
+    padding: 1rem;
+  }
+
+  .story-setup-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .generation-tabs {
+    flex-direction: column;
+  }
+
+  .word-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .error-content {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .connection-warning {
+    border-width: 2px;
+  }
+
+  .error-content {
+    border-width: 2px;
+  }
+
+  .prompt-input {
+    border-width: 2px;
+  }
+
+  .prompt-input:focus {
+    border-width: 3px;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .generation-panel {
+    animation: none;
+  }
+
+  .word-chip:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .prompt-input {
+    transition: none;
+  }
+}

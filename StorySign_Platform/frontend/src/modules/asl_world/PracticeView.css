@@ -1,0 +1,417 @@
+/* PracticeView Component Styles */
+.practice-view {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.practice-view-error {
+  text-align: center;
+  padding: 3rem 2rem;
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 0.5rem;
+  color: #991b1b;
+}
+
+.practice-view-error h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Header Styles */
+.practice-header {
+  text-align: center;
+}
+
+.story-info h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1rem;
+}
+
+.progress-section {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #2563eb;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Main Content Styles */
+.practice-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+/* Story Display Styles */
+.story-display {
+  background-color: #f9fafb;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.story-sentences {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.story-sentence {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background-color: white;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.story-sentence.current {
+  border-color: #2563eb;
+  background-color: #eff6ff;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
+}
+
+.story-sentence.completed {
+  background-color: #f0fdf4;
+  border-color: #16a34a;
+}
+
+.sentence-number {
+  font-weight: 600;
+  color: #6b7280;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.story-sentence.current .sentence-number {
+  color: #2563eb;
+}
+
+.story-sentence.completed .sentence-number {
+  color: #16a34a;
+}
+
+.sentence-text {
+  flex: 1;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.completion-indicator {
+  color: #16a34a;
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+/* Current Practice Styles */
+.current-practice {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.current-sentence-card {
+  background-color: #eff6ff;
+  border: 2px solid #2563eb;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.current-sentence-card h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e40af;
+  margin-bottom: 1rem;
+}
+
+.highlighted-sentence {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: #1e3a8a;
+  line-height: 1.4;
+  padding: 1rem;
+  background-color: white;
+  border-radius: 0.5rem;
+  border: 1px solid #bfdbfe;
+}
+
+/* Start Practice Section */
+.start-practice-section {
+  text-align: center;
+  padding: 2rem;
+  background-color: #f9fafb;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+}
+
+.start-practice-info h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.75rem;
+}
+
+.start-practice-info p {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+}
+
+.practice-instructions {
+  text-align: left;
+  max-width: 400px;
+  margin: 0 auto 2rem;
+  padding-left: 1rem;
+}
+
+.practice-instructions li {
+  color: #374151;
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+/* Active Practice Section */
+.active-practice-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.video-section {
+  background-color: #000;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.video-controls summary {
+  padding: 0.75rem 1rem;
+  background-color: #1f2937;
+  color: white;
+  cursor: pointer;
+  font-weight: 500;
+  border: none;
+  outline: none;
+}
+
+.video-controls summary:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.video-controls[open] summary {
+  border-bottom: 1px solid #374151;
+}
+
+.video-container {
+  padding: 1rem;
+  background-color: #000;
+}
+
+/* Practice Status Styles */
+.practice-status {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.gesture-status {
+  width: 100%;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.status-indicator.listening {
+  background-color: #f0f9ff;
+  border: 2px solid #0ea5e9;
+  color: #0c4a6e;
+}
+
+.status-indicator.detecting {
+  background-color: #fef3c7;
+  border: 2px solid #f59e0b;
+  color: #92400e;
+}
+
+.status-indicator.analyzing {
+  background-color: #f3e8ff;
+  border: 2px solid #a855f7;
+  color: #6b21a8;
+}
+
+.status-indicator.completed {
+  background-color: #f0fdf4;
+  border: 2px solid #16a34a;
+  color: #14532d;
+}
+
+.status-icon {
+  font-size: 1.5rem;
+}
+
+.status-message {
+  font-size: 1rem;
+}
+
+.processing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  color: #6b7280;
+}
+
+.processing-spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #2563eb;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Footer Styles */
+.practice-footer {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1.5rem;
+}
+
+.practice-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+/* Screen Reader Only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .practice-content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .story-display {
+    order: 2;
+  }
+
+  .current-practice {
+    order: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .practice-view {
+    padding: 1rem;
+    gap: 1.5rem;
+  }
+
+  .story-info h2 {
+    font-size: 1.5rem;
+  }
+
+  .highlighted-sentence {
+    font-size: 1.125rem;
+    padding: 0.75rem;
+  }
+
+  .practice-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .practice-controls button {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .story-sentence {
+    border-width: 3px;
+  }
+
+  .current-sentence-card {
+    border-width: 3px;
+  }
+
+  .status-indicator {
+    border-width: 3px;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .progress-fill {
+    transition: none;
+  }
+
+  .story-sentence {
+    transition: none;
+  }
+
+  .status-indicator {
+    transition: none;
+  }
+
+  .processing-spinner {
+    animation: none;
+  }
+}

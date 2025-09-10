@@ -1,7 +1,139 @@
-import React, { useState, useRef } from "react";
-import { ASLWorldModule } from "../modules";
-import { VideoStream } from "../components";
+import React, { useState, useRef, useCallback, useReducer } from "react";
+import {
+  StorySetup,
+  StorySelection,
+  PracticeView,
+  FeedbackPanel,
+} from "../modules/asl_world";
+import VideoStreamingClient from "../components/video/VideoStreamingClient";
 import { buildApiUrl } from "../config/api";
+import "./ASLWorldPage.css";
+
+// State management reducer for ASL World
+const aslWorldReducer = (state, action) => {
+  switch (action.type) {
+    case "SET_VIEW":
+      return { ...state, currentView: action.payload };
+
+    case "STORY_GENERATION_START":
+      return {
+        ...state,
+        isGeneratingStory: true,
+        storyGenerationError: "",
+      };
+
+    case "STORY_GENERATION_SUCCESS":
+      return {
+        ...state,
+        isGeneratingStory: false,
+        storyData: action.payload,
+        currentView: "story_selection",
+        selectedStory: null,
+        currentSentenceIndex: 0,
+        latestFeedback: null,
+        practiceStarted: false,
+      };
+
+    case "STORY_GENERATION_ERROR":
+      return {
+        ...state,
+        isGeneratingStory: false,
+        storyGenerationError: action.payload,
+      };
+
+    case "DISMISS_ERROR":
+      return {
+        ...state,
+        storyGenerationError: "",
+      };
+
+    case "SELECT_STORY":
+      return {
+        ...state,
+        selectedStory: action.payload,
+        currentView: "practice",
+        currentSentenceIndex: 0,
+        latestFeedback: null,
+        practiceStarted: false,
+      };
+
+    case "START_PRACTICE":
+      return {
+        ...state,
+        practiceStarted: true,
+      };
+
+    case "SET_GESTURE_STATE":
+      return {
+        ...state,
+        gestureState: action.payload,
+        isProcessingFeedback: action.payload === "analyzing",
+      };
+
+    case "SET_FEEDBACK":
+      return {
+        ...state,
+        latestFeedback: action.payload,
+        isProcessingFeedback: false,
+        gestureState: action.payload?.completed ? "completed" : "listening",
+      };
+
+    case "NEXT_SENTENCE":
+      return {
+        ...state,
+        currentSentenceIndex: state.currentSentenceIndex + 1,
+        latestFeedback: null,
+        isProcessingFeedback: false,
+        gestureState: "listening",
+      };
+
+    case "TRY_AGAIN":
+      return {
+        ...state,
+        latestFeedback: null,
+        isProcessingFeedback: false,
+        gestureState: "listening",
+      };
+
+    case "RESTART_STORY":
+      return {
+        ...state,
+        currentSentenceIndex: 0,
+        latestFeedback: null,
+        isProcessingFeedback: false,
+        gestureState: "listening",
+      };
+
+    case "NEW_STORY":
+      return {
+        ...state,
+        currentView: "story_generation",
+        storyData: null,
+        selectedStory: null,
+        currentSentenceIndex: 0,
+        latestFeedback: null,
+        isProcessingFeedback: false,
+        gestureState: "listening",
+        practiceStarted: false,
+      };
+
+    default:
+      return state;
+  }
+};
+
+const initialState = {
+  currentView: "story_generation", // 'story_generation', 'story_selection', 'practice'
+  storyData: null,
+  selectedStory: null,
+  currentSentenceIndex: 0,
+  latestFeedback: null,
+  isGeneratingStory: false,
+  isProcessingFeedback: false,
+  storyGenerationError: "",
+  gestureState: "listening",
+  practiceStarted: false,
+};
 
 const ASLWorldPage = ({
   connectionStatus,
@@ -21,51 +153,35 @@ const ASLWorldPage = ({
   toggleStreaming,
   testBackendConnection,
 }) => {
-  // ASL World Module state management (moved from App.js)
-  const [storyData, setStoryData] = useState(null); // Now holds StoryLevels
-  const [selectedStory, setSelectedStory] = useState(null); // User's chosen story
-  const [practiceStarted, setPracticeStarted] = useState(false); // NEW: user-controlled practice start
-  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
-  const [latestFeedback, setLatestFeedback] = useState(null);
-  const [isGeneratingStory, setIsGeneratingStory] = useState(false);
-  const [isProcessingFeedback, setIsProcessingFeedback] = useState(false);
-  const [storyGenerationError, setStoryGenerationError] = useState("");
-  const [gestureState, setGestureState] = useState("listening");
-
+  const [state, dispatch] = useReducer(aslWorldReducer, initialState);
   const hasStartedPracticeRef = useRef(false);
 
-  // Effect 1: When stories are generated, reset state for selection
+  // Effect 1: When stories are generated, reset practice session flag
   React.useEffect(() => {
-    if (storyData) {
-      // Reset practice session start flag for new stories
+    if (state.storyData) {
       hasStartedPracticeRef.current = false;
-      setSelectedStory(null); // Reset selected story for new set
-      setCurrentSentenceIndex(0);
-      setPracticeStarted(false);
     }
-  }, [storyData]); // Runs when new stories are loaded
+  }, [state.storyData]);
 
   // Effect 2: When the streaming connection is established, start the session (only if user started practice)
   React.useEffect(() => {
     if (
-      selectedStory &&
-      practiceStarted &&
+      state.selectedStory &&
+      state.practiceStarted &&
       streamingConnectionStatus === "connected" &&
       videoStreamingRef.current &&
       !hasStartedPracticeRef.current
     ) {
       hasStartedPracticeRef.current = true;
-      // Start practice session safely after WS is connected
-      startPracticeSession(selectedStory);
+      startPracticeSession(state.selectedStory);
     }
-  }, [selectedStory, practiceStarted, streamingConnectionStatus]);
+  }, [state.selectedStory, state.practiceStarted, streamingConnectionStatus]);
 
   // Effect 3: Auto-reconnect WebSocket after story generation if needed
   React.useEffect(() => {
-    // If we have stories but WebSocket is disconnected, try to reconnect
     if (
-      storyData &&
-      !isGeneratingStory &&
+      state.storyData &&
+      !state.isGeneratingStory &&
       streamingConnectionStatus === "disconnected" &&
       webcamActive &&
       connectionStatus === "connected"
@@ -74,7 +190,6 @@ const ASLWorldPage = ({
         "Story generation completed but WebSocket disconnected, attempting reconnection..."
       );
 
-      // Small delay to ensure story generation is fully complete
       const reconnectTimer = setTimeout(() => {
         if (toggleStreaming && !streamingActive) {
           console.log("Auto-reconnecting WebSocket after story generation");
@@ -85,8 +200,8 @@ const ASLWorldPage = ({
       return () => clearTimeout(reconnectTimer);
     }
   }, [
-    storyData,
-    isGeneratingStory,
+    state.storyData,
+    state.isGeneratingStory,
     streamingConnectionStatus,
     webcamActive,
     connectionStatus,
@@ -94,8 +209,8 @@ const ASLWorldPage = ({
     toggleStreaming,
   ]);
 
-  // Named handler for starting practice session
-  const handleStartPractice = async () => {
+  // Handler for starting practice session
+  const handleStartPractice = useCallback(async () => {
     console.log(
       "Starting practice session - checking backend connection, webcam and streaming status"
     );
@@ -113,13 +228,13 @@ const ASLWorldPage = ({
     }
 
     // Set practice started flag
-    setPracticeStarted(true);
-  };
+    dispatch({ type: "START_PRACTICE" });
+  }, [connectionStatus, testBackendConnection, webcamActive, toggleWebcam]);
 
   // Effect to handle streaming activation after webcam is active and backend is connected
   React.useEffect(() => {
     if (
-      practiceStarted &&
+      state.practiceStarted &&
       webcamActive &&
       !streamingActive &&
       connectionStatus === "connected" &&
@@ -128,7 +243,6 @@ const ASLWorldPage = ({
       console.log(
         "Backend connected and webcam is active, now activating streaming for practice session"
       );
-      // Small delay to ensure webcam is fully initialized
       const timer = setTimeout(() => {
         toggleStreaming();
       }, 1000);
@@ -136,7 +250,7 @@ const ASLWorldPage = ({
       return () => clearTimeout(timer);
     }
   }, [
-    practiceStarted,
+    state.practiceStarted,
     webcamActive,
     streamingActive,
     connectionStatus,
@@ -174,17 +288,13 @@ const ASLWorldPage = ({
     }
   };
 
-  // Story generation workflow functions
-  const handleStoryGenerate = async (payload) => {
-    setIsGeneratingStory(true);
-    setStoryGenerationError("");
+  // Story generation handler
+  const handleStoryGenerate = useCallback(async (payload) => {
+    dispatch({ type: "STORY_GENERATION_START" });
 
     try {
       console.log("Starting story generation with payload:", payload);
 
-      import { buildApiUrl } from "../config/api";
-
-      // Call story generation API
       const response = await fetch(
         buildApiUrl("/asl-world/story/recognize_and_generate"),
         {
@@ -193,7 +303,6 @@ const ASLWorldPage = ({
             "Content-Type": "application/json",
           },
           body: JSON.stringify(payload),
-          timeout: 60000, // 60 second timeout for story generation
         }
       );
 
@@ -202,17 +311,12 @@ const ASLWorldPage = ({
 
         if (data.success && data.stories) {
           console.log("Stories generated successfully:", data.stories);
-          setStoryData(data.stories); // Store the collection of stories
-          setSelectedStory(null); // Reset selected story for new set
-          setCurrentSentenceIndex(0);
-          setLatestFeedback(null);
-          setStoryGenerationError("");
-          // The UI will now show the selection screen
+          dispatch({ type: "STORY_GENERATION_SUCCESS", payload: data.stories });
         } else {
           const errorMessage =
             data.user_message || data.message || "Story generation failed";
           console.error("Story generation failed:", errorMessage);
-          setStoryGenerationError(errorMessage);
+          dispatch({ type: "STORY_GENERATION_ERROR", payload: errorMessage });
         }
       } else {
         let errorMessage = `Story generation failed: ${response.status} ${response.statusText}`;
@@ -226,7 +330,7 @@ const ASLWorldPage = ({
         }
 
         console.error("Story generation API error:", errorMessage);
-        setStoryGenerationError(errorMessage);
+        dispatch({ type: "STORY_GENERATION_ERROR", payload: errorMessage });
       }
     } catch (error) {
       let errorMessage = "Story generation failed: ";
@@ -241,196 +345,191 @@ const ASLWorldPage = ({
       }
 
       console.error("Story generation error:", error);
-      setStoryGenerationError(errorMessage);
-    } finally {
-      setIsGeneratingStory(false);
+      dispatch({ type: "STORY_GENERATION_ERROR", payload: errorMessage });
     }
-  };
+  }, []);
 
   // Story selection handler
-  const handleStorySelect = (story) => {
-    setSelectedStory(story); // Set the chosen story
+  const handleStorySelect = useCallback((story) => {
     console.log("Story selected:", story.title);
-  };
+    dispatch({ type: "SELECT_STORY", payload: story });
+  }, []);
 
-  const handlePracticeControl = async (action, sentenceIndex) => {
-    console.log(
-      `Practice control action: ${action} at sentence ${sentenceIndex}`
-    );
+  // Handler to go back to story generation
+  const handleBackToGeneration = useCallback(() => {
+    dispatch({ type: "SET_VIEW", payload: "story_generation" });
+  }, []);
 
-    try {
-      // Prepare control data with enhanced information
-      const controlData = {
-        sentence_index: sentenceIndex,
-        target_sentence: selectedStory?.sentences?.[sentenceIndex] || "",
-        story_sentences: selectedStory?.sentences || [],
-        story_title: selectedStory?.title || "Unknown Story",
-        session_timestamp: new Date().toISOString(),
-        previous_feedback: latestFeedback
-          ? {
-              confidence: latestFeedback.confidence_score,
-              had_suggestions: latestFeedback.suggestions?.length > 0,
-            }
-          : null,
-      };
+  // Handler to dismiss error
+  const handleDismissError = useCallback(() => {
+    dispatch({ type: "DISMISS_ERROR" });
+  }, []);
 
-      // Send control message to backend via WebSocket
-      if (videoStreamingRef.current && streamingActive) {
-        const success = videoStreamingRef.current.sendPracticeControl(
-          action,
-          controlData
-        );
+  const handlePracticeControl = useCallback(
+    async (action, sentenceIndex = state.currentSentenceIndex) => {
+      console.log(
+        `Practice control action: ${action} at sentence ${sentenceIndex}`
+      );
 
-        if (!success) {
-          console.error("Failed to send practice control to backend");
-          return;
-        }
-      }
+      try {
+        // Prepare control data with enhanced information
+        const controlData = {
+          sentence_index: sentenceIndex,
+          target_sentence:
+            state.selectedStory?.sentences?.[sentenceIndex] || "",
+          story_sentences: state.selectedStory?.sentences || [],
+          story_title: state.selectedStory?.title || "Unknown Story",
+          session_timestamp: new Date().toISOString(),
+          previous_feedback: state.latestFeedback
+            ? {
+                confidence: state.latestFeedback.confidence_score,
+                had_suggestions: state.latestFeedback.suggestions?.length > 0,
+              }
+            : null,
+        };
 
-      // Update local state based on action with enhanced handling
-      switch (action) {
-        case "next_sentence":
-          if (sentenceIndex < (selectedStory?.sentences?.length || 0) - 1) {
-            const nextIndex = sentenceIndex + 1;
-            setCurrentSentenceIndex(nextIndex);
-            setLatestFeedback(null);
-            setIsProcessingFeedback(false);
-            setGestureState("listening");
-
-            console.log(
-              `Advanced to sentence ${nextIndex + 1}/${
-                selectedStory?.sentences?.length
-              }`
-            );
-          } else {
-            // This is the last sentence, trigger completion
-            console.log("Attempting to complete story from last sentence");
-            handlePracticeControl("complete_story", sentenceIndex);
-          }
-          break;
-
-        case "try_again":
-          setLatestFeedback(null);
-          setIsProcessingFeedback(false);
-          setGestureState("listening");
-          console.log(
-            `Retrying sentence ${sentenceIndex + 1}: "${
-              selectedStory?.sentences?.[sentenceIndex]
-            }"`
+        // Send control message to backend via WebSocket
+        if (videoStreamingRef.current && streamingActive) {
+          const success = videoStreamingRef.current.sendPracticeControl(
+            action,
+            controlData
           );
-          break;
 
-        case "complete_story":
-          // Story completed - show completion state
-          console.log("Story practice completed!");
-          setGestureState("completed");
-          // Keep current feedback to show completion message
-          // The backend should send a session_complete message with final feedback
-          break;
+          if (!success) {
+            console.error("Failed to send practice control to backend");
+            return;
+          }
+        }
 
-        case "restart_story":
-          // Restart the current story from the beginning
-          setCurrentSentenceIndex(0);
-          setLatestFeedback(null);
-          setIsProcessingFeedback(false);
-          setGestureState("listening");
-          console.log("Restarting story from beginning");
-          break;
+        // Update local state based on action
+        switch (action) {
+          case "next_sentence":
+            if (
+              sentenceIndex <
+              (state.selectedStory?.sentences?.length || 0) - 1
+            ) {
+              dispatch({ type: "NEXT_SENTENCE" });
+              console.log(
+                `Advanced to sentence ${sentenceIndex + 2}/${
+                  state.selectedStory?.sentences?.length
+                }`
+              );
+            } else {
+              // This is the last sentence, trigger completion
+              console.log("Attempting to complete story from last sentence");
+              handlePracticeControl("complete_story", sentenceIndex);
+            }
+            break;
 
-        case "new_story":
-          // Reset all story-related state for new story generation
-          setStoryData(null);
-          setSelectedStory(null);
-          setCurrentSentenceIndex(0);
-          setLatestFeedback(null);
-          setIsProcessingFeedback(false);
-          setGestureState("listening");
-          console.log("Preparing for new story generation");
-          break;
+          case "try_again":
+            dispatch({ type: "TRY_AGAIN" });
+            console.log(
+              `Retrying sentence ${sentenceIndex + 1}: "${
+                state.selectedStory?.sentences?.[sentenceIndex]
+              }"`
+            );
+            break;
 
-        default:
-          console.warn(`Unknown practice control action: ${action}`);
+          case "complete_story":
+            console.log("Story practice completed!");
+            dispatch({ type: "SET_GESTURE_STATE", payload: "completed" });
+            break;
+
+          case "restart_story":
+            dispatch({ type: "RESTART_STORY" });
+            console.log("Restarting story from beginning");
+            break;
+
+          case "new_story":
+            dispatch({ type: "NEW_STORY" });
+            console.log("Preparing for new story generation");
+            break;
+
+          default:
+            console.warn(`Unknown practice control action: ${action}`);
+        }
+      } catch (error) {
+        console.error("Error handling practice control:", error);
+        dispatch({ type: "SET_GESTURE_STATE", payload: "listening" });
       }
-    } catch (error) {
-      console.error("Error handling practice control:", error);
-      // Reset to safe state on error
-      setIsProcessingFeedback(false);
-      setGestureState("listening");
-    }
-  };
+    },
+    [
+      state.currentSentenceIndex,
+      state.selectedStory,
+      state.latestFeedback,
+      streamingActive,
+    ]
+  );
 
-  const handleASLFeedback = (feedbackData, isEnhanced = false) => {
-    console.log(
-      "Received ASL feedback:",
-      feedbackData,
-      "Enhanced:",
-      isEnhanced
-    );
+  const handleASLFeedback = useCallback(
+    (feedbackData, isEnhanced = false) => {
+      console.log(
+        "Received ASL feedback:",
+        feedbackData,
+        "Enhanced:",
+        isEnhanced
+      );
 
-    // Validate and enhance feedback data
-    if (feedbackData && typeof feedbackData === "object") {
-      const enhancedFeedback = {
-        ...feedbackData,
-        // Ensure required fields exist
-        feedback: feedbackData.feedback || "No feedback available",
-        confidence_score: feedbackData.confidence_score || 0,
-        suggestions: feedbackData.suggestions || [],
-        target_sentence:
-          feedbackData.target_sentence ||
-          selectedStory?.sentences?.[currentSentenceIndex] ||
-          "",
-        // Add metadata
-        received_at: new Date().toISOString(),
-        sentence_index: currentSentenceIndex,
-        story_title: selectedStory?.title || "Unknown Story",
-        // Processing information
-        processing_time: feedbackData.processing_time || 0,
-        session_id: feedbackData.session_id || "unknown",
-      };
+      // Validate and enhance feedback data
+      if (feedbackData && typeof feedbackData === "object") {
+        const enhancedFeedback = {
+          ...feedbackData,
+          // Ensure required fields exist
+          feedback: feedbackData.feedback || "No feedback available",
+          confidence_score: feedbackData.confidence_score || 0,
+          suggestions: feedbackData.suggestions || [],
+          target_sentence:
+            feedbackData.target_sentence ||
+            state.selectedStory?.sentences?.[state.currentSentenceIndex] ||
+            "",
+          // Add metadata
+          received_at: new Date().toISOString(),
+          sentence_index: state.currentSentenceIndex,
+          story_title: state.selectedStory?.title || "Unknown Story",
+          // Processing information
+          processing_time: feedbackData.processing_time || 0,
+          session_id: feedbackData.session_id || "unknown",
+        };
 
-      setLatestFeedback(enhancedFeedback);
-      setIsProcessingFeedback(false);
-      setGestureState("listening"); // Reset gesture state after feedback
+        dispatch({ type: "SET_FEEDBACK", payload: enhancedFeedback });
 
-      // Log feedback for debugging
-      console.log("Enhanced feedback set:", {
-        sentence: enhancedFeedback.target_sentence,
-        confidence: enhancedFeedback.confidence_score,
-        suggestionsCount: enhancedFeedback.suggestions.length,
-        processingTime: enhancedFeedback.processing_time,
-      });
-    } else {
-      console.error("Invalid feedback data received:", feedbackData);
-      setLatestFeedback({
-        feedback: "Error: Invalid feedback received from server",
-        confidence_score: 0,
-        suggestions: ["Please try signing again"],
-        target_sentence: selectedStory?.sentences?.[currentSentenceIndex] || "",
-        error: true,
-        received_at: new Date().toISOString(),
-      });
-      setIsProcessingFeedback(false);
-      setGestureState("listening");
-    }
-  };
+        // Log feedback for debugging
+        console.log("Enhanced feedback set:", {
+          sentence: enhancedFeedback.target_sentence,
+          confidence: enhancedFeedback.confidence_score,
+          suggestionsCount: enhancedFeedback.suggestions.length,
+          processingTime: enhancedFeedback.processing_time,
+        });
+      } else {
+        console.error("Invalid feedback data received:", feedbackData);
+        const errorFeedback = {
+          feedback: "Error: Invalid feedback received from server",
+          confidence_score: 0,
+          suggestions: ["Please try signing again"],
+          target_sentence:
+            state.selectedStory?.sentences?.[state.currentSentenceIndex] || "",
+          error: true,
+          received_at: new Date().toISOString(),
+        };
+        dispatch({ type: "SET_FEEDBACK", payload: errorFeedback });
+      }
+    },
+    [state.selectedStory, state.currentSentenceIndex]
+  );
 
-  const handlePracticeSessionUpdate = (practiceData) => {
+  const handlePracticeSessionUpdate = useCallback((practiceData) => {
     console.log("Practice session update:", practiceData);
 
     // Update processing feedback state based on gesture state
     if (practiceData.gesture_state) {
-      const currentGestureState = practiceData.gesture_state;
-      setGestureState(currentGestureState);
-
-      if (currentGestureState === "analyzing") {
-        setIsProcessingFeedback(true);
-      } else if (currentGestureState === "listening") {
-        setIsProcessingFeedback(false);
-      }
+      dispatch({
+        type: "SET_GESTURE_STATE",
+        payload: practiceData.gesture_state,
+      });
     }
-  };
+  }, []);
 
-  const handlePracticeControlResponse = (message) => {
+  const handlePracticeControlResponse = useCallback((message) => {
     console.log("Practice control response:", message);
 
     if (message.result && message.result.success) {
@@ -442,22 +541,19 @@ const ASLWorldPage = ({
         action === "next_sentence" &&
         result.current_sentence_index !== undefined
       ) {
-        setCurrentSentenceIndex(result.current_sentence_index);
-        setLatestFeedback(null);
-        setIsProcessingFeedback(false);
+        // Backend confirmed the sentence change
+        console.log("Backend confirmed sentence advancement");
       } else if (action === "try_again") {
-        setLatestFeedback(null);
-        setIsProcessingFeedback(false);
+        dispatch({ type: "TRY_AGAIN" });
       } else if (action === "complete_story") {
-        setLatestFeedback(null);
-        setIsProcessingFeedback(false);
+        dispatch({ type: "SET_GESTURE_STATE", payload: "completed" });
       }
     } else {
       console.error("Practice control failed:", message.result?.error);
     }
-  };
+  }, []);
 
-  const handlePracticeSessionResponse = (message) => {
+  const handlePracticeSessionResponse = useCallback((message) => {
     console.log("Practice session response:", message);
 
     if (message.result && message.result.success) {
@@ -466,10 +562,7 @@ const ASLWorldPage = ({
       if (action === "session_started") {
         console.log("Practice session started successfully on backend");
         // Reset practice state for new session
-        setCurrentSentenceIndex(0);
-        setLatestFeedback(null);
-        setIsProcessingFeedback(false);
-        setGestureState("listening");
+        dispatch({ type: "RESTART_STORY" });
       }
     } else {
       console.error(
@@ -477,42 +570,42 @@ const ASLWorldPage = ({
         message.result?.error
       );
     }
-  };
+  }, []);
 
-  const handleSessionComplete = (message) => {
-    console.log("Session complete:", message);
+  const handleSessionComplete = useCallback(
+    (message) => {
+      console.log("Session complete:", message);
 
-    // Handle story completion
-    if (message.data) {
-      const completionData = message.data;
+      // Handle story completion
+      if (message.data) {
+        const completionData = message.data;
 
-      // Create completion feedback
-      const completionFeedback = {
-        feedback:
-          completionData.completion_message ||
-          "Congratulations! You've completed the story!",
-        confidence_score: completionData.overall_score || 1.0,
-        suggestions: completionData.final_suggestions || [
-          "Great job completing the story!",
-          "Try generating a new story to continue practicing",
-        ],
-        target_sentence: "Story Complete",
-        completed: true,
-        story_stats: {
-          total_sentences: selectedStory?.sentences?.length || 0,
-          completion_time: completionData.completion_time || 0,
-          average_confidence: completionData.average_confidence || 0,
-        },
-        received_at: new Date().toISOString(),
-      };
+        // Create completion feedback
+        const completionFeedback = {
+          feedback:
+            completionData.completion_message ||
+            "Congratulations! You've completed the story!",
+          confidence_score: completionData.overall_score || 1.0,
+          suggestions: completionData.final_suggestions || [
+            "Great job completing the story!",
+            "Try generating a new story to continue practicing",
+          ],
+          target_sentence: "Story Complete",
+          completed: true,
+          story_stats: {
+            total_sentences: state.selectedStory?.sentences?.length || 0,
+            completion_time: completionData.completion_time || 0,
+            average_confidence: completionData.average_confidence || 0,
+          },
+          received_at: new Date().toISOString(),
+        };
 
-      setLatestFeedback(completionFeedback);
-      setIsProcessingFeedback(false);
-      setGestureState("completed");
-
-      console.log("Story completion feedback set:", completionFeedback);
-    }
-  };
+        dispatch({ type: "SET_FEEDBACK", payload: completionFeedback });
+        console.log("Story completion feedback set:", completionFeedback);
+      }
+    },
+    [state.selectedStory]
+  );
 
   // Enhanced processed frame handler that includes ASL World specific logic
   const handleProcessedFrameWithASLLogic = (message) => {
@@ -542,59 +635,96 @@ const ASLWorldPage = ({
     }
   };
 
+  const renderCurrentView = () => {
+    switch (state.currentView) {
+      case "story_generation":
+        return (
+          <StorySetup
+            onStoryGenerate={handleStoryGenerate}
+            isGeneratingStory={state.isGeneratingStory}
+            connectionStatus={connectionStatus}
+            generationError={state.storyGenerationError}
+            onDismissError={handleDismissError}
+          />
+        );
+
+      case "story_selection":
+        return (
+          <StorySelection
+            storyData={state.storyData}
+            onStorySelect={handleStorySelect}
+            onBackToGeneration={handleBackToGeneration}
+          />
+        );
+
+      case "practice":
+        return (
+          <div className="practice-container">
+            <PracticeView
+              selectedStory={state.selectedStory}
+              currentSentenceIndex={state.currentSentenceIndex}
+              practiceStarted={state.practiceStarted}
+              gestureState={state.gestureState}
+              isProcessingFeedback={state.isProcessingFeedback}
+              onStartPractice={handleStartPractice}
+              onPracticeControl={handlePracticeControl}
+            >
+              <VideoStreamingClient
+                ref={videoStreamingRef}
+                isActive={streamingActive}
+                onConnectionChange={onConnectionChange}
+                onProcessedFrame={handleProcessedFrameWithASLLogic}
+                onError={onError}
+              />
+            </PracticeView>
+
+            {state.latestFeedback && (
+              <FeedbackPanel
+                feedback={state.latestFeedback}
+                currentSentenceIndex={state.currentSentenceIndex}
+                totalSentences={state.selectedStory?.sentences?.length || 0}
+                onPracticeControl={handlePracticeControl}
+                isProcessingFeedback={state.isProcessingFeedback}
+              />
+            )}
+          </div>
+        );
+
+      default:
+        return (
+          <div className="error-view" role="alert">
+            <h2>Unknown View State</h2>
+            <p>
+              The application is in an unknown state. Please refresh the page.
+            </p>
+          </div>
+        );
+    }
+  };
+
   return (
-    <div className="asl-world-container">
-      <ASLWorldModule
-        storyData={storyData}
-        selectedStory={selectedStory}
-        onStorySelect={handleStorySelect}
-        currentSentenceIndex={currentSentenceIndex}
-        latestFeedback={latestFeedback}
-        onStoryGenerate={handleStoryGenerate}
-        onPracticeControl={handlePracticeControl}
-        isGeneratingStory={isGeneratingStory}
-        isProcessingFeedback={isProcessingFeedback}
-        connectionStatus={connectionStatus}
-        onFrameCapture={onFrameCapture}
-        gestureState={gestureState}
-        practiceStarted={practiceStarted}
-        onStartPractice={handleStartPractice}
-        streamingStats={{
-          framesSent: videoStreamingRef.current?.framesSent || 0,
-          framesReceived: videoStreamingRef.current?.framesReceived || 0,
-        }}
-        processedFrameData={processedFrameData}
-        streamingConnectionStatus={streamingConnectionStatus}
-        optimizationSettings={optimizationSettings}
-        onOptimizationChange={onOptimizationChange}
-      >
-        <VideoStream
-          webcamActive={webcamActive}
-          streamingActive={streamingActive}
-          onFrameCapture={onFrameCapture}
-          videoStreamingRef={videoStreamingRef}
-          onConnectionChange={onConnectionChange}
-          onProcessedFrame={handleProcessedFrameWithASLLogic}
-          onError={onError}
-          processedFrameData={processedFrameData}
-          streamingConnectionStatus={streamingConnectionStatus}
-          onRetryConnection={onRetryConnection}
-          hideWebcamPreview={practiceStarted}
-        />
-      </ASLWorldModule>
-      {storyGenerationError && (
-        <div className="story-generation-error">
-          <p className="error-text">
-            Story Generation Error: {storyGenerationError}
-          </p>
-          <button
-            className="retry-btn"
-            onClick={() => setStoryGenerationError("")}
+    <div className="asl-world-page">
+      <header className="page-header">
+        <h1>ASL World</h1>
+        <p>Interactive American Sign Language Learning</p>
+        <div className="connection-status" aria-live="polite">
+          <span
+            className={`status-indicator ${connectionStatus}`}
+            aria-hidden="true"
           >
-            Dismiss
-          </button>
+            {connectionStatus === "connected" && "🟢"}
+            {connectionStatus === "connecting" && "🟡"}
+            {connectionStatus === "disconnected" && "🔴"}
+          </span>
+          <span className="status-text">
+            {connectionStatus === "connected" && "Connected"}
+            {connectionStatus === "connecting" && "Connecting..."}
+            {connectionStatus === "disconnected" && "Disconnected"}
+          </span>
         </div>
-      )}
+      </header>
+
+      <main className="page-content">{renderCurrentView()}</main>
     </div>
   );
 };

@@ -12,8 +12,6 @@ const VideoStreamingClient = forwardRef(
     { isActive = false, onConnectionChange, onProcessedFrame, onError },
     ref
   ) => {
-    import { buildWsUrl } from "../../config/api";
-
     // WebSocket configuration - optimized for low latency
     const WS_URL = buildWsUrl("ws/video");
 
