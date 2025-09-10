@@ -29,6 +29,10 @@ import {
 } from "./components/error/ErrorBoundaries";
 import { useErrorRecovery } from "./services/ErrorRecoveryService";
 import { useAuthErrorHandler } from "./utils/authErrorHandler";
+import "./App.css";
+import "./styles/accessibility.css";
+import "./styles/responsive.css";
+import "./components/error/ErrorBoundaries.css";
 
 // Custom ErrorBoundary component to replace react-error-boundary
 class AppErrorBoundary extends React.Component {
@@ -69,12 +73,6 @@ class AppErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
-import { useErrorRecovery } from "./services/ErrorRecoveryService";
-import { useAuthErrorHandler } from "./utils/authErrorHandler";
-import "./App.css";
-import "./styles/accessibility.css";
-import "./styles/responsive.css";
-import "./components/error/ErrorBoundaries.css";
 
 // Lazy load page components for better performance
 const MainDashboard = lazy(() =>
