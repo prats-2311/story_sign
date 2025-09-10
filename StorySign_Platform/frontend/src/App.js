@@ -1,5 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import "./App.css";
 import "./components/performance/PerformanceMonitor.css";
 import "./styles/responsive.css";
@@ -12,12 +18,16 @@ import PlatformShellDemo from "./components/shell/PlatformShellDemo";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute, AuthGuard } from "./components/auth";
 import AuthNavigation from "./components/navigation/AuthNavigation";
+import SkipLinks from "./components/common/SkipLinks";
+import { useAccessibility } from "./hooks/useAccessibility";
+import { manageFocusForSPA } from "./utils/accessibility";
 import pwaService from "./services/PWAService";
 import { useResponsive } from "./hooks/useResponsive";
 import { buildHealthCheckUrl } from "./config/api";
-import { buildHealthCheckUrl } from "./config/api";
 function App() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { announce } = useAccessibility();
   const { isMobile, shouldUseVideoOptimizations, getVideoQuality } =
     useResponsive();
 
@@ -58,6 +68,26 @@ function App() {
     const importantResources = ["/", "/asl-world", "/plugins"];
     pwaService.cacheResources(importantResources);
   }, [isMobile, shouldUseVideoOptimizations]);
+
+  // Handle route changes for accessibility
+  useEffect(() => {
+    const getPageTitle = (pathname) => {
+      const titleMap = {
+        "/": "StorySign - Dashboard",
+        "/login": "StorySign - Sign In",
+        "/register": "StorySign - Register",
+        "/asl-world": "StorySign - ASL World",
+        "/harmony": "StorySign - Harmony",
+        "/reconnect": "StorySign - Reconnect",
+        "/plugins": "StorySign - Plugin Management",
+        "/platform-demo": "StorySign - Platform Demo",
+      };
+      return titleMap[pathname] || "StorySign Platform";
+    };
+
+    const pageTitle = getPageTitle(location.pathname);
+    manageFocusForSPA(pageTitle);
+  }, [location.pathname]);
 
   const testBackendConnection = async () => {
     setIsLoading(true);
@@ -227,6 +257,7 @@ function App() {
 
   return (
     <AuthProvider>
+      <SkipLinks />
       <AuthNavigation />
       <PlatformShell>
         <Routes>

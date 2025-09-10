@@ -1,0 +1,124 @@
+/* Accessible Heading Styles */
+
+.accessible-heading {
+  margin: 0;
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  color: inherit;
+}
+
+/* Semantic heading levels (for screen readers) */
+.heading-level-1 {
+  /* h1 - Page title */
+}
+
+.heading-level-2 {
+  /* h2 - Major section */
+}
+
+.heading-level-3 {
+  /* h3 - Subsection */
+}
+
+.heading-level-4 {
+  /* h4 - Sub-subsection */
+}
+
+.heading-level-5 {
+  /* h5 - Minor heading */
+}
+
+.heading-level-6 {
+  /* h6 - Smallest heading */
+}
+
+/* Visual styling levels */
+.heading-style-1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.heading-style-2 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+}
+
+.heading-style-3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.heading-style-4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.875rem;
+}
+
+.heading-style-5 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.heading-style-6 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.625rem;
+}
+
+/* Screen reader only */
+.accessible-heading.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Responsive typography */
+@media (max-width: 768px) {
+  .heading-style-1 {
+    font-size: 2rem;
+  }
+
+  .heading-style-2 {
+    font-size: 1.75rem;
+  }
+
+  .heading-style-3 {
+    font-size: 1.375rem;
+  }
+
+  .heading-style-4 {
+    font-size: 1.125rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .heading-style-1 {
+    font-size: 1.75rem;
+  }
+
+  .heading-style-2 {
+    font-size: 1.5rem;
+  }
+
+  .heading-style-3 {
+    font-size: 1.25rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .accessible-heading {
+    font-weight: 700;
+  }
+}

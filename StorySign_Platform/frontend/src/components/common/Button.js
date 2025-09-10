@@ -1,4 +1,5 @@
 import React, { forwardRef } from "react";
+import { useReducedMotion } from "../../hooks/useAccessibility";
 import "./Button.css";
 
 /**
@@ -16,12 +17,17 @@ const Button = forwardRef(
       type = "button",
       ariaLabel,
       ariaDescribedBy,
+      ariaPressed,
+      ariaExpanded,
       loading = false,
       className = "",
+      tooltip,
       ...props
     },
     ref
   ) => {
+    const prefersReducedMotion = useReducedMotion();
+
     const handleClick = (event) => {
       if (disabled || loading) {
         event.preventDefault();
@@ -52,6 +58,7 @@ const Button = forwardRef(
       `button-${size}`,
       disabled && "button-disabled",
       loading && "button-loading",
+      prefersReducedMotion && "reduced-motion",
       className,
     ]
       .filter(Boolean)
@@ -67,7 +74,10 @@ const Button = forwardRef(
         disabled={disabled || loading}
         aria-label={ariaLabel}
         aria-describedby={ariaDescribedBy}
+        aria-pressed={ariaPressed}
+        aria-expanded={ariaExpanded}
         aria-disabled={disabled || loading}
+        title={tooltip}
         {...props}
       >
         {loading && (
@@ -78,6 +88,11 @@ const Button = forwardRef(
         <span className={loading ? "button-content-loading" : "button-content"}>
           {children}
         </span>
+        {loading && (
+          <span className="sr-only">
+            {ariaLabel ? `${ariaLabel} - Loading` : "Loading"}
+          </span>
+        )}
       </button>
     );
   }

@@ -1,0 +1,75 @@
+/* Skip Links Styles */
+
+.skip-links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  width: 100%;
+}
+
+.skip-links-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.skip-links-item {
+  margin: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background-color: #000;
+  color: #fff;
+  padding: 8px 16px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+  z-index: 10000;
+}
+
+.skip-link:focus {
+  position: static;
+  top: auto;
+  left: auto;
+  transform: none;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.skip-link:hover {
+  background-color: #333;
+  text-decoration: underline;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .skip-link {
+    background-color: #000;
+    color: #fff;
+    border: 2px solid #fff;
+  }
+
+  .skip-link:focus {
+    outline: 3px solid #fff;
+    outline-offset: 3px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
+}

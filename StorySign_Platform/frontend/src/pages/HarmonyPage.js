@@ -404,9 +404,9 @@ const HarmonyPage = ({
   return (
     <div className="harmony-page">
       <header className="page-header">
-        <h1>Harmony</h1>
+        <h1 id="main-content">Harmony</h1>
         <p>Facial Expression Practice & Social-Emotional Learning</p>
-        <div className="connection-status" aria-live="polite">
+        <div className="connection-status" aria-live="polite" role="status">
           <span
             className={`status-indicator ${connectionStatus}`}
             aria-hidden="true"
@@ -416,14 +416,16 @@ const HarmonyPage = ({
             {connectionStatus === "disconnected" && "🔴"}
           </span>
           <span className="status-text">
-            {connectionStatus === "connected" && "Connected"}
+            Connection status: {connectionStatus === "connected" && "Connected"}
             {connectionStatus === "connecting" && "Connecting..."}
             {connectionStatus === "disconnected" && "Disconnected"}
           </span>
         </div>
       </header>
 
-      <main className="page-content">{renderCurrentView()}</main>
+      <main className="page-content" role="main" aria-labelledby="main-content">
+        {renderCurrentView()}
+      </main>
     </div>
   );
 };
