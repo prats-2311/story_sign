@@ -15,7 +15,7 @@ import RegisterPage from "./pages/RegisterPage";
 import PluginManagementPage from "./pages/PluginManagementPage";
 import { PlatformShell } from "./components";
 import PlatformShellDemo from "./components/shell/PlatformShellDemo";
-import { AuthProvider } from "./contexts/AuthContext";
+
 import { ProtectedRoute, AuthGuard } from "./components/auth";
 import AuthNavigation from "./components/navigation/AuthNavigation";
 import SkipLinks from "./components/common/SkipLinks";
@@ -24,6 +24,7 @@ import { manageFocusForSPA } from "./utils/accessibility";
 import pwaService from "./services/PWAService";
 import { useResponsive } from "./hooks/useResponsive";
 import { buildHealthCheckUrl } from "./config/api";
+
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -57,7 +58,7 @@ function App() {
     pwaService.init();
 
     // Update optimization settings based on device capabilities
-    setOptimizationSettings((prev) => ({
+    setOptimizationSettings(prev => ({
       ...prev,
       targetFPS: isMobile ? 24 : 30,
       maxLatency: isMobile ? 150 : 100,
@@ -71,7 +72,7 @@ function App() {
 
   // Handle route changes for accessibility
   useEffect(() => {
-    const getPageTitle = (pathname) => {
+    const getPageTitle = pathname => {
       const titleMap = {
         "/": "StorySign - Dashboard",
         "/login": "StorySign - Sign In",
@@ -140,7 +141,7 @@ function App() {
     }
   };
 
-  const handleFrameCapture = (message) => {
+  const handleFrameCapture = message => {
     // Send frame to WebSocket if streaming is active
     if (streamingActive && videoStreamingRef.current) {
       videoStreamingRef.current.sendFrame(message);
@@ -155,7 +156,7 @@ function App() {
     });
   };
 
-  const handleStreamingConnectionChange = (status) => {
+  const handleStreamingConnectionChange = status => {
     console.log("Streaming connection status:", status);
     setStreamingConnectionStatus(status);
 
@@ -165,7 +166,7 @@ function App() {
     }
   };
 
-  const handleProcessedFrame = (message) => {
+  const handleProcessedFrame = message => {
     // Handle different message types
     if (message.type === "processed_frame") {
       setProcessedFrameData(message);
@@ -184,7 +185,7 @@ function App() {
     }
   };
 
-  const handleStreamingError = (error) => {
+  const handleStreamingError = error => {
     console.error("Streaming error:", error);
     setStreamingError(error);
 
@@ -195,7 +196,7 @@ function App() {
     }
   };
 
-  const handleOptimizationChange = (newSettings) => {
+  const handleOptimizationChange = newSettings => {
     setOptimizationSettings(newSettings);
     console.log("Optimization settings updated:", newSettings);
 
@@ -256,7 +257,7 @@ function App() {
   };
 
   return (
-    <AuthProvider>
+    <>
       <SkipLinks />
       <AuthNavigation />
       <PlatformShell>
@@ -373,7 +374,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </PlatformShell>
-    </AuthProvider>
+    </>
   );
 }
 
