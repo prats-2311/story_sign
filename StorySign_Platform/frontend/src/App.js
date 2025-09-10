@@ -4,9 +4,14 @@ import "./App.css";
 import "./components/performance/PerformanceMonitor.css";
 import "./styles/responsive.css";
 import { MainDashboard, ASLWorldPage } from "./pages";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
 import PluginManagementPage from "./pages/PluginManagementPage";
 import { PlatformShell } from "./components";
 import PlatformShellDemo from "./components/shell/PlatformShellDemo";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute, AuthGuard } from "./components/auth";
+import AuthNavigation from "./components/navigation/AuthNavigation";
 import pwaService from "./services/PWAService";
 import { useResponsive } from "./hooks/useResponsive";
 
@@ -220,58 +225,123 @@ function App() {
   };
 
   return (
-    <PlatformShell>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <MainDashboard
-              backendMessage={backendMessage}
-              isLoading={isLoading}
-              connectionStatus={connectionStatus}
-              webcamActive={webcamActive}
-              webcamError={webcamError}
-              streamingActive={streamingActive}
-              streamingError={streamingError}
-              showTroubleshooting={showTroubleshooting}
-              testBackendConnection={testBackendConnection}
-              toggleWebcam={toggleWebcam}
-              toggleStreaming={toggleStreaming}
-              retryWebcam={retryWebcam}
-              retryStreaming={retryStreaming}
-              onNavigateToASLWorld={handleNavigateToASLWorld}
-            />
-          }
-        />
-        <Route
-          path="/asl-world"
-          element={
-            <ASLWorldPage
-              connectionStatus={connectionStatus}
-              webcamActive={webcamActive}
-              streamingActive={streamingActive}
-              onFrameCapture={handleFrameCapture}
-              videoStreamingRef={videoStreamingRef}
-              processedFrameData={processedFrameData}
-              streamingConnectionStatus={streamingConnectionStatus}
-              optimizationSettings={optimizationSettings}
-              onOptimizationChange={handleOptimizationChange}
-              onConnectionChange={handleStreamingConnectionChange}
-              onProcessedFrame={handleProcessedFrame}
-              onError={handleStreamingError}
-              onRetryConnection={retryStreaming}
-              toggleWebcam={toggleWebcam}
-              toggleStreaming={toggleStreaming}
-              testBackendConnection={testBackendConnection}
-            />
-          }
-        />
-        <Route path="/plugins" element={<PluginManagementPage />} />
-        <Route path="/platform-demo" element={<PlatformShellDemo />} />
-        {/* Default redirect to main dashboard */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </PlatformShell>
+    <AuthProvider>
+      <AuthNavigation />
+      <PlatformShell>
+        <Routes>
+          {/* Public Routes */}
+          <Route
+            path="/login"
+            element={
+              <AuthGuard>
+                <LoginPage />
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <AuthGuard>
+                <RegisterPage />
+              </AuthGuard>
+            }
+          />
+
+          {/* Protected Routes */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <MainDashboard
+                  backendMessage={backendMessage}
+                  isLoading={isLoading}
+                  connectionStatus={connectionStatus}
+                  webcamActive={webcamActive}
+                  webcamError={webcamError}
+                  streamingActive={streamingActive}
+                  streamingError={streamingError}
+                  showTroubleshooting={showTroubleshooting}
+                  testBackendConnection={testBackendConnection}
+                  toggleWebcam={toggleWebcam}
+                  toggleStreaming={toggleStreaming}
+                  retryWebcam={retryWebcam}
+                  retryStreaming={retryStreaming}
+                  onNavigateToASLWorld={handleNavigateToASLWorld}
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/asl-world"
+            element={
+              <ProtectedRoute>
+                <ASLWorldPage
+                  connectionStatus={connectionStatus}
+                  webcamActive={webcamActive}
+                  streamingActive={streamingActive}
+                  onFrameCapture={handleFrameCapture}
+                  videoStreamingRef={videoStreamingRef}
+                  processedFrameData={processedFrameData}
+                  streamingConnectionStatus={streamingConnectionStatus}
+                  optimizationSettings={optimizationSettings}
+                  onOptimizationChange={handleOptimizationChange}
+                  onConnectionChange={handleStreamingConnectionChange}
+                  onProcessedFrame={handleProcessedFrame}
+                  onError={handleStreamingError}
+                  onRetryConnection={retryStreaming}
+                  toggleWebcam={toggleWebcam}
+                  toggleStreaming={toggleStreaming}
+                  testBackendConnection={testBackendConnection}
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/plugins"
+            element={
+              <ProtectedRoute>
+                <PluginManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/platform-demo"
+            element={
+              <ProtectedRoute>
+                <PlatformShellDemo />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Placeholder routes for future modules */}
+          <Route
+            path="/harmony"
+            element={
+              <ProtectedRoute>
+                <div style={{ padding: "2rem", textAlign: "center" }}>
+                  <h1>Harmony Module</h1>
+                  <p>Facial expression practice module coming soon!</p>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reconnect"
+            element={
+              <ProtectedRoute>
+                <div style={{ padding: "2rem", textAlign: "center" }}>
+                  <h1>Reconnect Module</h1>
+                  <p>Therapeutic movement analysis module coming soon!</p>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Default redirect to main dashboard */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </PlatformShell>
+    </AuthProvider>
   );
 }
 
