@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { ASLWorldModule } from "../modules";
 import { VideoStream } from "../components";
+import { buildApiUrl } from "../config/api";
 
 const ASLWorldPage = ({
   connectionStatus,
@@ -181,9 +182,11 @@ const ASLWorldPage = ({
     try {
       console.log("Starting story generation with payload:", payload);
 
+      import { buildApiUrl } from "../config/api";
+
       // Call story generation API
       const response = await fetch(
-        "http://localhost:8000/api/asl-world/story/recognize_and_generate",
+        buildApiUrl("/asl-world/story/recognize_and_generate"),
         {
           method: "POST",
           headers: {

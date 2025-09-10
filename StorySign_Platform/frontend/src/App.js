@@ -14,6 +14,7 @@ import { ProtectedRoute, AuthGuard } from "./components/auth";
 import AuthNavigation from "./components/navigation/AuthNavigation";
 import pwaService from "./services/PWAService";
 import { useResponsive } from "./hooks/useResponsive";
+import { buildHealthCheckUrl } from "./config/api";
 
 function App() {
   const navigate = useNavigate();
@@ -63,8 +64,10 @@ function App() {
     setConnectionStatus("testing");
     setShowTroubleshooting(false);
 
+    import { buildHealthCheckUrl } from "./config/api";
+
     try {
-      const response = await fetch("http://localhost:8000/", {
+      const response = await fetch(buildHealthCheckUrl(), {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -94,7 +97,7 @@ function App() {
       let errorMessage = "Connection failed: ";
       if (error.name === "TypeError" && error.message.includes("fetch")) {
         errorMessage +=
-          "Cannot reach backend server. Please ensure the backend is running on http://localhost:8000";
+          "Cannot reach backend server. Please ensure the backend is running and accessible";
       } else if (error.name === "AbortError") {
         errorMessage +=
           "Connection timeout. The backend server may be overloaded or not responding.";

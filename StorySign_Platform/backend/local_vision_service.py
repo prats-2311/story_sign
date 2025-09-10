@@ -77,7 +77,48 @@ class LocalVisionService:
             await self.initialize()
 
         try:
-            if self.config.service_type == "ollama":
+            if self.config.service_type == "groq":
+                # Check Groq API configuration and connectivity
+                groq_config = get_config().groq
+                
+                if not groq_config.is_configured():
+                    self._health_status = False
+                    logger.warning("Groq API is not properly configured (missing API key or disabled)")
+                    return False
+
+                # Test Groq API with a simple models request
+                timeout = aiohttp.ClientTimeout(total=10)  # 10 second timeout for Groq health check
+                headers = {
+                    "Authorization": f"Bearer {groq_config.api_key}",
+                    "Content-Type": "application/json"
+                }
+                
+                async with self.session.get(
+                    f"{groq_config.base_url}/models", 
+                    headers=headers, 
+                    timeout=timeout
+                ) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        models = [model.get('id', '') for model in data.get('data', [])]
+                        
+                        # Check if our configured model is available
+                        model_available = any(groq_config.model_name in model for model in models)
+                        
+                        if model_available:
+                            self._health_status = True
+                            logger.info(f"Groq API is healthy, model '{groq_config.model_name}' is available")
+                            return True
+                        else:
+                            self._health_status = False
+                            logger.warning(f"Model '{groq_config.model_name}' not found in available Groq models: {models}")
+                            return False
+                    else:
+                        self._health_status = False
+                        logger.warning(f"Groq API health check failed with status: {response.status}")
+                        return False
+
+            elif self.config.service_type == "ollama":
                 # Check Ollama API with timeout
                 timeout = aiohttp.ClientTimeout(total=5)  # 5 second timeout for health check
                 async with self.session.get(f"{self.config.service_url}/api/tags", timeout=timeout) as response:
@@ -132,15 +173,15 @@ class LocalVisionService:
 
         except asyncio.TimeoutError:
             self._health_status = False
-            logger.warning(f"Local vision service health check timed out for {self.config.service_url}")
+            logger.warning(f"Vision service health check timed out for {self.config.service_url}")
             return False
         except aiohttp.ClientConnectorError as e:
             self._health_status = False
-            logger.warning(f"Local vision service connection failed: {e}. Service may not be running at {self.config.service_url}")
+            logger.warning(f"Vision service connection failed: {e}. Service may not be running")
             return False
         except Exception as e:
             self._health_status = False
-            logger.error(f"Local vision service health check failed: {e}")
+            logger.error(f"Vision service health check failed: {e}")
             return False
 
     def is_healthy(self) -> bool:
@@ -331,7 +372,7 @@ class LocalVisionService:
 
     async def _make_vision_request(self, base64_image: str, prompt: str) -> Dict[str, Any]:
         """
-        Make a request to the local vision model
+        Make a request to the vision model (local or cloud)
 
         Args:
             base64_image: Base64 encoded image data
@@ -346,11 +387,59 @@ class LocalVisionService:
         if not self.session:
             await self.initialize()
 
-        headers = {
-            "Content-Type": "application/json"
-        }
+        if self.config.service_type == "groq":
+            # Use Groq API configuration
+            groq_config = get_config().groq
+            
+            if not groq_config.is_configured():
+                raise ValueError("Groq API is not properly configured")
 
-        if self.config.service_type == "ollama":
+            headers = {
+                "Authorization": f"Bearer {groq_config.api_key}",
+                "Content-Type": "application/json"
+            }
+
+            # Prepare the request payload for Groq Vision API (OpenAI-compatible)
+            payload = {
+                "model": groq_config.model_name,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
+                            }
+                        ]
+                    }
+                ],
+                "temperature": groq_config.temperature,
+                "max_tokens": groq_config.max_tokens,
+                "stream": False
+            }
+
+            async with self.session.post(
+                f"{groq_config.base_url}/chat/completions",
+                json=payload,
+                headers=headers
+            ) as response:
+                if response.status == 429:
+                    # Rate limiting - raise specific error for retry logic
+                    raise aiohttp.ClientResponseError(
+                        request_info=response.request_info,
+                        history=response.history,
+                        status=429,
+                        message="Rate limited by Groq API"
+                    )
+                response.raise_for_status()
+                return await response.json()
+
+        elif self.config.service_type == "ollama":
+            headers = {
+                "Content-Type": "application/json"
+            }
+
             # Prepare the request payload for Ollama API
             payload = {
                 "model": self.config.model_name,
@@ -373,6 +462,10 @@ class LocalVisionService:
                 return await response.json()
 
         elif self.config.service_type == "lm_studio":
+            headers = {
+                "Content-Type": "application/json"
+            }
+
             # Prepare the request payload for LM Studio OpenAI-compatible API with vision content
             # Send both the prompt text and the base64 image as a data URL in the content array
             payload = {
@@ -419,7 +512,13 @@ class LocalVisionService:
             # Extract the response text based on service type
             response_text = ""
 
-            if self.config.service_type == "ollama":
+            if self.config.service_type == "groq":
+                # Parse Groq API response (OpenAI-compatible format)
+                choices = response_data.get('choices', [])
+                if choices:
+                    message = choices[0].get('message', {})
+                    response_text = message.get('content', '').strip()
+            elif self.config.service_type == "ollama":
                 response_text = response_data.get('response', '').strip()
             elif self.config.service_type == "lm_studio":
                 choices = response_data.get('choices', [])
@@ -447,26 +546,38 @@ class LocalVisionService:
                     response_text = response_text[len(prefix):].strip()
 
             # Remove articles and common words
-            words_to_remove = ["a", "an", "the", "for", "storytelling", "purposes", "might", "be"]
+            words_to_remove = ["a", "an", "the", "for", "storytelling", "purposes", "might", "be", "on", "table", "this"]
             words = response_text.split()
             filtered_words = [word.strip('.,!?:;') for word in words if word.strip('.,!?:;') not in words_to_remove]
 
             if filtered_words:
                 object_name = " ".join(filtered_words[:3])  # Limit to 3 words max
 
-                # Basic confidence scoring based on response characteristics
-                confidence = 0.7  # Default confidence for text-only models
+                # Confidence scoring based on service type and response characteristics
+                if self.config.service_type == "groq":
+                    # Groq has high-quality vision models, start with higher confidence
+                    confidence = 0.85
+                    
+                    # Check for uncertain language first (before filtering)
+                    if any(word in response_text for word in ["maybe", "possibly", "might", "unclear"]):
+                        confidence = 0.6  # Uncertain language reduces confidence
+                    elif len(words) > 5:
+                        confidence = 0.6  # Verbose responses are less confident
+                    elif len(filtered_words) <= 2:
+                        confidence = 0.9  # Short, clear responses are very confident
+                else:
+                    # Default confidence for local models
+                    confidence = 0.7
+                    
+                    # Increase confidence for short, clear responses
+                    if len(filtered_words) <= 2:
+                        confidence = 0.8
 
-                # Increase confidence for short, clear responses
-                if len(filtered_words) <= 2:
-                    confidence = 0.8
+                    # Decrease confidence for very long or uncertain responses
+                    if len(words) > 5 or any(word in response_text for word in ["maybe", "possibly", "might", "unclear"]):
+                        confidence = 0.5
 
-                # Decrease confidence for very long or uncertain responses
-                if len(words) > 5 or any(word in response_text for word in ["maybe", "possibly", "might", "unclear"]):
-                    confidence = 0.5
-
-                # LM Studio can now receive the actual image; do not artificially reduce confidence
-                logger.info(f"Parsed object name: '{object_name}' with confidence: {confidence}")
+                logger.info(f"Parsed object name: '{object_name}' with confidence: {confidence} (service: {self.config.service_type})")
                 return object_name, confidence
 
             logger.warning(f"Could not parse object name from response: {response_text}")
@@ -583,6 +694,30 @@ class LocalVisionService:
                 else:
                     last_error = "Could not parse object name from vision model response"
 
+            except aiohttp.ClientResponseError as e:
+                if e.status == 429:
+                    # Rate limiting - use longer backoff for Groq API
+                    last_error = f"Rate limited by API (status 429)"
+                    logger.warning(f"Rate limited (attempt {attempt + 1}): {last_error}")
+                    
+                    # Longer wait for rate limiting
+                    if attempt < self.config.max_retries - 1:
+                        wait_time = min(30 + (2 ** attempt), 120)  # 30s base + exponential, cap at 2 minutes
+                        logger.info(f"Rate limited, waiting {wait_time}s before retry...")
+                        await asyncio.sleep(wait_time)
+                        continue
+                elif e.status == 401:
+                    last_error = f"Authentication failed (status 401) - check API key"
+                    logger.error(f"Authentication failed: {last_error}")
+                    break  # Don't retry authentication errors
+                elif e.status == 403:
+                    last_error = f"Access forbidden (status 403) - check API permissions"
+                    logger.error(f"Access forbidden: {last_error}")
+                    break  # Don't retry permission errors
+                else:
+                    last_error = f"HTTP error {e.status}: {e.message}"
+                    logger.warning(f"HTTP error (attempt {attempt + 1}): {last_error}")
+
             except aiohttp.ClientError as e:
                 last_error = f"Network error: {e}"
                 logger.warning(f"Vision request failed (attempt {attempt + 1}): {last_error}")
@@ -594,7 +729,7 @@ class LocalVisionService:
                 # For unexpected errors, don't retry
                 break
 
-            # Wait before retry with exponential backoff
+            # Wait before retry with exponential backoff (if not already handled above)
             if attempt < self.config.max_retries - 1:
                 wait_time = min(2 ** attempt, 10)  # Cap at 10 seconds
                 logger.info(f"Waiting {wait_time}s before retry...")
@@ -637,15 +772,29 @@ class LocalVisionService:
         Returns:
             Dict containing service status details
         """
-        status = {
-            "enabled": self.config.enabled,
-            "service_url": self.config.service_url,
-            "service_type": self.config.service_type,
-            "model_name": self.config.model_name,
-            "healthy": False,
-            "available_models": [],
-            "error": None
-        }
+        if self.config.service_type == "groq":
+            # Use Groq configuration for status
+            groq_config = get_config().groq
+            status = {
+                "enabled": self.config.enabled and groq_config.enabled,
+                "service_url": groq_config.base_url,
+                "service_type": self.config.service_type,
+                "model_name": groq_config.model_name,
+                "healthy": False,
+                "available_models": [],
+                "error": None,
+                "api_configured": groq_config.is_configured()
+            }
+        else:
+            status = {
+                "enabled": self.config.enabled,
+                "service_url": self.config.service_url,
+                "service_type": self.config.service_type,
+                "model_name": self.config.model_name,
+                "healthy": False,
+                "available_models": [],
+                "error": None
+            }
 
         if not self.config.enabled:
             status["error"] = "Service disabled in configuration"
@@ -655,7 +804,35 @@ class LocalVisionService:
             if not self.session:
                 await self.initialize()
 
-            if self.config.service_type == "ollama":
+            if self.config.service_type == "groq":
+                groq_config = get_config().groq
+                
+                if not groq_config.is_configured():
+                    status["error"] = "Groq API not configured (missing API key or disabled)"
+                    return status
+
+                # Get available models from Groq
+                headers = {
+                    "Authorization": f"Bearer {groq_config.api_key}",
+                    "Content-Type": "application/json"
+                }
+                
+                async with self.session.get(f"{groq_config.base_url}/models", headers=headers) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        status["available_models"] = [model.get('id', '') for model in data.get('data', [])]
+                        status["healthy"] = any(groq_config.model_name in model for model in status["available_models"])
+
+                        if not status["healthy"]:
+                            status["error"] = f"Model '{groq_config.model_name}' not found in available Groq models"
+                    elif response.status == 401:
+                        status["error"] = "Groq API authentication failed - check API key"
+                    elif response.status == 403:
+                        status["error"] = "Groq API access forbidden - check API permissions"
+                    else:
+                        status["error"] = f"Groq API returned status {response.status}"
+
+            elif self.config.service_type == "ollama":
                 # Get available models from Ollama
                 async with self.session.get(f"{self.config.service_url}/api/tags") as response:
                     if response.status == 200:

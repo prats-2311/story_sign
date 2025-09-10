@@ -82,10 +82,7 @@ const MainDashboard = ({
                 Ensure the backend server is running:{" "}
                 <code>python main.py</code>
               </li>
-              <li>
-                Check that the backend is accessible at{" "}
-                <code>http://localhost:8000</code>
-              </li>
+              <li>Check that the backend is accessible and running</li>
               <li>Verify no firewall is blocking the connection</li>
               <li>Check the backend console for error messages</li>
               <li>Try restarting the backend server</li>

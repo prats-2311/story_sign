@@ -5,14 +5,17 @@ import React, {
   useImperativeHandle,
 } from "react";
 import useWebSocket from "../../hooks/useWebSocket";
+import { buildWsUrl } from "../../config/api";
 
 const VideoStreamingClient = forwardRef(
   (
     { isActive = false, onConnectionChange, onProcessedFrame, onError },
     ref
   ) => {
+    import { buildWsUrl } from "../../config/api";
+
     // WebSocket configuration - optimized for low latency
-    const WS_URL = "ws://localhost:8000/ws/video";
+    const WS_URL = buildWsUrl("ws/video");
 
     // Use centralized WebSocket hook
     const {

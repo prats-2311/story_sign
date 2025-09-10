@@ -3,9 +3,11 @@
  * Handles all authentication-related API calls and token management
  */
 
+import { buildApiUrl, getApiConfig } from "../config/api";
+
 class AuthService {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+    this.config = getApiConfig();
     this.tokenKey = "auth_token";
     this.userKey = "auth_user";
     this.refreshTokenKey = "refresh_token";
@@ -103,13 +105,13 @@ class AuthService {
 
   /**
    * Make an authenticated API request
-   * @param {string} endpoint - API endpoint
+   * @param {string} endpoint - API endpoint (e.g., '/auth/me')
    * @param {Object} options - Fetch options
    * @returns {Promise<Response>} Fetch response
    */
   async makeAuthenticatedRequest(endpoint, options = {}) {
     const token = this.getToken();
-    const url = `${this.baseURL}${endpoint}`;
+    const url = buildApiUrl(endpoint);
 
     const defaultOptions = {
       headers: {
@@ -164,7 +166,7 @@ class AuthService {
    */
   async login(email, password, rememberMe = false) {
     try {
-      const response = await fetch(`${this.baseURL}/api/v1/auth/login`, {
+      const response = await fetch(buildApiUrl("/auth/login"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -210,7 +212,7 @@ class AuthService {
    */
   async register(userData) {
     try {
-      const response = await fetch(`${this.baseURL}/api/v1/auth/register`, {
+      const response = await fetch(buildApiUrl("/auth/register"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -248,7 +250,7 @@ class AuthService {
       // Attempt to notify server of logout
       const token = this.getToken();
       if (token) {
-        await fetch(`${this.baseURL}/api/v1/auth/logout`, {
+        await fetch(buildApiUrl("/auth/logout"), {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -279,7 +281,7 @@ class AuthService {
     }
 
     try {
-      const response = await fetch(`${this.baseURL}/api/v1/auth/refresh`, {
+      const response = await fetch(buildApiUrl("/auth/refresh"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -322,7 +324,7 @@ class AuthService {
     }
 
     try {
-      const response = await this.makeAuthenticatedRequest("/api/v1/auth/me");
+      const response = await this.makeAuthenticatedRequest("/auth/me");
 
       if (!response.ok) {
         return null;
@@ -350,18 +352,15 @@ class AuthService {
    */
   async requestPasswordReset(email) {
     try {
-      const response = await fetch(
-        `${this.baseURL}/api/v1/auth/forgot-password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: email.toLowerCase().trim(),
-          }),
-        }
-      );
+      const response = await fetch(buildApiUrl("/auth/forgot-password"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.toLowerCase().trim(),
+        }),
+      });
 
       const data = await response.json();
 
@@ -390,19 +389,16 @@ class AuthService {
    */
   async resetPassword(token, newPassword) {
     try {
-      const response = await fetch(
-        `${this.baseURL}/api/v1/auth/reset-password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            token,
-            new_password: newPassword,
-          }),
-        }
-      );
+      const response = await fetch(buildApiUrl("/auth/reset-password"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token,
+          new_password: newPassword,
+        }),
+      });
 
       const data = await response.json();
 
@@ -428,13 +424,10 @@ class AuthService {
    */
   async updateProfile(profileData) {
     try {
-      const response = await this.makeAuthenticatedRequest(
-        "/api/v1/auth/profile",
-        {
-          method: "PUT",
-          body: JSON.stringify(profileData),
-        }
-      );
+      const response = await this.makeAuthenticatedRequest("/auth/profile", {
+        method: "PUT",
+        body: JSON.stringify(profileData),
+      });
 
       const data = await response.json();
 
@@ -463,7 +456,7 @@ class AuthService {
   async changePassword(currentPassword, newPassword) {
     try {
       const response = await this.makeAuthenticatedRequest(
-        "/api/v1/auth/change-password",
+        "/auth/change-password",
         {
           method: "POST",
           body: JSON.stringify({

@@ -3,12 +3,10 @@
  * Handles device-agnostic sessions, data sync, and offline changes
  */
 
+import { buildApiUrl, buildWsUrl } from "../config/api";
+
 class SyncService {
   constructor() {
-    this.apiBaseUrl =
-      process.env.REACT_APP_API_URL || "http://localhost:8000/api/v1";
-    this.wsBaseUrl = process.env.REACT_APP_WS_URL || "ws://localhost:8000";
-
     this.currentSession = null;
     this.syncQueue = [];
     this.offlineChanges = [];
@@ -454,7 +452,9 @@ class SyncService {
     if (!this.currentSession) return;
 
     try {
-      const wsUrl = `${this.wsBaseUrl}/api/v1/sync/ws/sync/${this.currentSession.session_id}`;
+      const wsUrl = buildWsUrl(
+        `api/v1/sync/ws/sync/${this.currentSession.session_id}`
+      );
       this.syncWebSocket = new WebSocket(wsUrl);
 
       this.syncWebSocket.onopen = () => {
@@ -637,7 +637,7 @@ class SyncService {
   // Utility methods
 
   async apiCall(endpoint, method = "GET", body = null, params = null) {
-    const url = new URL(`${this.apiBaseUrl}${endpoint}`);
+    const url = new URL(buildApiUrl(endpoint));
 
     if (params) {
       Object.entries(params).forEach(([key, value]) => {

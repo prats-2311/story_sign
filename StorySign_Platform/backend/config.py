@@ -96,7 +96,7 @@ class LocalVisionConfig(BaseModel):
 
     service_url: str = Field(default="http://localhost:1234", description="Local vision service URL")
     model_name: str = Field(default="google/gemma-3-4b", description="Vision model name")
-    service_type: str = Field(default="lm_studio", description="Service type (ollama or lm_studio)")
+    service_type: str = Field(default="lm_studio", description="Service type (ollama, lm_studio, or groq)")
     timeout_seconds: int = Field(default=30, ge=5, le=120, description="Request timeout in seconds")
     max_retries: int = Field(default=3, ge=1, le=10, description="Maximum retry attempts")
     enabled: bool = Field(default=True, description="Enable/disable local vision service")
@@ -105,10 +105,43 @@ class LocalVisionConfig(BaseModel):
     @classmethod
     def validate_service_type(cls, v):
         """Validate service type is supported"""
-        supported_types = ['ollama', 'lm_studio']
+        supported_types = ['ollama', 'lm_studio', 'groq']
         if v not in supported_types:
             raise ValueError(f"Service type must be one of {supported_types}")
         return v
+
+
+class GroqConfig(BaseModel):
+    """Configuration for Groq Vision API integration"""
+
+    api_key: Optional[str] = Field(default=None, description="Groq API key (required for production)")
+    base_url: str = Field(default="https://api.groq.com/openai/v1", description="Groq API base URL")
+    model_name: str = Field(default="llava-v1.5-7b-4096-preview", description="Groq vision model name")
+    timeout_seconds: int = Field(default=30, ge=5, le=120, description="Request timeout in seconds")
+    max_retries: int = Field(default=3, ge=1, le=10, description="Maximum retry attempts")
+    max_tokens: int = Field(default=1000, ge=100, le=4000, description="Maximum tokens for generation")
+    temperature: float = Field(default=0.7, ge=0.0, le=2.0, description="Generation temperature")
+    enabled: bool = Field(default=False, description="Enable/disable Groq API service")
+
+    @field_validator('api_key')
+    @classmethod
+    def validate_api_key(cls, v):
+        """Validate API key format if provided"""
+        if v is not None and (not v or not v.strip()):
+            raise ValueError("Groq API key cannot be empty if provided")
+        return v.strip() if v else None
+
+    @field_validator('model_name')
+    @classmethod
+    def validate_model_name(cls, v):
+        """Validate model name is not empty"""
+        if not v or not v.strip():
+            raise ValueError("Groq model name cannot be empty")
+        return v.strip()
+
+    def is_configured(self) -> bool:
+        """Check if Groq API is properly configured"""
+        return self.enabled and self.api_key is not None and len(self.api_key.strip()) > 0
 
 
 class OllamaConfig(BaseModel):
@@ -299,6 +332,7 @@ class AppConfig(BaseModel):
     mediapipe: MediaPipeConfig = Field(default_factory=MediaPipeConfig)
     server: ServerConfig = Field(default_factory=ServerConfig)
     local_vision: LocalVisionConfig = Field(default_factory=LocalVisionConfig)
+    groq: GroqConfig = Field(default_factory=GroqConfig)
     ollama: OllamaConfig = Field(default_factory=OllamaConfig)
     gesture_detection: GestureDetectionConfig = Field(default_factory=GestureDetectionConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
@@ -403,12 +437,34 @@ class ConfigManager:
             env_vars.setdefault('local_vision', {})['service_url'] = os.getenv('STORYSIGN_LOCAL_VISION__SERVICE_URL')
         if os.getenv('STORYSIGN_LOCAL_VISION__MODEL_NAME'):
             env_vars.setdefault('local_vision', {})['model_name'] = os.getenv('STORYSIGN_LOCAL_VISION__MODEL_NAME')
+        if os.getenv('STORYSIGN_LOCAL_VISION__SERVICE_TYPE'):
+            env_vars.setdefault('local_vision', {})['service_type'] = os.getenv('STORYSIGN_LOCAL_VISION__SERVICE_TYPE')
         if os.getenv('STORYSIGN_LOCAL_VISION__TIMEOUT_SECONDS'):
             env_vars.setdefault('local_vision', {})['timeout_seconds'] = int(os.getenv('STORYSIGN_LOCAL_VISION__TIMEOUT_SECONDS'))
         if os.getenv('STORYSIGN_LOCAL_VISION__MAX_RETRIES'):
             env_vars.setdefault('local_vision', {})['max_retries'] = int(os.getenv('STORYSIGN_LOCAL_VISION__MAX_RETRIES'))
         if os.getenv('STORYSIGN_LOCAL_VISION__ENABLED'):
             env_vars.setdefault('local_vision', {})['enabled'] = os.getenv('STORYSIGN_LOCAL_VISION__ENABLED').lower() == 'true'
+
+        # Groq configuration from environment
+        if os.getenv('GROQ_API_KEY'):
+            env_vars.setdefault('groq', {})['api_key'] = os.getenv('GROQ_API_KEY')
+        if os.getenv('STORYSIGN_GROQ__API_KEY'):
+            env_vars.setdefault('groq', {})['api_key'] = os.getenv('STORYSIGN_GROQ__API_KEY')
+        if os.getenv('STORYSIGN_GROQ__BASE_URL'):
+            env_vars.setdefault('groq', {})['base_url'] = os.getenv('STORYSIGN_GROQ__BASE_URL')
+        if os.getenv('STORYSIGN_GROQ__MODEL_NAME'):
+            env_vars.setdefault('groq', {})['model_name'] = os.getenv('STORYSIGN_GROQ__MODEL_NAME')
+        if os.getenv('STORYSIGN_GROQ__TIMEOUT_SECONDS'):
+            env_vars.setdefault('groq', {})['timeout_seconds'] = int(os.getenv('STORYSIGN_GROQ__TIMEOUT_SECONDS'))
+        if os.getenv('STORYSIGN_GROQ__MAX_RETRIES'):
+            env_vars.setdefault('groq', {})['max_retries'] = int(os.getenv('STORYSIGN_GROQ__MAX_RETRIES'))
+        if os.getenv('STORYSIGN_GROQ__MAX_TOKENS'):
+            env_vars.setdefault('groq', {})['max_tokens'] = int(os.getenv('STORYSIGN_GROQ__MAX_TOKENS'))
+        if os.getenv('STORYSIGN_GROQ__TEMPERATURE'):
+            env_vars.setdefault('groq', {})['temperature'] = float(os.getenv('STORYSIGN_GROQ__TEMPERATURE'))
+        if os.getenv('STORYSIGN_GROQ__ENABLED'):
+            env_vars.setdefault('groq', {})['enabled'] = os.getenv('STORYSIGN_GROQ__ENABLED').lower() == 'true'
 
         # Ollama configuration from environment
         if os.getenv('STORYSIGN_OLLAMA__SERVICE_URL'):
@@ -517,6 +573,7 @@ class ConfigManager:
             logger.debug(f"MediaPipe config: {self._config.mediapipe}")
             logger.debug(f"Server config: {self._config.server}")
             logger.debug(f"Local vision config: {self._config.local_vision}")
+            logger.debug(f"Groq config: enabled={self._config.groq.enabled}, configured={self._config.groq.is_configured()}")
             logger.debug(f"Ollama config: {self._config.ollama}")
             logger.debug(f"Gesture detection config: {self._config.gesture_detection}")
             logger.debug(f"Database config: host={self._config.database.host}, port={self._config.database.port}, database={self._config.database.database}")
