@@ -9,11 +9,18 @@ from . import system, asl_world, harmony, reconnect, websocket, services_demo
 
 # Import new API modules (with error handling)
 try:
-    from . import auth_simple as auth
+    from . import auth_db as auth
     AUTH_AVAILABLE = True
+    print("Using database-backed authentication")
 except ImportError as e:
-    print(f"Warning: Auth module not available: {e}")
-    AUTH_AVAILABLE = False
+    print(f"Warning: Database auth module not available: {e}")
+    try:
+        from . import auth_simple as auth
+        AUTH_AVAILABLE = True
+        print("Falling back to simple auth module")
+    except ImportError as e2:
+        print(f"Warning: Simple auth module also not available: {e2}")
+        AUTH_AVAILABLE = False
 
 try:
     from . import users, documentation, integrations, branding, sync
