@@ -80,7 +80,7 @@ const MODULE_DEFINITIONS = [
     icon: "🎵",
     permissions: ["read:own_data"],
     description: "Collaborative learning sessions (Coming Soon)",
-    disabled: true,
+    disabled: false,
   },
   {
     id: "reconnect",
@@ -89,7 +89,7 @@ const MODULE_DEFINITIONS = [
     icon: "🔗",
     permissions: ["read:own_data"],
     description: "Community challenges and social features (Coming Soon)",
-    disabled: true,
+    disabled: false,
   },
 ];
 
@@ -135,7 +135,7 @@ const PlatformShell = ({ children }) => {
   useEffect(() => {
     const currentPath = location.pathname;
     const module = MODULE_DEFINITIONS.find(
-      (mod) =>
+      mod =>
         mod.route === currentPath || currentPath.startsWith(mod.route + "/")
     );
     if (module) {
@@ -187,14 +187,14 @@ const PlatformShell = ({ children }) => {
   }, [accessibilitySettings, currentTheme]);
 
   // Authentication functions (placeholders)
-  const login = async (credentials) => {
+  const login = async credentials => {
     setAuthLoading(true);
     try {
       // TODO: Implement actual authentication
       console.log("Login attempt:", credentials);
 
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Mock user data
       const mockUser = {
@@ -245,14 +245,14 @@ const PlatformShell = ({ children }) => {
     }
   };
 
-  const register = async (userData) => {
+  const register = async userData => {
     setAuthLoading(true);
     try {
       // TODO: Implement actual registration
       console.log("Registration attempt:", userData);
 
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       addNotification(
         "Registration successful! Please log in.",
@@ -272,7 +272,7 @@ const PlatformShell = ({ children }) => {
   };
 
   // Theme management
-  const changeTheme = (themeName) => {
+  const changeTheme = themeName => {
     if (THEMES[themeName]) {
       setCurrentTheme(themeName);
       addNotification(
@@ -283,8 +283,8 @@ const PlatformShell = ({ children }) => {
   };
 
   // Accessibility settings management
-  const updateAccessibilitySettings = (newSettings) => {
-    setAccessibilitySettings((prev) => ({ ...prev, ...newSettings }));
+  const updateAccessibilitySettings = newSettings => {
+    setAccessibilitySettings(prev => ({ ...prev, ...newSettings }));
     addNotification(
       "Accessibility settings updated",
       NOTIFICATION_TYPES.SUCCESS
@@ -308,7 +308,7 @@ const PlatformShell = ({ children }) => {
       duration,
     };
 
-    setNotifications((prev) => [...prev, notification]);
+    setNotifications(prev => [...prev, notification]);
 
     // Auto-remove notification after duration
     if (duration > 0) {
@@ -320,9 +320,9 @@ const PlatformShell = ({ children }) => {
     return id;
   };
 
-  const removeNotification = (id) => {
-    setNotifications((prev) =>
-      prev.filter((notification) => notification.id !== id)
+  const removeNotification = id => {
+    setNotifications(prev =>
+      prev.filter(notification => notification.id !== id)
     );
   };
 
@@ -331,25 +331,25 @@ const PlatformShell = ({ children }) => {
   };
 
   // Navigation functions
-  const navigateToModule = (moduleId) => {
-    const module = MODULE_DEFINITIONS.find((mod) => mod.id === moduleId);
+  const navigateToModule = moduleId => {
+    const module = MODULE_DEFINITIONS.find(mod => mod.id === moduleId);
     if (module && !module.disabled) {
       navigate(module.route);
     }
   };
 
   const toggleSidebar = () => {
-    setSidebarOpen((prev) => !prev);
+    setSidebarOpen(prev => !prev);
   };
 
   // Plugin system functions (placeholders)
-  const loadPlugin = async (pluginId) => {
+  const loadPlugin = async pluginId => {
     // TODO: Implement plugin loading
     console.log("Loading plugin:", pluginId);
     addNotification(`Plugin ${pluginId} loaded`, NOTIFICATION_TYPES.SUCCESS);
   };
 
-  const unloadPlugin = async (pluginId) => {
+  const unloadPlugin = async pluginId => {
     // TODO: Implement plugin unloading
     console.log("Unloading plugin:", pluginId);
     addNotification(`Plugin ${pluginId} unloaded`, NOTIFICATION_TYPES.INFO);
@@ -428,7 +428,7 @@ const PlatformHeader = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
 
-  const currentModuleInfo = modules.find((mod) => mod.id === currentModule);
+  const currentModuleInfo = modules.find(mod => mod.id === currentModule);
 
   return (
     <header className="platform-header">
@@ -462,7 +462,7 @@ const PlatformHeader = () => {
           </button>
           {showThemeMenu && (
             <div className="theme-menu">
-              {availableThemes.map((theme) => (
+              {availableThemes.map(theme => (
                 <button
                   key={theme}
                   className={`theme-option ${
@@ -539,7 +539,7 @@ const PlatformSidebar = () => {
     <aside className="platform-sidebar">
       <nav className="sidebar-nav">
         <ul className="nav-list">
-          {modules.map((module) => (
+          {modules.map(module => (
             <li key={module.id} className="nav-item">
               <button
                 className={`nav-link ${
@@ -576,7 +576,7 @@ const PlatformNotifications = () => {
 
   return (
     <div className="platform-notifications">
-      {notifications.map((notification) => (
+      {notifications.map(notification => (
         <div
           key={notification.id}
           className={`notification notification-${notification.type}`}

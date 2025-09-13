@@ -49,16 +49,7 @@ jest.mock("../../services/AuthService", () => ({
   },
 }));
 
-jest.mock("../../config/api", () => ({
-  getApiConfig: () => ({
-    API_BASE_URL: "http://localhost:8000",
-    WS_BASE_URL: "ws://localhost:8000",
-    API_VERSION: "v1",
-  }),
-  buildApiUrl: (path) => `http://localhost:8000/api/v1${path}`,
-  buildHealthCheckUrl: () => "http://localhost:8000/health",
-  buildWebSocketUrl: () => "ws://localhost:8000/ws",
-  __esModule: true,
+jest.mock("../../config/api", () => "http://localhost:8000");
   default: {
     API_BASE_URL: "http://localhost:8000",
     WS_BASE_URL: "ws://localhost:8000",

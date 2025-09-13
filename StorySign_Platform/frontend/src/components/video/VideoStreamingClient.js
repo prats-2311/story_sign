@@ -5,7 +5,7 @@ import React, {
   useImperativeHandle,
 } from "react";
 import useWebSocket from "../../hooks/useWebSocket";
-import { buildWsUrl } from "../../config/api";
+// WebSocket URL for video streaming
 
 const VideoStreamingClient = forwardRef(
   (
@@ -13,7 +13,7 @@ const VideoStreamingClient = forwardRef(
     ref
   ) => {
     // WebSocket configuration - optimized for low latency
-    const WS_URL = buildWsUrl("ws/video");
+    const WS_URL = "ws://127.0.0.1:8000/ws/video";
 
     // Use centralized WebSocket hook
     const {
@@ -35,7 +35,7 @@ const VideoStreamingClient = forwardRef(
 
     // Send frame data to server with enhanced message format
     const sendFrame = useCallback(
-      (message) => {
+      message => {
         if (!isConnected) {
           console.warn("WebSocket not connected, cannot send frame");
           return false;
@@ -96,7 +96,7 @@ const VideoStreamingClient = forwardRef(
 
     // Backward-compatible generic control sender exposed to parent via ref
     const sendControlMessage = useCallback(
-      (message) => {
+      message => {
         if (!isConnected) {
           console.warn("WebSocket not connected, cannot send control message");
           return false;
@@ -115,7 +115,7 @@ const VideoStreamingClient = forwardRef(
 
     // Handle incoming messages from server using message listeners
     const handleIncomingMessage = useCallback(
-      (message) => {
+      message => {
         switch (message.type) {
           case "processed_frame":
             onProcessedFrame?.(message);

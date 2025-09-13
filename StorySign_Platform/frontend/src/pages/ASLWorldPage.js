@@ -6,7 +6,7 @@ import {
   FeedbackPanel,
 } from "../modules/asl_world";
 import VideoStreamingClient from "../components/video/VideoStreamingClient";
-import { buildApiUrl } from "../config/api";
+import API_BASE_URL from "../config/api";
 import "./ASLWorldPage.css";
 
 // State management reducer for ASL World
@@ -258,7 +258,7 @@ const ASLWorldPage = ({
   ]);
 
   // Practice session management functions
-  const startPracticeSession = async (story) => {
+  const startPracticeSession = async story => {
     console.log("Starting practice session with story:", story.title);
 
     try {
@@ -289,14 +289,14 @@ const ASLWorldPage = ({
   };
 
   // Story generation handler
-  const handleStoryGenerate = useCallback(async (payload) => {
+  const handleStoryGenerate = useCallback(async payload => {
     dispatch({ type: "STORY_GENERATION_START" });
 
     try {
       console.log("Starting story generation with payload:", payload);
 
       const response = await fetch(
-        buildApiUrl("/asl-world/story/recognize_and_generate"),
+        `${API_BASE_URL}/api/v1/asl-world/story/recognize_and_generate`,
         {
           method: "POST",
           headers: {
@@ -350,7 +350,7 @@ const ASLWorldPage = ({
   }, []);
 
   // Story selection handler
-  const handleStorySelect = useCallback((story) => {
+  const handleStorySelect = useCallback(story => {
     console.log("Story selected:", story.title);
     dispatch({ type: "SELECT_STORY", payload: story });
   }, []);
@@ -517,7 +517,7 @@ const ASLWorldPage = ({
     [state.selectedStory, state.currentSentenceIndex]
   );
 
-  const handlePracticeSessionUpdate = useCallback((practiceData) => {
+  const handlePracticeSessionUpdate = useCallback(practiceData => {
     console.log("Practice session update:", practiceData);
 
     // Update processing feedback state based on gesture state
@@ -529,7 +529,7 @@ const ASLWorldPage = ({
     }
   }, []);
 
-  const handlePracticeControlResponse = useCallback((message) => {
+  const handlePracticeControlResponse = useCallback(message => {
     console.log("Practice control response:", message);
 
     if (message.result && message.result.success) {
@@ -553,7 +553,7 @@ const ASLWorldPage = ({
     }
   }, []);
 
-  const handlePracticeSessionResponse = useCallback((message) => {
+  const handlePracticeSessionResponse = useCallback(message => {
     console.log("Practice session response:", message);
 
     if (message.result && message.result.success) {
@@ -573,7 +573,7 @@ const ASLWorldPage = ({
   }, []);
 
   const handleSessionComplete = useCallback(
-    (message) => {
+    message => {
       console.log("Session complete:", message);
 
       // Handle story completion
@@ -608,7 +608,7 @@ const ASLWorldPage = ({
   );
 
   // Enhanced processed frame handler that includes ASL World specific logic
-  const handleProcessedFrameWithASLLogic = (message) => {
+  const handleProcessedFrameWithASLLogic = message => {
     // Call the parent's processed frame handler first
     if (onProcessedFrame) {
       onProcessedFrame(message);

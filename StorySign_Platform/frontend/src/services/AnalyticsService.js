@@ -3,7 +3,7 @@
  * Frontend service for tracking user interactions and learning analytics
  */
 
-import { buildApiUrl } from "../config/api";
+import API_BASE_URL from "../config/api";
 
 class AnalyticsService {
   constructor() {
@@ -79,7 +79,7 @@ class AnalyticsService {
   async trackPerformance(metricName, metricValue, module, additionalData = {}) {
     try {
       const response = await fetch(
-        buildApiUrl("/analytics/events/performance"),
+        `${API_BASE_URL}/api/v1/analytics/events/performance`,
         {
           method: "POST",
           headers: {
@@ -114,21 +114,24 @@ class AnalyticsService {
     additionalData = {}
   ) {
     try {
-      const response = await fetch(buildApiUrl("/analytics/events/learning"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-        body: JSON.stringify({
-          event_type: eventType,
-          session_id: this.sessionId,
-          story_id: storyId,
-          sentence_index: sentenceIndex,
-          score: score,
-          additional_data: additionalData,
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/analytics/events/learning`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.getAuthToken()}`,
+          },
+          body: JSON.stringify({
+            event_type: eventType,
+            session_id: this.sessionId,
+            story_id: storyId,
+            sentence_index: sentenceIndex,
+            score: score,
+            additional_data: additionalData,
+          }),
+        }
+      );
 
       return response.ok;
     } catch (error) {
@@ -275,7 +278,7 @@ class AnalyticsService {
    */
   async manageConsent(consentType, consentGiven, consentVersion = "1.0") {
     try {
-      const response = await fetch(buildApiUrl("/analytics/consent"), {
+      const response = await fetch(`${API_BASE_URL}/api/v1/analytics/consent`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -306,7 +309,7 @@ class AnalyticsService {
    */
   async checkConsentStatus() {
     try {
-      const response = await fetch(buildApiUrl("/analytics/consent"), {
+      const response = await fetch(`${API_BASE_URL}/api/v1/analytics/consent`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${this.getAuthToken()}`,
@@ -333,7 +336,7 @@ class AnalyticsService {
     if (!this.consentStatus) return false;
 
     const consent = this.consentStatus.find(
-      (c) => c.consent_type === consentType && c.is_active
+      c => c.consent_type === consentType && c.is_active
     );
 
     return consent && consent.consent_given;
@@ -356,7 +359,7 @@ class AnalyticsService {
       if (includeRawEvents) params.append("include_raw_events", "true");
 
       const response = await fetch(
-        `${buildApiUrl("/analytics/user/me")}?${params}`,
+        `${API_BASE_URL}/api/v1/analytics/user/me?${params}`,
         {
           method: "GET",
           headers: {
@@ -381,7 +384,7 @@ class AnalyticsService {
    */
   async exportUserData() {
     try {
-      const response = await fetch(buildApiUrl("/analytics/export"), {
+      const response = await fetch(`${API_BASE_URL}/api/v1/analytics/export`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${this.getAuthToken()}`,
@@ -404,12 +407,15 @@ class AnalyticsService {
    */
   async deleteUserData() {
     try {
-      const response = await fetch(buildApiUrl("/analytics/user-data"), {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${this.getAuthToken()}`,
-        },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/analytics/user-data`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${this.getAuthToken()}`,
+          },
+        }
+      );
 
       return response.ok;
     } catch (error) {
@@ -449,7 +455,7 @@ class AnalyticsService {
    */
   async sendEvent(event) {
     try {
-      const response = await fetch(buildApiUrl("/analytics/events"), {
+      const response = await fetch(`${API_BASE_URL}/api/v1/analytics/events`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -481,7 +487,7 @@ class AnalyticsService {
         const events = this.eventQueue.splice(0);
         for (const event of events) {
           navigator.sendBeacon(
-            buildApiUrl("/analytics/events"),
+            `${API_BASE_URL}/api/v1/analytics/events`,
             JSON.stringify(event)
           );
         }
@@ -533,7 +539,7 @@ class AnalyticsService {
    */
   async getHealthStatus() {
     try {
-      const response = await fetch(buildApiUrl("/analytics/health"));
+      const response = await fetch(`${API_BASE_URL}/api/v1/analytics/health`);
       if (response.ok) {
         return await response.json();
       }

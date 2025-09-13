@@ -5,7 +5,7 @@ import {
   ProgressTracker,
 } from "../modules/harmony";
 import VideoStreamingClient from "../components/video/VideoStreamingClient";
-import { buildApiUrl } from "../config/api";
+import API_BASE_URL from "../config/api";
 import useWebcam from "../hooks/useWebcam";
 import "./HarmonyPage.css";
 
@@ -132,7 +132,7 @@ const HarmonyPage = ({
 
   // Handle starting a new emotion practice session
   const handleStartSession = useCallback(
-    async (emotion) => {
+    async emotion => {
       try {
         // Generate session ID
         sessionIdRef.current = `harmony_${Date.now()}_${Math.random()
@@ -252,7 +252,7 @@ const HarmonyPage = ({
         created_at: new Date().toISOString(),
       };
 
-      const response = await fetch(buildApiUrl("/harmony/sessions"), {
+      const response = await fetch(`${API_BASE_URL}/api/v1/harmony/sessions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -278,7 +278,7 @@ const HarmonyPage = ({
 
   // Handle processed frame data from WebSocket
   const handleProcessedFrameWithHarmonyLogic = useCallback(
-    (message) => {
+    message => {
       // Call parent's processed frame handler first
       if (onProcessedFrame) {
         onProcessedFrame(message);

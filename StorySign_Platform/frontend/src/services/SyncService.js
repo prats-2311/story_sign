@@ -3,7 +3,7 @@
  * Handles device-agnostic sessions, data sync, and offline changes
  */
 
-import { buildApiUrl, buildWsUrl } from "../config/api";
+import API_BASE_URL from "../config/api";
 
 class SyncService {
   constructor() {
@@ -452,16 +452,14 @@ class SyncService {
     if (!this.currentSession) return;
 
     try {
-      const wsUrl = buildWsUrl(
-        `api/v1/sync/ws/sync/${this.currentSession.session_id}`
-      );
+      const wsUrl = `ws://127.0.0.1:8000/api/v1/sync/ws/sync/${this.currentSession.session_id}`;
       this.syncWebSocket = new WebSocket(wsUrl);
 
       this.syncWebSocket.onopen = () => {
         console.log("SyncService: WebSocket connected");
       };
 
-      this.syncWebSocket.onmessage = (event) => {
+      this.syncWebSocket.onmessage = event => {
         try {
           const message = JSON.parse(event.data);
           this.handleSyncMessage(message);
@@ -479,7 +477,7 @@ class SyncService {
         setTimeout(() => this.setupSyncWebSocket(), 5000);
       };
 
-      this.syncWebSocket.onerror = (error) => {
+      this.syncWebSocket.onerror = error => {
         console.error("SyncService: WebSocket error:", error);
       };
     } catch (error) {
@@ -558,7 +556,7 @@ class SyncService {
   }
 
   notifyListeners(event, data) {
-    this.syncListeners.forEach((listener) => {
+    this.syncListeners.forEach(listener => {
       try {
         listener(event, data);
       } catch (error) {
@@ -637,7 +635,7 @@ class SyncService {
   // Utility methods
 
   async apiCall(endpoint, method = "GET", body = null, params = null) {
-    const url = new URL(buildApiUrl(endpoint));
+    const url = new URL(`${API_BASE_URL}/api/v1${endpoint}`);
 
     if (params) {
       Object.entries(params).forEach(([key, value]) => {

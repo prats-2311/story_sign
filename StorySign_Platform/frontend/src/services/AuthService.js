@@ -3,11 +3,10 @@
  * Handles all authentication-related API calls and token management
  */
 
-import { buildApiUrl, getApiConfig } from "../config/api";
+import API_BASE_URL from "../config/api";
 
 class AuthService {
   constructor() {
-    this.config = getApiConfig();
     this.tokenKey = "auth_token";
     this.userKey = "auth_user";
     this.refreshTokenKey = "refresh_token";
@@ -111,7 +110,7 @@ class AuthService {
    */
   async makeAuthenticatedRequest(endpoint, options = {}) {
     const token = this.getToken();
-    const url = buildApiUrl(endpoint);
+    const url = `${API_BASE_URL}/api/v1${endpoint}`;
 
     const defaultOptions = {
       headers: {
@@ -166,7 +165,7 @@ class AuthService {
    */
   async login(email, password, rememberMe = false) {
     try {
-      const response = await fetch(buildApiUrl("/auth/login"), {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -232,7 +231,7 @@ class AuthService {
    */
   async register(userData) {
     try {
-      const response = await fetch(buildApiUrl("/auth/register"), {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -291,7 +290,7 @@ class AuthService {
       // Attempt to notify server of logout
       const token = this.getToken();
       if (token) {
-        await fetch(buildApiUrl("/auth/logout"), {
+        await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -322,7 +321,7 @@ class AuthService {
     }
 
     try {
-      const response = await fetch(buildApiUrl("/auth/refresh"), {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -393,15 +392,18 @@ class AuthService {
    */
   async requestPasswordReset(email) {
     try {
-      const response = await fetch(buildApiUrl("/auth/forgot-password"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email.toLowerCase().trim(),
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/auth/forgot-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email.toLowerCase().trim(),
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -430,16 +432,19 @@ class AuthService {
    */
   async resetPassword(token, newPassword) {
     try {
-      const response = await fetch(buildApiUrl("/auth/reset-password"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          token,
-          new_password: newPassword,
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/auth/reset-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            token,
+            new_password: newPassword,
+          }),
+        }
+      );
 
       const data = await response.json();
 

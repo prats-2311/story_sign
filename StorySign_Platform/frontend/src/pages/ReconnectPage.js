@@ -5,7 +5,7 @@ import {
   TherapyDashboard,
 } from "../modules/reconnect";
 import VideoStreamingClient from "../components/video/VideoStreamingClient";
-import { buildApiUrl } from "../config/api";
+import API_BASE_URL from "../config/api";
 import useWebcam from "../hooks/useWebcam";
 import "./ReconnectPage.css";
 
@@ -139,7 +139,7 @@ const ReconnectPage = ({
 
   // Handle starting a new therapy session
   const handleStartSession = useCallback(
-    async (exercise) => {
+    async exercise => {
       try {
         // Generate session ID
         sessionIdRef.current = `reconnect_${Date.now()}_${Math.random()
@@ -260,17 +260,20 @@ const ReconnectPage = ({
         created_at: new Date().toISOString(),
       };
 
-      const response = await fetch(buildApiUrl("/reconnect/sessions"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // Add auth header if available
-          ...(localStorage.getItem("token") && {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          }),
-        },
-        body: JSON.stringify(sessionPayload),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/reconnect/sessions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            // Add auth header if available
+            ...(localStorage.getItem("token") && {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            }),
+          },
+          body: JSON.stringify(sessionPayload),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to save session: ${response.status}`);
@@ -286,7 +289,7 @@ const ReconnectPage = ({
 
   // Handle processed frame data from WebSocket
   const handleProcessedFrameWithReconnectLogic = useCallback(
-    (message) => {
+    message => {
       // Call parent's processed frame handler first
       if (onProcessedFrame) {
         onProcessedFrame(message);

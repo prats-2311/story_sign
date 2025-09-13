@@ -1,14 +1,5 @@
 // Mock API configuration before other imports
-jest.mock("../../config/api", () => ({
-  getApiConfig: () => ({
-    API_BASE_URL: "http://localhost:8000",
-    WS_BASE_URL: "ws://localhost:8000",
-    API_VERSION: "v1",
-  }),
-  buildApiUrl: (path) => `http://localhost:8000/api/v1${path}`,
-  buildWsUrl: (path) => `ws://localhost:8000${path}`,
-  buildHealthCheckUrl: () => "http://localhost:8000/health",
-}));
+jest.mock("../../config/api", () => "http://localhost:8000");
 
 import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
@@ -31,7 +22,7 @@ jest.mock("../../services/PWAService", () => ({
 
 jest.mock("../../config/api", () => ({
   buildHealthCheckUrl: jest.fn(() => "http://localhost:8000/health"),
-  buildApiUrl: jest.fn((path) => `http://localhost:8000${path}`),
+  buildApiUrl: jest.fn(path => `http://localhost:8000${path}`),
 }));
 
 // Mock fetch for API calls
@@ -91,7 +82,7 @@ describe("Complete User Workflow Accessibility Tests", () => {
       const MockLoginForm = () => {
         const [loading, setLoading] = React.useState(false);
 
-        const handleSubmit = (e) => {
+        const handleSubmit = e => {
           e.preventDefault();
           setLoading(true);
         };
@@ -140,7 +131,7 @@ describe("Complete User Workflow Accessibility Tests", () => {
       const MockLoginFormWithError = () => {
         const [error, setError] = React.useState("");
 
-        const handleSubmit = (e) => {
+        const handleSubmit = e => {
           e.preventDefault();
           setError("Invalid credentials");
         };
@@ -444,7 +435,7 @@ describe("Complete User Workflow Accessibility Tests", () => {
       const MockFormWithValidation = () => {
         const [errors, setErrors] = React.useState({});
 
-        const handleSubmit = (e) => {
+        const handleSubmit = e => {
           e.preventDefault();
           setErrors({ email: "Email is required" });
         };

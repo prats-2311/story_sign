@@ -1,14 +1,5 @@
 // Mock API configuration before other imports
-jest.mock("../../config/api", () => ({
-  getApiConfig: () => ({
-    API_BASE_URL: "http://localhost:8000",
-    WS_BASE_URL: "ws://localhost:8000",
-    API_VERSION: "v1",
-  }),
-  buildApiUrl: (path) => `http://localhost:8000/api/v1${path}`,
-  buildWsUrl: (path) => `ws://localhost:8000${path}`,
-  buildHealthCheckUrl: () => "http://localhost:8000/health",
-}));
+jest.mock("../../config/api", () => "http://localhost:8000");
 
 import React from "react";
 import { render } from "@testing-library/react";
