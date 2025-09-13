@@ -1,58 +1,17 @@
 import React from "react";
 
-const MainDashboard = ({
-  webcamActive,
-  webcamError,
-  streamingActive,
-  streamingError,
-  toggleWebcam,
-  toggleStreaming,
-  retryWebcam,
-  retryStreaming,
-  onNavigateToASLWorld,
-}) => {
+const MainDashboard = ({ onNavigateToASLWorld }) => {
   return (
     <div className="control-panel">
-      <div className="video-area">
-        <h3>Video Feed</h3>
-        <div className="video-controls">
-          <button className="webcam-toggle-btn" onClick={toggleWebcam}>
-            {webcamActive ? "Stop Webcam" : "Start Webcam"}
-          </button>
-          <button
-            className="streaming-toggle-btn"
-            onClick={toggleStreaming}
-            disabled={!webcamActive}
-          >
-            {streamingActive ? "Stop Streaming" : "Start Streaming"}
-          </button>
-        </div>
-        {webcamError && (
-          <div className="webcam-error">
-            <p className="error-text">{webcamError}</p>
-            <div className="error-actions">
-              <button className="retry-btn" onClick={retryWebcam}>
-                Retry Webcam
-              </button>
-              <div className="error-help">
-                <p>Common solutions:</p>
-                <ul>
-                  <li>Check camera permissions in browser settings</li>
-                  <li>Close other applications using the camera</li>
-                  <li>Try refreshing the page</li>
-                  <li>Ensure camera is properly connected</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ASL World Navigation Button */}
+      {/* ASL World Navigation Button - Direct access without backend connection requirement */}
       <div className="asl-world-toggle">
         <button className="asl-world-toggle-btn" onClick={onNavigateToASLWorld}>
           Enter ASL World
         </button>
+        <p className="asl-world-description">
+          Start your ASL learning journey! The backend will connect
+          automatically when you begin practicing.
+        </p>
       </div>
 
       {/* Platform Shell Demo Section */}

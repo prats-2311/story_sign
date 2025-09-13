@@ -82,9 +82,9 @@ const MainDashboard = lazy(() =>
   })
 );
 
-const ASLWorldPage = lazy(() =>
-  import("./pages/ASLWorldPage").then(module => {
-    console.log("ASLWorldPage loaded");
+const ASLWorldWrapper = lazy(() =>
+  import("./pages/ASLWorldWrapper").then(module => {
+    console.log("ASLWorldWrapper loaded");
     return module;
   })
 );
@@ -276,7 +276,7 @@ const AppContent = () => {
                             <Suspense
                               fallback={<ComponentSkeleton type="asl-world" />}
                             >
-                              <ASLWorldPage />
+                              <ASLWorldWrapper />
                             </Suspense>
                           </ComponentLoadingErrorBoundary>
                         </RouteErrorBoundary>

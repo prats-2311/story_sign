@@ -1,11 +1,8 @@
 import React, { useState, useRef, useCallback } from "react";
-import { useBackend } from "../contexts/BackendContext";
 import ASLWorldPage from "./ASLWorldPage";
 
 const ASLWorldWrapper = () => {
-  const { connectionStatus, testBackendConnection } = useBackend();
-
-  // Video streaming state
+  // Video streaming state - simplified without manual backend connection
   const [webcamActive, setWebcamActive] = useState(false);
   const [streamingActive, setStreamingActive] = useState(false);
   const [streamingConnectionStatus, setStreamingConnectionStatus] =
@@ -19,7 +16,7 @@ const ASLWorldWrapper = () => {
 
   const videoStreamingRef = useRef(null);
 
-  // Webcam controls
+  // Webcam controls - no backend dependency
   const toggleWebcam = useCallback(async () => {
     try {
       if (!webcamActive) {
@@ -43,18 +40,18 @@ const ASLWorldWrapper = () => {
     }
   }, [webcamActive]);
 
+  // Streaming toggle - automatic backend connection
   const toggleStreaming = useCallback(() => {
-    if (webcamActive && connectionStatus === "connected") {
+    if (webcamActive) {
       setStreamingActive(!streamingActive);
       setStreamingConnectionStatus(
         streamingActive ? "disconnected" : "connected"
       );
     }
-  }, [webcamActive, connectionStatus, streamingActive]);
+  }, [webcamActive, streamingActive]);
 
   // Frame capture handler
   const handleFrameCapture = useCallback(frameData => {
-    // Placeholder for frame capture logic
     console.log("Frame captured:", frameData);
   }, []);
 
@@ -73,11 +70,6 @@ const ASLWorldWrapper = () => {
     console.error("ASL World error:", error);
   }, []);
 
-  // Retry connection handler
-  const handleRetryConnection = useCallback(() => {
-    testBackendConnection();
-  }, [testBackendConnection]);
-
   // Optimization change handler
   const handleOptimizationChange = useCallback(newSettings => {
     setOptimizationSettings(prev => ({ ...prev, ...newSettings }));
@@ -85,7 +77,6 @@ const ASLWorldWrapper = () => {
 
   return (
     <ASLWorldPage
-      connectionStatus={connectionStatus}
       webcamActive={webcamActive}
       streamingActive={streamingActive}
       onFrameCapture={handleFrameCapture}
@@ -97,10 +88,8 @@ const ASLWorldWrapper = () => {
       onConnectionChange={handleConnectionChange}
       onProcessedFrame={handleProcessedFrame}
       onError={handleError}
-      onRetryConnection={handleRetryConnection}
       toggleWebcam={toggleWebcam}
       toggleStreaming={toggleStreaming}
-      testBackendConnection={testBackendConnection}
     />
   );
 };

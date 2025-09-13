@@ -136,7 +136,6 @@ const initialState = {
 };
 
 const ASLWorldPage = ({
-  connectionStatus,
   webcamActive,
   streamingActive,
   onFrameCapture,
@@ -148,12 +147,11 @@ const ASLWorldPage = ({
   onConnectionChange,
   onProcessedFrame,
   onError,
-  onRetryConnection,
   toggleWebcam,
   toggleStreaming,
-  testBackendConnection,
 }) => {
   const [state, dispatch] = useReducer(aslWorldReducer, initialState);
+  const [connectionStatus, setConnectionStatus] = useState("connected"); // Assume automatic connection
   const hasStartedPracticeRef = useRef(false);
 
   // Effect 1: When stories are generated, reset practice session flag
@@ -183,8 +181,7 @@ const ASLWorldPage = ({
       state.storyData &&
       !state.isGeneratingStory &&
       streamingConnectionStatus === "disconnected" &&
-      webcamActive &&
-      connectionStatus === "connected"
+      webcamActive
     ) {
       console.log(
         "Story generation completed but WebSocket disconnected, attempting reconnection..."
@@ -204,22 +201,13 @@ const ASLWorldPage = ({
     state.isGeneratingStory,
     streamingConnectionStatus,
     webcamActive,
-    connectionStatus,
     streamingActive,
     toggleStreaming,
   ]);
 
-  // Handler for starting practice session
+  // Handler for starting practice session - automatic backend connection
   const handleStartPractice = useCallback(async () => {
-    console.log(
-      "Starting practice session - checking backend connection, webcam and streaming status"
-    );
-
-    // Test backend connection if not already connected
-    if (connectionStatus !== "connected" && testBackendConnection) {
-      console.log("Testing backend connection for practice session");
-      await testBackendConnection();
-    }
+    console.log("Starting practice session - activating webcam and streaming");
 
     // Activate webcam if not already active
     if (!webcamActive && toggleWebcam) {
@@ -227,21 +215,20 @@ const ASLWorldPage = ({
       toggleWebcam();
     }
 
-    // Set practice started flag
+    // Set practice started flag - backend connection is automatic
     dispatch({ type: "START_PRACTICE" });
-  }, [connectionStatus, testBackendConnection, webcamActive, toggleWebcam]);
+  }, [webcamActive, toggleWebcam]);
 
-  // Effect to handle streaming activation after webcam is active and backend is connected
+  // Effect to handle streaming activation after webcam is active - automatic backend connection
   React.useEffect(() => {
     if (
       state.practiceStarted &&
       webcamActive &&
       !streamingActive &&
-      connectionStatus === "connected" &&
       toggleStreaming
     ) {
       console.log(
-        "Backend connected and webcam is active, now activating streaming for practice session"
+        "Webcam is active, now activating streaming for practice session (backend connects automatically)"
       );
       const timer = setTimeout(() => {
         toggleStreaming();
@@ -249,13 +236,7 @@ const ASLWorldPage = ({
 
       return () => clearTimeout(timer);
     }
-  }, [
-    state.practiceStarted,
-    webcamActive,
-    streamingActive,
-    connectionStatus,
-    toggleStreaming,
-  ]);
+  }, [state.practiceStarted, webcamActive, streamingActive, toggleStreaming]);
 
   // Practice session management functions
   const startPracticeSession = async story => {
@@ -642,7 +623,6 @@ const ASLWorldPage = ({
           <StorySetup
             onStoryGenerate={handleStoryGenerate}
             isGeneratingStory={state.isGeneratingStory}
-            connectionStatus={connectionStatus}
             generationError={state.storyGenerationError}
             onDismissError={handleDismissError}
           />
@@ -708,18 +688,11 @@ const ASLWorldPage = ({
         <h1 id="main-content">ASL World</h1>
         <p>Interactive American Sign Language Learning</p>
         <div className="connection-status" aria-live="polite" role="status">
-          <span
-            className={`status-indicator ${connectionStatus}`}
-            aria-hidden="true"
-          >
-            {connectionStatus === "connected" && "🟢"}
-            {connectionStatus === "connecting" && "🟡"}
-            {connectionStatus === "disconnected" && "🔴"}
+          <span className="status-indicator connected" aria-hidden="true">
+            🟢
           </span>
           <span className="status-text">
-            Connection status: {connectionStatus === "connected" && "Connected"}
-            {connectionStatus === "connecting" && "Connecting..."}
-            {connectionStatus === "disconnected" && "Disconnected"}
+            Backend ready - Start practicing to connect automatically
           </span>
         </div>
       </header>

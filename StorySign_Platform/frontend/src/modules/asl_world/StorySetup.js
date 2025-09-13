@@ -9,7 +9,6 @@ import "./StorySetup.css";
 const StorySetup = ({
   onStoryGenerate,
   isGeneratingStory = false,
-  connectionStatus = "disconnected",
   generationError = "",
   onDismissError,
 }) => {
@@ -50,7 +49,7 @@ const StorySetup = ({
     const cleanupWebcam = () => {
       if (videoRef.current?.srcObject) {
         const tracks = videoRef.current.srcObject.getTracks();
-        tracks.forEach((track) => track.stop());
+        tracks.forEach(track => track.stop());
         videoRef.current.srcObject = null;
       }
     };
@@ -92,22 +91,21 @@ const StorySetup = ({
   }, [onStoryGenerate]);
 
   // Handle simple word generation
-  const handleSimpleWordGenerate = (word) => {
+  const handleSimpleWordGenerate = word => {
     if (onStoryGenerate) {
       onStoryGenerate({ simple_word: word });
     }
   };
 
   // Handle custom prompt generation
-  const handleCustomPromptGenerate = (e) => {
+  const handleCustomPromptGenerate = e => {
     e.preventDefault();
     if (customPrompt.trim() && onStoryGenerate) {
       onStoryGenerate({ custom_prompt: customPrompt });
     }
   };
 
-  const isConnected = connectionStatus === "connected";
-  const canGenerate = isConnected && !isGeneratingStory;
+  const canGenerate = !isGeneratingStory; // Backend connects automatically
 
   return (
     <div className="story-setup">
@@ -118,12 +116,10 @@ const StorySetup = ({
           story.
         </p>
 
-        {!isConnected && (
-          <div className="connection-warning" role="alert">
-            <span aria-hidden="true">⚠️</span>
-            <span>Backend connection required for story generation</span>
-          </div>
-        )}
+        <div className="connection-info" role="status">
+          <span aria-hidden="true">🟢</span>
+          <span>Backend ready - Stories will generate automatically</span>
+        </div>
       </header>
 
       {generationError && (
@@ -250,7 +246,7 @@ const StorySetup = ({
               role="group"
               aria-label="Simple words for story generation"
             >
-              {simpleWords.map((word) => (
+              {simpleWords.map(word => (
                 <Button
                   key={word}
                   variant="secondary"
@@ -295,7 +291,7 @@ const StorySetup = ({
                   type="text"
                   className="prompt-input"
                   value={customPrompt}
-                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  onChange={e => setCustomPrompt(e.target.value)}
                   placeholder="e.g., 'A friendly robot' or 'A magical key'"
                   disabled={!canGenerate}
                   aria-describedby="prompt-help"
