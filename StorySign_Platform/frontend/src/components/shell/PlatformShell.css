@@ -252,6 +252,12 @@
   background-color: rgba(0, 0, 0, 0.1);
 }
 
+.logout-button {
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 /* Platform Body */
 .platform-body {
   display: flex;
@@ -514,9 +520,7 @@
 
   .platform-main {
     width: 100%;
-    padding-bottom: calc(
-      var(--mobile-nav-height, 60px) + var(--spacing-md, 1rem)
-    );
+    padding-bottom: calc(var(--mobile-nav-height, 60px) + var(--spacing-md, 1rem));
   }
 
   .current-module {

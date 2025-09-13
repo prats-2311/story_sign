@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { LogOut } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 import { useResponsive } from "../../hooks/useResponsive";
 import MobileNavigation from "../ui/MobileNavigation";
 import "./PlatformShell.css";
@@ -106,10 +108,13 @@ const PlatformShell = ({ children }) => {
   const location = useLocation();
   const { isMobile, shouldCollapseSidebar } = useResponsive();
 
-  // Authentication state (placeholder for future implementation)
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
+  // Use AuthContext for authentication state
+  const {
+    user,
+    isAuthenticated,
+    isLoading: authLoading,
+    logout: authLogout,
+  } = useAuth();
 
   // Theme and accessibility state
   const [currentTheme, setCurrentTheme] = useState("light");
@@ -186,88 +191,14 @@ const PlatformShell = ({ children }) => {
     }
   }, [accessibilitySettings, currentTheme]);
 
-  // Authentication functions (placeholders)
-  const login = async credentials => {
-    setAuthLoading(true);
-    try {
-      // TODO: Implement actual authentication
-      console.log("Login attempt:", credentials);
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mock user data
-      const mockUser = {
-        id: "user_123",
-        email: credentials.email || "demo@storysign.com",
-        username: "demo_user",
-        firstName: "Demo",
-        lastName: "User",
-        role: "learner",
-        preferences: {},
-      };
-
-      setUser(mockUser);
-      setIsAuthenticated(true);
-
-      addNotification("Welcome back!", NOTIFICATION_TYPES.SUCCESS);
-
-      return { success: true, user: mockUser };
-    } catch (error) {
-      addNotification(
-        "Login failed. Please try again.",
-        NOTIFICATION_TYPES.ERROR
-      );
-      return { success: false, error: error.message };
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
+  // Logout wrapper function to add notification
   const logout = async () => {
-    setAuthLoading(true);
     try {
-      // TODO: Implement actual logout
-      console.log("Logout");
-
-      setUser(null);
-      setIsAuthenticated(false);
-
+      await authLogout();
       addNotification("You have been logged out.", NOTIFICATION_TYPES.INFO);
-      navigate("/");
-
-      return { success: true };
     } catch (error) {
       addNotification("Logout failed.", NOTIFICATION_TYPES.ERROR);
-      return { success: false, error: error.message };
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const register = async userData => {
-    setAuthLoading(true);
-    try {
-      // TODO: Implement actual registration
-      console.log("Registration attempt:", userData);
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      addNotification(
-        "Registration successful! Please log in.",
-        NOTIFICATION_TYPES.SUCCESS
-      );
-
-      return { success: true };
-    } catch (error) {
-      addNotification(
-        "Registration failed. Please try again.",
-        NOTIFICATION_TYPES.ERROR
-      );
-      return { success: false, error: error.message };
-    } finally {
-      setAuthLoading(false);
+      console.error("Logout error:", error);
     }
   };
 
@@ -357,13 +288,11 @@ const PlatformShell = ({ children }) => {
 
   // Context value
   const contextValue = {
-    // Authentication
+    // Authentication (from AuthContext)
     user,
     isAuthenticated,
     authLoading,
-    login,
     logout,
-    register,
 
     // Theme and accessibility
     currentTheme,
@@ -511,7 +440,9 @@ const PlatformHeader = () => {
                       logout();
                       setShowUserMenu(false);
                     }}
+                    className="logout-button"
                   >
+                    <LogOut size={16} />
                     Logout
                   </button>
                 </div>
