@@ -20,7 +20,7 @@
   - Update user menu dropdown to include functional logout button with icon
   - _Requirements: 2.1, 2.6, 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 4. Remove manual backend connection requirement from MainDashboard
+- [x] 4. Remove manual backend connection requirement from MainDashboard
 
   - Remove "Test Backend" button and associated props from MainDashboard component
   - Update component interface to remove testBackendConnection prop

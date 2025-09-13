@@ -1,24 +1,15 @@
-import React, { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useBackend } from "../../contexts/BackendContext";
 import MainDashboard from "./MainDashboard";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const {
-    connectionStatus,
-    backendMessage,
-    isLoading,
-    testBackendConnection,
-    manualRetry,
-  } = useBackend();
 
   // Webcam and streaming state (placeholder for future implementation)
   const [webcamActive, setWebcamActive] = useState(false);
   const [webcamError, setWebcamError] = useState(null);
   const [streamingActive, setStreamingActive] = useState(false);
   const [streamingError, setStreamingError] = useState(null);
-  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
 
   // Webcam controls (placeholder implementations)
   const toggleWebcam = useCallback(async () => {
@@ -49,15 +40,13 @@ const Dashboard = () => {
   }, [webcamActive]);
 
   const toggleStreaming = useCallback(() => {
-    if (webcamActive && connectionStatus === "connected") {
+    if (webcamActive) {
       setStreamingActive(!streamingActive);
       setStreamingError(null);
     } else {
-      setStreamingError(
-        "Webcam must be active and backend connected to start streaming"
-      );
+      setStreamingError("Webcam must be active to start streaming");
     }
-  }, [webcamActive, connectionStatus, streamingActive]);
+  }, [webcamActive, streamingActive]);
 
   const retryWebcam = useCallback(() => {
     setWebcamError(null);
@@ -74,22 +63,12 @@ const Dashboard = () => {
     navigate("/asl-world");
   }, [navigate]);
 
-  // Show troubleshooting when connection fails
-  React.useEffect(() => {
-    setShowTroubleshooting(connectionStatus === "error");
-  }, [connectionStatus]);
-
   return (
     <MainDashboard
-      backendMessage={backendMessage}
-      isLoading={isLoading}
-      connectionStatus={connectionStatus}
       webcamActive={webcamActive}
       webcamError={webcamError}
       streamingActive={streamingActive}
       streamingError={streamingError}
-      showTroubleshooting={showTroubleshooting}
-      testBackendConnection={manualRetry}
       toggleWebcam={toggleWebcam}
       toggleStreaming={toggleStreaming}
       retryWebcam={retryWebcam}
