@@ -423,6 +423,552 @@ describe("AuthContext", () => {
     consoleSpy.mockRestore();
   });
 
+  // Enhanced logout functionality tests for task 6
+  describe("Enhanced Logout Functionality", () => {
+    it("should clear localStorage and sessionStorage on logout", async () => {
+      const mockUser = { id: 1, email: "test@example.com" };
+
+      // Start with authenticated state
+      authService.isAuthenticated.mockReturnValue(true);
+      authService.getCurrentUser.mockReturnValue(mockUser);
+      authService.getToken.mockReturnValue("token");
+      authService.verifyToken.mockResolvedValue(mockUser);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      // Wait for authentication
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "authenticated"
+        );
+      });
+
+      // Click logout button
+      act(() => {
+        screen.getByText("Logout").click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "not-authenticated"
+        );
+      });
+
+      // Verify authService.logout was called (which handles localStorage cleanup internally)
+      expect(authService.logout).toHaveBeenCalled();
+    });
+
+    it("should reset authentication state completely on logout", async () => {
+      const mockUser = { id: 1, email: "test@example.com" };
+
+      // Start with authenticated state
+      authService.isAuthenticated.mockReturnValue(true);
+      authService.getCurrentUser.mockReturnValue(mockUser);
+      authService.getToken.mockReturnValue("token");
+      authService.verifyToken.mockResolvedValue(mockUser);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      // Wait for authentication
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "authenticated"
+        );
+        expect(screen.getByTestId("user")).toHaveTextContent(
+          "test@example.com"
+        );
+      });
+
+      // Click logout button
+      act(() => {
+        screen.getByText("Logout").click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "not-authenticated"
+        );
+      });
+
+      // Verify complete state reset
+      expect(screen.getByTestId("user")).toHaveTextContent("no-user");
+      expect(screen.getByTestId("error")).toHaveTextContent("no-error");
+      expect(screen.getByTestId("loading")).toHaveTextContent("not-loading");
+    });
+
+    it("should navigate to login page with replace: true on logout", async () => {
+      const mockUser = { id: 1, email: "test@example.com" };
+
+      // Start with authenticated state
+      authService.isAuthenticated.mockReturnValue(true);
+      authService.getCurrentUser.mockReturnValue(mockUser);
+      authService.getToken.mockReturnValue("token");
+      authService.verifyToken.mockResolvedValue(mockUser);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      // Wait for authentication
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "authenticated"
+        );
+      });
+
+      // Click logout button
+      act(() => {
+        screen.getByText("Logout").click();
+      });
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+      });
+
+      // Verify state was reset
+      expect(screen.getByTestId("authenticated")).toHaveTextContent(
+        "not-authenticated"
+      );
+    });
+
+    it("should handle logout when authService.logout throws an error", async () => {
+      const mockUser = { id: 1, email: "test@example.com" };
+
+      // Start with authenticated state
+      authService.isAuthenticated.mockReturnValue(true);
+      authService.getCurrentUser.mockReturnValue(mockUser);
+      authService.getToken.mockReturnValue("token");
+      authService.verifyToken.mockResolvedValue(mockUser);
+
+      // Mock authService.logout to throw an error
+      authService.logout.mockRejectedValue(new Error("Server logout failed"));
+
+      // Suppress console.error for this test
+      const consoleSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      // Wait for authentication
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "authenticated"
+        );
+      });
+
+      // Click logout button
+      await act(async () => {
+        screen.getByText("Logout").click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "not-authenticated"
+        );
+      });
+
+      // Verify logout was attempted
+      expect(authService.logout).toHaveBeenCalled();
+
+      // Wait for navigation to be called
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+      });
+
+      // Verify state was reset despite server error
+      expect(screen.getByTestId("user")).toHaveTextContent("no-user");
+
+      consoleSpy.mockRestore();
+    });
+
+    it("should handle logout when both authService.logout and navigation fail", async () => {
+      const mockUser = { id: 1, email: "test@example.com" };
+
+      // Start with authenticated state
+      authService.isAuthenticated.mockReturnValue(true);
+      authService.getCurrentUser.mockReturnValue(mockUser);
+      authService.getToken.mockReturnValue("token");
+      authService.verifyToken.mockResolvedValue(mockUser);
+
+      // Mock authService.logout to throw an error
+      authService.logout.mockRejectedValue(new Error("Server logout failed"));
+
+      // Mock navigate to fail
+      mockNavigate.mockImplementation(() => {
+        throw new Error("Navigation failed");
+      });
+
+      // Mock window.location
+      const mockLocation = { href: "" };
+      Object.defineProperty(window, "location", {
+        value: mockLocation,
+        writable: true,
+      });
+
+      // Suppress console.error for this test
+      const consoleSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      // Wait for authentication
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "authenticated"
+        );
+      });
+
+      // Click logout button
+      await act(async () => {
+        screen.getByText("Logout").click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "not-authenticated"
+        );
+      });
+
+      // Verify logout was attempted
+      expect(authService.logout).toHaveBeenCalled();
+
+      // Wait for navigation to be attempted
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+      });
+
+      // Verify fallback navigation was used
+      expect(mockLocation.href).toBe("/login");
+
+      // Verify state was reset despite all errors
+      expect(screen.getByTestId("user")).toHaveTextContent("no-user");
+
+      consoleSpy.mockRestore();
+    });
+
+    it("should maintain logout functionality when user is not authenticated", async () => {
+      // Start with unauthenticated state
+      authService.isAuthenticated.mockReturnValue(false);
+      authService.getCurrentUser.mockReturnValue(null);
+      authService.getToken.mockReturnValue(null);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      // Wait for initialization
+      await waitFor(() => {
+        expect(screen.getByTestId("loading")).toHaveTextContent("not-loading");
+      });
+
+      expect(screen.getByTestId("authenticated")).toHaveTextContent(
+        "not-authenticated"
+      );
+
+      // Click logout button (should still work even when not authenticated)
+      act(() => {
+        screen.getByText("Logout").click();
+      });
+
+      // Should still call logout and navigate
+      await waitFor(() => {
+        expect(authService.logout).toHaveBeenCalled();
+      });
+
+      expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+    });
+
+    it("should clear any existing errors on logout", async () => {
+      const mockUser = { id: 1, email: "test@example.com" };
+      const mockError = new Error("Some previous error");
+
+      // Start with unauthenticated state
+      authService.isAuthenticated.mockReturnValue(false);
+      authService.getCurrentUser.mockReturnValue(null);
+      authService.getToken.mockReturnValue(null);
+
+      // Mock login to fail first to create an error state
+      authService.login.mockRejectedValue(mockError);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      // Wait for initialization
+      await waitFor(() => {
+        expect(screen.getByTestId("loading")).toHaveTextContent("not-loading");
+      });
+
+      // Trigger an error by attempting login
+      act(() => {
+        screen.getByText("Login").click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("error")).not.toHaveTextContent("no-error");
+      });
+
+      // Now mock successful authentication and login
+      authService.login.mockResolvedValue({
+        user: mockUser,
+        token: "new-token",
+      });
+
+      // Login successfully
+      act(() => {
+        screen.getByText("Login").click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "authenticated"
+        );
+      });
+
+      // Now logout
+      act(() => {
+        screen.getByText("Logout").click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "not-authenticated"
+        );
+      });
+
+      // Verify error was cleared by logout action
+      expect(screen.getByTestId("error")).toHaveTextContent("no-error");
+      expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+    });
+
+    it("should handle multiple rapid logout calls gracefully", async () => {
+      const mockUser = { id: 1, email: "test@example.com" };
+
+      // Start with authenticated state
+      authService.isAuthenticated.mockReturnValue(true);
+      authService.getCurrentUser.mockReturnValue(mockUser);
+      authService.getToken.mockReturnValue("token");
+      authService.verifyToken.mockResolvedValue(mockUser);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      // Wait for authentication
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "authenticated"
+        );
+      });
+
+      // Click logout button multiple times rapidly
+      await act(async () => {
+        screen.getByText("Logout").click();
+        screen.getByText("Logout").click();
+        screen.getByText("Logout").click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "not-authenticated"
+        );
+      });
+
+      // Should still work correctly
+      expect(authService.logout).toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+      expect(screen.getByTestId("user")).toHaveTextContent("no-user");
+    });
+
+    it("should preserve logout functionality after token refresh failure", async () => {
+      const mockUser = { id: 1, email: "test@example.com" };
+
+      // Start with authenticated state
+      authService.isAuthenticated.mockReturnValue(true);
+      authService.getCurrentUser.mockReturnValue(mockUser);
+      authService.getToken.mockReturnValue("token");
+      authService.verifyToken.mockResolvedValue(mockUser);
+
+      // Mock token refresh to fail
+      authService.refreshToken.mockResolvedValue(false);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      // Wait for authentication
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "authenticated"
+        );
+      });
+
+      // Logout should still work even if token refresh failed
+      await act(async () => {
+        screen.getByText("Logout").click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "not-authenticated"
+        );
+      });
+
+      expect(authService.logout).toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+    });
+
+    it("should handle logout with network connectivity issues", async () => {
+      const mockUser = { id: 1, email: "test@example.com" };
+
+      // Start with authenticated state
+      authService.isAuthenticated.mockReturnValue(true);
+      authService.getCurrentUser.mockReturnValue(mockUser);
+      authService.getToken.mockReturnValue("token");
+      authService.verifyToken.mockResolvedValue(mockUser);
+
+      // Mock logout to fail with network error
+      const networkError = new Error("Network error");
+      networkError.name = "TypeError";
+      authService.logout.mockRejectedValue(networkError);
+
+      // Suppress console.error for this test
+      const consoleSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      // Wait for authentication
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "authenticated"
+        );
+      });
+
+      // Logout should still work despite network issues
+      await act(async () => {
+        screen.getByText("Logout").click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "not-authenticated"
+        );
+      });
+
+      expect(authService.logout).toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+      expect(screen.getByTestId("user")).toHaveTextContent("no-user");
+
+      consoleSpy.mockRestore();
+    });
+
+    it("should verify authentication state is completely reset after logout", async () => {
+      const mockUser = {
+        id: 1,
+        email: "test@example.com",
+        roles: ["user"],
+        permissions: ["read"],
+      };
+
+      // Start with authenticated state
+      authService.isAuthenticated.mockReturnValue(true);
+      authService.getCurrentUser.mockReturnValue(mockUser);
+      authService.getToken.mockReturnValue("token");
+      authService.verifyToken.mockResolvedValue(mockUser);
+
+      const TestComponentWithRoles = () => {
+        const { user, isAuthenticated, hasRole, hasPermission, logout } =
+          useAuth();
+
+        return (
+          <div>
+            <div data-testid="authenticated">
+              {isAuthenticated ? "authenticated" : "not-authenticated"}
+            </div>
+            <div data-testid="user">{user ? user.email : "no-user"}</div>
+            <div data-testid="has-role">
+              {hasRole("user") ? "has-role" : "no-role"}
+            </div>
+            <div data-testid="has-permission">
+              {hasPermission("read") ? "has-permission" : "no-permission"}
+            </div>
+            <button onClick={logout}>Logout</button>
+          </div>
+        );
+      };
+
+      render(
+        <AuthProvider>
+          <TestComponentWithRoles />
+        </AuthProvider>
+      );
+
+      // Wait for authentication
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "authenticated"
+        );
+        expect(screen.getByTestId("has-role")).toHaveTextContent("has-role");
+        expect(screen.getByTestId("has-permission")).toHaveTextContent(
+          "has-permission"
+        );
+      });
+
+      // Logout
+      await act(async () => {
+        screen.getByText("Logout").click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("authenticated")).toHaveTextContent(
+          "not-authenticated"
+        );
+      });
+
+      // Verify all authentication-related state is reset
+      expect(screen.getByTestId("user")).toHaveTextContent("no-user");
+      expect(screen.getByTestId("has-role")).toHaveTextContent("no-role");
+      expect(screen.getByTestId("has-permission")).toHaveTextContent(
+        "no-permission"
+      );
+      expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+    });
+  });
+
   it("should clear error when clearError is called", async () => {
     const mockError = new Error("Test error");
     authService.login.mockRejectedValue(mockError);
