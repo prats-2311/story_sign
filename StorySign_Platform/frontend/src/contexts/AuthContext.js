@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import authService from "../services/AuthService";
 
 // Action types for the auth reducer
@@ -205,6 +206,7 @@ export const useAuth = () => {
 // AuthProvider component
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const navigate = useNavigate();
 
   // Initialize authentication state on app load
   useEffect(() => {
@@ -403,14 +405,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout function
+  // Logout function with localStorage cleanup and navigation
   const logout = async () => {
     try {
+      // Call the auth service logout (which already handles server logout and localStorage cleanup)
       await authService.logout();
     } catch (error) {
       console.error("Logout error:", error);
+      // Even if server logout fails, we still want to clear local data and navigate
+      authService.clearAuthData();
     } finally {
+      // Update authentication state
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
+
+      // Navigate to login page
+      try {
+        navigate("/login", { replace: true });
+      } catch (navigationError) {
+        console.error("Navigation error during logout:", navigationError);
+        // Fallback navigation if React Router navigation fails
+        window.location.href = "/login";
+      }
     }
   };
 

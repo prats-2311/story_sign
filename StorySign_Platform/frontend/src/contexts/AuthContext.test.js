@@ -4,6 +4,12 @@ import "@testing-library/jest-dom";
 import { AuthProvider, useAuth } from "./AuthContext";
 import authService from "../services/AuthService";
 
+// Mock React Router
+const mockNavigate = jest.fn();
+jest.mock("react-router-dom", () => ({
+  useNavigate: () => mockNavigate,
+}));
+
 // Mock the authService
 jest.mock("../services/AuthService", () => ({
   isAuthenticated: jest.fn(),
@@ -34,6 +40,22 @@ const TestComponent = () => {
     clearError,
   } = useAuth();
 
+  const handleLogin = async () => {
+    try {
+      await login("test@example.com", "password");
+    } catch (error) {
+      // Error is handled by AuthContext
+    }
+  };
+
+  const handleRegister = async () => {
+    try {
+      await register({ email: "test@example.com", password: "password" });
+    } catch (error) {
+      // Error is handled by AuthContext
+    }
+  };
+
   return (
     <div>
       <div data-testid="loading">{isLoading ? "loading" : "not-loading"}</div>
@@ -42,16 +64,8 @@ const TestComponent = () => {
       </div>
       <div data-testid="user">{user ? user.email : "no-user"}</div>
       <div data-testid="error">{error || "no-error"}</div>
-      <button onClick={() => login("test@example.com", "password")}>
-        Login
-      </button>
-      <button
-        onClick={() =>
-          register({ email: "test@example.com", password: "password" })
-        }
-      >
-        Register
-      </button>
+      <button onClick={handleLogin}>Login</button>
+      <button onClick={handleRegister}>Register</button>
       <button onClick={logout}>Logout</button>
       <button onClick={clearError}>Clear Error</button>
     </div>
@@ -61,6 +75,7 @@ const TestComponent = () => {
 describe("AuthContext", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockNavigate.mockClear();
     // Reset all mocks to default values
     authService.isAuthenticated.mockReturnValue(false);
     authService.getCurrentUser.mockReturnValue(null);
@@ -222,7 +237,7 @@ describe("AuthContext", () => {
       "not-authenticated"
     );
     expect(screen.getByTestId("error")).toHaveTextContent(
-      "Invalid credentials"
+      "Invalid email or password. Please check your credentials and try again."
     );
   });
 
@@ -260,7 +275,7 @@ describe("AuthContext", () => {
     });
   });
 
-  it("should handle logout", async () => {
+  it("should handle logout with navigation", async () => {
     const mockUser = { id: 1, email: "test@example.com" };
 
     // Start with authenticated state
@@ -295,6 +310,117 @@ describe("AuthContext", () => {
 
     expect(screen.getByTestId("user")).toHaveTextContent("no-user");
     expect(authService.logout).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+  });
+
+  it("should handle logout with server error and still navigate", async () => {
+    const mockUser = { id: 1, email: "test@example.com" };
+
+    // Start with authenticated state
+    authService.isAuthenticated.mockReturnValue(true);
+    authService.getCurrentUser.mockReturnValue(mockUser);
+    authService.getToken.mockReturnValue("token");
+    authService.verifyToken.mockResolvedValue(mockUser);
+
+    // Mock logout to fail
+    authService.logout.mockRejectedValue(new Error("Server error"));
+
+    // Suppress console.error for this test
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    render(
+      <AuthProvider>
+        <TestComponent />
+      </AuthProvider>
+    );
+
+    // Wait for authentication
+    await waitFor(() => {
+      expect(screen.getByTestId("authenticated")).toHaveTextContent(
+        "authenticated"
+      );
+    });
+
+    // Click logout button
+    await act(async () => {
+      screen.getByText("Logout").click();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("authenticated")).toHaveTextContent(
+        "not-authenticated"
+      );
+    });
+
+    // Wait for navigation to be called
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+    });
+
+    expect(screen.getByTestId("user")).toHaveTextContent("no-user");
+    expect(authService.logout).toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+  });
+
+  it("should handle logout with navigation error and use fallback", async () => {
+    const mockUser = { id: 1, email: "test@example.com" };
+
+    // Start with authenticated state
+    authService.isAuthenticated.mockReturnValue(true);
+    authService.getCurrentUser.mockReturnValue(mockUser);
+    authService.getToken.mockReturnValue("token");
+    authService.verifyToken.mockResolvedValue(mockUser);
+
+    // Mock navigate to fail
+    mockNavigate.mockImplementation(() => {
+      throw new Error("Navigation error");
+    });
+
+    // Mock window.location
+    const mockLocation = { href: "" };
+    Object.defineProperty(window, "location", {
+      value: mockLocation,
+      writable: true,
+    });
+
+    // Suppress console.error for this test
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    render(
+      <AuthProvider>
+        <TestComponent />
+      </AuthProvider>
+    );
+
+    // Wait for authentication
+    await waitFor(() => {
+      expect(screen.getByTestId("authenticated")).toHaveTextContent(
+        "authenticated"
+      );
+    });
+
+    // Click logout button
+    act(() => {
+      screen.getByText("Logout").click();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("authenticated")).toHaveTextContent(
+        "not-authenticated"
+      );
+    });
+
+    expect(screen.getByTestId("user")).toHaveTextContent("no-user");
+    expect(authService.logout).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+    expect(mockLocation.href).toBe("/login");
+
+    consoleSpy.mockRestore();
   });
 
   it("should clear error when clearError is called", async () => {
