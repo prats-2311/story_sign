@@ -5,21 +5,29 @@
 
 // Get API base URL from environment or use proxy for production
 const getApiBaseUrl = () => {
-  // In production (Netlify), use proxy path to avoid CORS
-  if (process.env.REACT_APP_ENVIRONMENT === "production") {
-    return ""; // Use relative paths that will be proxied by Netlify
-  }
-
-  // Use environment variable if available
+  // Always use environment variable if available (for production)
   if (process.env.REACT_APP_API_URL) {
+    console.log(
+      "🔧 Using API URL from environment:",
+      process.env.REACT_APP_API_URL
+    );
     return process.env.REACT_APP_API_URL;
   }
 
   // Development fallback
+  console.log("🔧 Using development API URL: http://127.0.0.1:8000");
   return "http://127.0.0.1:8000";
 };
 
 const API_BASE_URL = getApiBaseUrl();
+
+// Debug logging for production
+if (process.env.REACT_APP_ENVIRONMENT === "production") {
+  console.log("🚀 Production API Configuration:");
+  console.log("- API_BASE_URL:", API_BASE_URL);
+  console.log("- Environment:", process.env.REACT_APP_ENVIRONMENT);
+  console.log("- Use Proxy:", process.env.REACT_APP_USE_PROXY);
+}
 
 // Export the base URL
 export default API_BASE_URL;
