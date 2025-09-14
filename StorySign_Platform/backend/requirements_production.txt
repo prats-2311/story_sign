@@ -1,4 +1,4 @@
-# StorySign Production Requirements - Complete Dependencies
+# StorySign Production Requirements - Python 3.13 Compatible
 # Core FastAPI and server
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
@@ -36,10 +36,9 @@ sqlalchemy[asyncio]>=2.0.0
 asyncmy>=0.2.9
 pymysql>=1.1.0
 
-# Image processing
-pillow==10.1.0
-numpy>=1.24.0
-opencv-python>=4.8.0
+# Image processing (Python 3.13 compatible versions)
+pillow>=10.4.0
+numpy>=1.26.0
 
 # Additional dependencies for full functionality
 typing-extensions>=4.15.0
