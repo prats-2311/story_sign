@@ -1,0 +1,38 @@
+# StorySign Production Requirements - Essential Dependencies Only
+# Core FastAPI and server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+gunicorn==21.2.0
+
+# HTTP clients and async support
+aiohttp>=3.9.0
+httpx>=0.25.0
+websockets==12.0
+
+# Data handling
+pydantic>=2.11.0
+python-multipart==0.0.6
+pyyaml==6.0.1
+
+# Authentication
+bcrypt>=4.0.0
+pyjwt>=2.8.0
+passlib[bcrypt]>=1.7.4
+
+# Environment and configuration
+python-dotenv>=1.0.0
+
+# AI/ML services
+groq>=0.4.0
+
+# Basic utilities
+python-json-logger==2.0.7
+psutil>=5.9.0
+
+# Database (if needed)
+sqlalchemy[asyncio]>=2.0.0
+asyncmy>=0.2.9
+
+# Image processing (minimal)
+pillow==10.1.0
+numpy>=1.24.0
