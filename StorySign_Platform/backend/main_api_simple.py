@@ -285,7 +285,7 @@ async def generate_story_v1(request: Request):
         body = await request.json()
         return {
             "success": True,
-            "story": {
+            "stories": [{
                 "id": 1,
                 "title": "Demo Story",
                 "content": "This is a demo story generated from your scan. In a real implementation, this would use AI to create a personalized ASL learning story based on the objects you scanned.",
@@ -297,7 +297,7 @@ async def generate_story_v1(request: Request):
                 ],
                 "vocabulary": ["book", "table", "red", "read"],
                 "created_at": "2025-09-14T15:00:00Z"
-            },
+            }],
             "message": "Story generated successfully (demo mode)"
         }
     except Exception as e:
@@ -315,7 +315,7 @@ async def recognize_and_generate_story_v1(request: Request):
         return {
             "success": True,
             "recognized_objects": ["book", "table", "lamp"],
-            "story": {
+            "stories": [{
                 "id": 2,
                 "title": "Objects Around Me",
                 "content": "I can see several objects in this scene. There is a book, a table, and a lamp. These everyday objects can help us learn new signs in ASL.",
@@ -327,7 +327,7 @@ async def recognize_and_generate_story_v1(request: Request):
                 ],
                 "vocabulary": ["book", "table", "lamp", "see", "brown", "light"],
                 "created_at": "2025-09-14T15:00:00Z"
-            },
+            }],
             "message": "Objects recognized and story generated (demo mode)"
         }
     except Exception as e:
@@ -354,7 +354,7 @@ async def recognize_and_generate_story(request: Request):
         return {
             "success": True,
             "recognized_objects": ["book", "table", "lamp", "chair"],
-            "story": {
+            "stories": [{
                 "id": 2,
                 "title": "My Scanned Objects Story",
                 "content": "I used my camera to scan the objects around me. I can see a book, a table, a lamp, and a chair. These everyday objects help me practice ASL signs and learn new vocabulary.",
@@ -367,7 +367,7 @@ async def recognize_and_generate_story(request: Request):
                 ],
                 "vocabulary": ["book", "table", "lamp", "chair", "see", "brown", "light", "sit"],
                 "created_at": "2025-09-14T15:00:00Z"
-            },
+            }],
             "message": "Objects recognized and story generated from your scan (demo mode)"
         }
     except Exception as e:
