@@ -41,7 +41,7 @@
   - Verify authentication state reset and error handling
   - _Requirements: 4.3, 6.2, 6.3_
 
-- [ ] 7. Create tests for simplified API configuration
+- [x] 7. Create tests for simplified API configuration
 
   - Write unit tests for simplified API configuration export
   - Test that API calls work automatically without manual connection
