@@ -1,11 +1,11 @@
 services:
   - type: web
     name: storysign-backend
-    env: python
+    runtime: python
     region: oregon
     plan: starter
-    buildCommand: "cd backend && pip install -r requirements.txt"
-    startCommand: "cd backend && gunicorn -w 4 -k uvicorn.workers.UvicornWorker main_api:app --bind 0.0.0.0:$PORT --timeout 120 --keep-alive 2 --max-requests 1000 --max-requests-jitter 100"
+    buildCommand: "cd StorySign_Platform/backend && pip install -r requirements_minimal.txt"
+    startCommand: "cd StorySign_Platform/backend && gunicorn -w 4 -k uvicorn.workers.UvicornWorker main_api_simple:app --bind 0.0.0.0:$PORT --timeout 120 --keep-alive 2 --max-requests 1000 --max-requests-jitter 100"
     healthCheckPath: "/health"
     envVars:
       # Database Configuration (TiDB Cloud)

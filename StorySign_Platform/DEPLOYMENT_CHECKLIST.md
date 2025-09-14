@@ -58,8 +58,8 @@
    Branch: main
    Root Directory: (leave empty)
    Runtime: Python 3
-   Build Command: cd backend && pip install -r requirements.txt
-   Start Command: cd backend && gunicorn -w 4 -k uvicorn.workers.UvicornWorker main_api:app --bind 0.0.0.0:$PORT --timeout 120
+   Build Command: cd StorySign_Platform/backend && pip install -r requirements_minimal.txt
+   Start Command: cd StorySign_Platform/backend && gunicorn -w 4 -k uvicorn.workers.UvicornWorker main_api_simple:app --bind 0.0.0.0:$PORT --timeout 120
    ```
 
 4. **Set Environment Variables**

@@ -1,0 +1,18 @@
+# Minimal requirements for initial Render deployment
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+gunicorn==21.2.0
+pydantic>=2.11.0
+python-multipart==0.0.6
+
+# Basic dependencies
+python-dotenv>=1.0.0
+pyyaml==6.0.1
+
+# Authentication (basic)
+bcrypt>=4.0.0
+pyjwt>=2.8.0
+passlib[bcrypt]>=1.7.4
+
+# HTTP client
+httpx>=0.25.0
