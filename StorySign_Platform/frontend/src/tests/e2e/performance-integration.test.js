@@ -541,7 +541,7 @@ describe("Performance and Integration Tests", () => {
 
       const startTime = performance.now();
 
-      const response = await fetch("/api/v1/asl-world/sessions", {
+      const response = await fetch("/api/asl-world/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(sessionData),
@@ -660,7 +660,7 @@ describe("Performance and Integration Tests", () => {
     test("frontend-backend communication latency", async () => {
       const endpoints = [
         "/api/v1/health",
-        "/api/v1/asl-world/stories",
+        "/api/asl-world/stories",
         "/api/v1/harmony/emotions",
         "/api/v1/reconnect/exercises",
       ];
@@ -694,7 +694,7 @@ describe("Performance and Integration Tests", () => {
       // Simulate rapid API requests
       for (let i = 0; i < requestCount; i++) {
         const request = fetch(
-          "/api/v1/asl-world/story/recognize_and_generate",
+          "/api/asl-world/story/recognize_and_generate",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -730,7 +730,7 @@ describe("Performance and Integration Tests", () => {
       // Test with invalid data to trigger errors
       const invalidRequests = [
         {
-          url: "/api/v1/asl-world/story/recognize_and_generate",
+          url: "/api/asl-world/story/recognize_and_generate",
           data: {
             /* missing required fields */
           },

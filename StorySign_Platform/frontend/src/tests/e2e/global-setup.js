@@ -59,7 +59,7 @@ function setupMockServices() {
       method: "POST",
       response: { success: true, message: "Registration successful" },
     },
-    "/api/v1/asl-world/story/recognize_and_generate": {
+    "/api/asl-world/story/recognize_and_generate": {
       method: "POST",
       response: {
         success: true,

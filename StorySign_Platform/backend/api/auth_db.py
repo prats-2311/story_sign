@@ -280,6 +280,30 @@ async def login(request: LoginRequest, client_request: Request):
         logger.error(f"Login error: {e}")
         raise HTTPException(status_code=500, detail="Authentication failed")
 
+@router.post("/logout", response_model=MessageResponse)
+async def logout(client_request: Request):
+    """
+    Logout user (client-side token invalidation)
+    
+    Since we're using stateless JWT tokens, logout is primarily handled on the client side
+    by removing the token. This endpoint provides a confirmation response.
+    """
+    try:
+        logger.info("User logout request received")
+        
+        # In a stateless JWT system, we don't need to do anything server-side
+        # The client will remove the token from storage
+        # For enhanced security, you could implement a token blacklist here
+        
+        return MessageResponse(
+            success=True,
+            message="Logout successful. Token should be removed from client storage."
+        )
+        
+    except Exception as e:
+        logger.error(f"Logout error: {e}")
+        raise HTTPException(status_code=500, detail="Logout failed")
+
 @router.get("/me")
 async def get_current_user_info():
     """

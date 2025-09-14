@@ -277,7 +277,7 @@ const ASLWorldPage = ({
       console.log("Starting story generation with payload:", payload);
 
       const response = await fetch(
-        `${API_BASE_URL}/api/v1/asl-world/story/recognize_and_generate`,
+        `${API_BASE_URL}/api/asl-world/story/recognize_and_generate`,
         {
           method: "POST",
           headers: {

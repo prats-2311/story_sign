@@ -235,7 +235,7 @@ class LocalVisionService:
 
     def _validate_base64_image(self, base64_data: str) -> Dict[str, Any]:
         """
-        Enhanced validation of base64 image data
+        Enhanced validation of base64 image data with Groq API optimizations
 
         Args:
             base64_data: Base64 encoded image string
@@ -259,11 +259,17 @@ class LocalVisionService:
             except Exception as e:
                 return {"valid": False, "error": f"Invalid base64 encoding: {str(e)}"}
 
-            # Check size constraints
+            # Check size constraints - optimized for Groq API
             if len(decoded) < 500:  # Too small to be a real image
                 return {"valid": False, "error": f"Image data too small ({len(decoded)} bytes, minimum 500)"}
 
-            if len(decoded) > 20 * 1024 * 1024:  # 20MB limit
+            # Groq API seems to have issues with images > 5KB, so we'll resize if needed
+            if len(decoded) > 5 * 1024:  # 5KB limit for Groq API
+                logger.info(f"Image size {len(decoded)} bytes exceeds Groq limit, will resize")
+                # We'll resize the image in the calling function
+                return {"valid": True, "error": None, "format": "JPEG", "size_bytes": len(decoded), "needs_resize": True}
+
+            if len(decoded) > 20 * 1024 * 1024:  # 20MB absolute limit
                 return {"valid": False, "error": f"Image data too large ({len(decoded)} bytes, maximum 20MB)"}
 
             # Check for common image file signatures
@@ -349,6 +355,80 @@ class LocalVisionService:
         except Exception as e:
             logger.error(f"Object validation error: {e}")
             return {"valid": False, "reason": f"Validation error: {str(e)}"}
+
+    def _resize_image_if_needed(self, base64_data: str, max_size_kb: int = 4) -> str:
+        """
+        Resize image if it's too large for Groq API
+
+        Args:
+            base64_data: Base64 encoded image
+            max_size_kb: Maximum size in KB
+
+        Returns:
+            Resized base64 image data
+        """
+        try:
+            import base64
+            from PIL import Image
+            from io import BytesIO
+            
+            # Decode the base64 image
+            clean_data = base64_data
+            if clean_data.startswith('data:image/'):
+                clean_data = clean_data.split(',', 1)[1]
+            
+            img_bytes = base64.b64decode(clean_data)
+            
+            # If image is already small enough, return as-is
+            if len(img_bytes) <= max_size_kb * 1024:
+                return base64_data
+            
+            # Open image with PIL
+            img = Image.open(BytesIO(img_bytes))
+            
+            # Calculate new size to fit within limit
+            # Start with current size and reduce by steps
+            width, height = img.size
+            quality = 85
+            
+            while True:
+                # Try current size with current quality
+                buffer = BytesIO()
+                img.save(buffer, format='JPEG', quality=quality)
+                new_size = len(buffer.getvalue())
+                
+                if new_size <= max_size_kb * 1024:
+                    # Size is good, return the resized image
+                    resized_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+                    logger.info(f"Resized image from {len(img_bytes)} to {new_size} bytes (quality: {quality})")
+                    return resized_b64
+                
+                # Reduce quality first
+                if quality > 60:
+                    quality -= 10
+                    continue
+                
+                # If quality is already low, reduce dimensions
+                if width > 150 or height > 150:
+                    width = int(width * 0.8)
+                    height = int(height * 0.8)
+                    img = img.resize((width, height), Image.Resampling.LANCZOS)
+                    quality = 85  # Reset quality for new size
+                    continue
+                
+                # If we can't reduce further, return what we have
+                break
+            
+            # Return the best we could do
+            buffer = BytesIO()
+            img.save(buffer, format='JPEG', quality=60)
+            resized_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            logger.warning(f"Could not resize image below {max_size_kb}KB limit, final size: {len(buffer.getvalue())} bytes")
+            return resized_b64
+            
+        except Exception as e:
+            logger.error(f"Error resizing image: {e}")
+            return base64_data  # Return original if resize fails
 
     def _prepare_vision_prompt(self, custom_prompt: Optional[str] = None) -> str:
         """
@@ -621,6 +701,14 @@ class LocalVisionService:
         if clean_image_data.startswith('data:image/'):
             clean_image_data = clean_image_data.split(',', 1)[1]
 
+        # Resize image if needed for Groq API
+        image_validation = self._validate_base64_image(base64_image)
+        if image_validation.get("needs_resize", False):
+            logger.info("Resizing image for Groq API compatibility")
+            clean_image_data = self._resize_image_if_needed(base64_image)
+            if clean_image_data.startswith('data:image/'):
+                clean_image_data = clean_image_data.split(',', 1)[1]
+
         # Enhanced service health check with retry
         health_check_attempts = 2
         service_healthy = False
@@ -715,8 +803,18 @@ class LocalVisionService:
                     logger.error(f"Access forbidden: {last_error}")
                     break  # Don't retry permission errors
                 else:
-                    last_error = f"HTTP error {e.status}: {e.message}"
-                    logger.warning(f"HTTP error (attempt {attempt + 1}): {last_error}")
+                    # Get detailed error information for better debugging
+                    try:
+                        if hasattr(e, 'response') and e.response:
+                            error_text = await e.response.text()
+                            last_error = f"HTTP error {e.status}: {error_text[:200]}"
+                            logger.error(f"Detailed HTTP error (attempt {attempt + 1}): {last_error}")
+                        else:
+                            last_error = f"HTTP error {e.status}: {e.message}"
+                            logger.warning(f"HTTP error (attempt {attempt + 1}): {last_error}")
+                    except:
+                        last_error = f"HTTP error {e.status}: {e.message}"
+                        logger.warning(f"HTTP error (attempt {attempt + 1}): {last_error}")
 
             except aiohttp.ClientError as e:
                 last_error = f"Network error: {e}"

@@ -27,12 +27,23 @@ server:
 
 # Local vision service configuration
 local_vision:
-  service_url: "http://localhost:1234" # LM Studio service URL (default port)
-  model_name: "google/gemma-3-4b" # Model name as loaded in LM Studio
-  service_type: "lm_studio" # Service type: "ollama" or "lm_studio"
-  timeout_seconds: 60 # Request timeout in seconds
+  service_url: "http://localhost:11434" # Ollama service URL (default port)
+  model_name: "meta-llama/llama-4-scout-17b-16e-instruct" # Groq Llama 4 Scout vision model
+  service_type: "groq" # Service type: "ollama", "lm_studio", or "groq"
+  timeout_seconds: 30 # Request timeout in seconds
   max_retries: 3 # Maximum retry attempts
   enabled: true # Enable/disable local vision service
+
+# Groq API configuration (now for vision)
+groq:
+  api_key: "your_groq_api_key_here" # Groq API key (use environment variable in production)
+  base_url: "https://api.groq.com/openai/v1" # Groq API base URL
+  model_name: "meta-llama/llama-4-scout-17b-16e-instruct" # Groq Llama 4 Scout vision model
+  timeout_seconds: 30 # Request timeout in seconds
+  max_retries: 3 # Maximum retry attempts
+  max_tokens: 100 # Maximum tokens for object identification
+  temperature: 0.1 # Low temperature for consistent object identification
+  enabled: true # Enable Groq API service
 
 # Ollama LLM service configuration
 # backend/config.yaml
