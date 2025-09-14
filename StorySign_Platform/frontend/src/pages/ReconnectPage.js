@@ -115,7 +115,6 @@ const initialState = {
 };
 
 const ReconnectPage = ({
-  connectionStatus,
   streamingConnectionStatus,
   onConnectionChange,
   onProcessedFrame,
@@ -345,7 +344,6 @@ const ReconnectPage = ({
         return (
           <ExerciseSelector
             onStartSession={handleStartSession}
-            connectionStatus={connectionStatus}
             webcamStatus={webcamStatus}
             webcamError={webcamError}
             error={state.error}
@@ -419,19 +417,10 @@ const ReconnectPage = ({
         <h1>Reconnect</h1>
         <p>Therapeutic Movement Analysis & Physical Rehabilitation</p>
         <div className="connection-status" aria-live="polite">
-          <span
-            className={`status-indicator ${connectionStatus}`}
-            aria-hidden="true"
-          >
-            {connectionStatus === "connected" && "🟢"}
-            {connectionStatus === "connecting" && "🟡"}
-            {connectionStatus === "disconnected" && "🔴"}
+          <span className="status-indicator connected" aria-hidden="true">
+            🟢
           </span>
-          <span className="status-text">
-            {connectionStatus === "connected" && "Connected"}
-            {connectionStatus === "connecting" && "Connecting..."}
-            {connectionStatus === "disconnected" && "Disconnected"}
-          </span>
+          <span className="status-text">Backend Ready</span>
         </div>
       </header>
 

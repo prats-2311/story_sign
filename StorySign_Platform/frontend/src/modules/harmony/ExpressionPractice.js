@@ -9,7 +9,6 @@ import "./ExpressionPractice.css";
  */
 const ExpressionPractice = ({
   onStartSession,
-  connectionStatus,
   webcamStatus,
   webcamError,
   error,
@@ -115,7 +114,7 @@ const ExpressionPractice = ({
   ];
 
   // Handle emotion selection
-  const handleEmotionSelect = useCallback((emotion) => {
+  const handleEmotionSelect = useCallback(emotion => {
     setSelectedEmotion(emotion);
   }, []);
 
@@ -143,10 +142,9 @@ const ExpressionPractice = ({
     setShowInstructions(false);
   }, []);
 
-  // Check if system is ready for practice
+  // Check if system is ready for practice - backend connects automatically
   const isSystemReady =
-    connectionStatus === "connected" &&
-    (webcamStatus === "active" || webcamStatus === "inactive");
+    webcamStatus === "active" || webcamStatus === "inactive";
 
   return (
     <div className="expression-practice">
@@ -170,15 +168,9 @@ const ExpressionPractice = ({
 
       {/* System Status */}
       <div className="system-status" role="status" aria-live="polite">
-        <div className={`status-item ${connectionStatus}`}>
-          <span className="status-icon">
-            {connectionStatus === "connected"
-              ? "✅"
-              : connectionStatus === "connecting"
-              ? "⏳"
-              : "❌"}
-          </span>
-          <span>Backend: {connectionStatus}</span>
+        <div className="status-item connected">
+          <span className="status-icon">✅</span>
+          <span>Backend: Ready</span>
         </div>
 
         <div className={`status-item ${webcamStatus}`}>
@@ -218,7 +210,7 @@ const ExpressionPractice = ({
 
       {/* Emotion Selection Grid */}
       <div className="emotions-grid">
-        {emotions.map((emotion) => (
+        {emotions.map(emotion => (
           <div
             key={emotion.id}
             className={`emotion-card ${
@@ -228,7 +220,7 @@ const ExpressionPractice = ({
             role="button"
             tabIndex={0}
             aria-pressed={selectedEmotion?.id === emotion.id}
-            onKeyDown={(e) => {
+            onKeyDown={e => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 handleEmotionSelect(emotion);
@@ -289,8 +281,7 @@ const ExpressionPractice = ({
 
           {!isSystemReady && (
             <p className="system-not-ready">
-              Please ensure your camera and backend connection are ready before
-              starting.
+              Please ensure your camera is ready before starting.
             </p>
           )}
         </div>

@@ -41,7 +41,6 @@ Object.defineProperty(HTMLCanvasElement.prototype, "toDataURL", {
 
 describe("ASLWorldModule", () => {
   const mockProps = {
-    connectionStatus: "connected",
     onStoryGenerate: jest.fn(),
     onPracticeControl: jest.fn(),
     onFrameCapture: jest.fn(),
@@ -65,30 +64,25 @@ describe("ASLWorldModule", () => {
 
   test("shows story generation mode by default", () => {
     render(<ASLWorldModule {...mockProps} />);
-    expect(screen.getByText("Generate Your Story")).toBeInTheDocument();
+    expect(screen.getByText("Scan an Object")).toBeInTheDocument();
     expect(screen.getByText("Scan Object to Start")).toBeInTheDocument();
   });
 
   test("displays connection status correctly", () => {
-    render(<ASLWorldModule {...mockProps} connectionStatus="connected" />);
-    expect(screen.getByText("Connected")).toBeInTheDocument();
-
-    const { rerender } = render(
-      <ASLWorldModule {...mockProps} connectionStatus="disconnected" />
-    );
-    expect(screen.getByText("Disconnected")).toBeInTheDocument();
+    render(<ASLWorldModule {...mockProps} />);
+    expect(screen.getByText("Backend Ready")).toBeInTheDocument();
   });
 
-  test("disables scan button when disconnected", () => {
-    render(<ASLWorldModule {...mockProps} connectionStatus="disconnected" />);
+  test("scan button is always enabled when not generating", () => {
+    render(<ASLWorldModule {...mockProps} />);
     const scanButton = screen.getByText("Scan Object to Start");
-    expect(scanButton).toBeDisabled();
+    expect(scanButton).not.toBeDisabled();
   });
 
   test("shows loading state when generating story", () => {
     render(<ASLWorldModule {...mockProps} isGeneratingStory={true} />);
-    expect(screen.getByText("Generating Story...")).toBeInTheDocument();
-    const scanButton = screen.getByText("Generating Story...");
+    expect(screen.getByText("Generating Stories...")).toBeInTheDocument();
+    const scanButton = screen.getByText("Generating Stories...");
     expect(scanButton).toBeDisabled();
   });
 

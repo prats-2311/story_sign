@@ -12,7 +12,6 @@ const ASLWorldModule = ({
   onPracticeControl,
   isGeneratingStory = false,
   isProcessingFeedback = false,
-  connectionStatus = "disconnected",
   onFrameCapture,
   gestureState = "listening", // New prop for gesture state
   practiceStarted = false,
@@ -74,14 +73,14 @@ const ASLWorldModule = ({
   }, [onStoryGenerate]);
 
   // Handle simple word generation
-  const handleSimpleWordGenerate = (word) => {
+  const handleSimpleWordGenerate = word => {
     if (onStoryGenerate) {
       onStoryGenerate({ simple_word: word });
     }
   };
 
   // Handle custom prompt generation
-  const handleCustomPromptGenerate = (e) => {
+  const handleCustomPromptGenerate = e => {
     e.preventDefault();
     if (customPrompt.trim() && onStoryGenerate) {
       onStoryGenerate({ custom_prompt: customPrompt });
@@ -90,7 +89,7 @@ const ASLWorldModule = ({
 
   // Handle practice control actions
   const handlePracticeControl = useCallback(
-    (action) => {
+    action => {
       if (onPracticeControl) {
         onPracticeControl(action, currentSentenceIndex);
       }
@@ -140,7 +139,7 @@ const ASLWorldModule = ({
     const cleanupWebcam = () => {
       if (videoRef?.current && videoRef.current.srcObject) {
         const tracks = videoRef.current.srcObject.getTracks();
-        tracks.forEach((track) => track.stop());
+        tracks.forEach(track => track.stop());
         videoRef.current.srcObject = null;
       }
     };
@@ -205,7 +204,7 @@ const ASLWorldModule = ({
             <button
               className="scan-object-btn"
               onClick={handleScanObject}
-              disabled={isGeneratingStory || connectionStatus !== "connected"}
+              disabled={isGeneratingStory}
             >
               {isGeneratingStory ? (
                 <>
@@ -228,7 +227,7 @@ const ASLWorldModule = ({
             levels.
           </p>
           <div className="word-grid">
-            {simpleWords.map((word) => (
+            {simpleWords.map(word => (
               <button
                 key={word}
                 className="word-chip"
@@ -251,7 +250,7 @@ const ASLWorldModule = ({
               type="text"
               className="prompt-input"
               value={customPrompt}
-              onChange={(e) => setCustomPrompt(e.target.value)}
+              onChange={e => setCustomPrompt(e.target.value)}
               placeholder="e.g., 'A friendly robot' or 'A magical key'"
               disabled={isGeneratingStory}
             />
@@ -270,12 +269,6 @@ const ASLWorldModule = ({
               )}
             </button>
           </form>
-        </div>
-      )}
-
-      {connectionStatus !== "connected" && (
-        <div className="connection-warning">
-          <p>⚠️ Backend connection required for story generation</p>
         </div>
       )}
     </div>
@@ -469,7 +462,7 @@ const ASLWorldModule = ({
             <button
               className="start-practice-btn"
               onClick={onStartPractice}
-              disabled={isGeneratingStory || connectionStatus !== "connected"}
+              disabled={isGeneratingStory}
             >
               Start Practice Session
             </button>
@@ -725,16 +718,8 @@ const ASLWorldModule = ({
         <h1>ASL World</h1>
         <p>Interactive American Sign Language Learning</p>
         <div className="connection-status">
-          <span className={`status-indicator ${connectionStatus}`}>
-            {connectionStatus === "connected" && "🟢"}
-            {connectionStatus === "connecting" && "🟡"}
-            {connectionStatus === "disconnected" && "🔴"}
-          </span>
-          <span className="status-text">
-            {connectionStatus === "connected" && "Connected"}
-            {connectionStatus === "connecting" && "Connecting..."}
-            {connectionStatus === "disconnected" && "Disconnected"}
-          </span>
+          <span className="status-indicator connected">🟢</span>
+          <span className="status-text">Backend Ready</span>
         </div>
       </div>
 

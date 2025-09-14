@@ -9,7 +9,6 @@ import "./ExerciseSelector.css";
  */
 const ExerciseSelector = ({
   onStartSession,
-  connectionStatus,
   webcamStatus,
   webcamError,
   error,
@@ -162,7 +161,7 @@ const ExerciseSelector = ({
   ];
 
   // Handle exercise selection
-  const handleExerciseSelect = useCallback((exercise) => {
+  const handleExerciseSelect = useCallback(exercise => {
     setSelectedExercise(exercise);
   }, []);
 
@@ -191,7 +190,7 @@ const ExerciseSelector = ({
   }, []);
 
   // Get difficulty color
-  const getDifficultyColor = (difficulty) => {
+  const getDifficultyColor = difficulty => {
     switch (difficulty) {
       case "Beginner":
         return "#27ae60";
@@ -204,10 +203,9 @@ const ExerciseSelector = ({
     }
   };
 
-  // Check if system is ready for therapy
+  // Check if system is ready for therapy - backend connects automatically
   const isSystemReady =
-    connectionStatus === "connected" &&
-    (webcamStatus === "active" || webcamStatus === "inactive");
+    webcamStatus === "active" || webcamStatus === "inactive";
 
   return (
     <div className="exercise-selector">
@@ -231,15 +229,9 @@ const ExerciseSelector = ({
 
       {/* System Status */}
       <div className="system-status" role="status" aria-live="polite">
-        <div className={`status-item ${connectionStatus}`}>
-          <span className="status-icon">
-            {connectionStatus === "connected"
-              ? "✅"
-              : connectionStatus === "connecting"
-              ? "⏳"
-              : "❌"}
-          </span>
-          <span>Backend: {connectionStatus}</span>
+        <div className="status-item connected">
+          <span className="status-icon">✅</span>
+          <span>Backend: Ready</span>
         </div>
 
         <div className={`status-item ${webcamStatus}`}>
@@ -279,7 +271,7 @@ const ExerciseSelector = ({
 
       {/* Exercise Selection Grid */}
       <div className="exercises-grid">
-        {exercises.map((exercise) => (
+        {exercises.map(exercise => (
           <div
             key={exercise.id}
             className={`exercise-card ${
@@ -289,7 +281,7 @@ const ExerciseSelector = ({
             role="button"
             tabIndex={0}
             aria-pressed={selectedExercise?.id === exercise.id}
-            onKeyDown={(e) => {
+            onKeyDown={e => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 handleExerciseSelect(exercise);
@@ -405,8 +397,7 @@ const ExerciseSelector = ({
 
           {!isSystemReady && (
             <p className="system-not-ready">
-              Please ensure your camera and backend connection are ready before
-              starting.
+              Please ensure your camera is ready before starting.
             </p>
           )}
         </div>

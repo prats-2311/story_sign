@@ -108,7 +108,6 @@ const initialState = {
 };
 
 const HarmonyPage = ({
-  connectionStatus,
   streamingConnectionStatus,
   onConnectionChange,
   onProcessedFrame,
@@ -334,7 +333,6 @@ const HarmonyPage = ({
         return (
           <ExpressionPractice
             onStartSession={handleStartSession}
-            connectionStatus={connectionStatus}
             webcamStatus={webcamStatus}
             webcamError={webcamError}
             error={state.error}
@@ -407,19 +405,10 @@ const HarmonyPage = ({
         <h1 id="main-content">Harmony</h1>
         <p>Facial Expression Practice & Social-Emotional Learning</p>
         <div className="connection-status" aria-live="polite" role="status">
-          <span
-            className={`status-indicator ${connectionStatus}`}
-            aria-hidden="true"
-          >
-            {connectionStatus === "connected" && "🟢"}
-            {connectionStatus === "connecting" && "🟡"}
-            {connectionStatus === "disconnected" && "🔴"}
+          <span className="status-indicator connected" aria-hidden="true">
+            🟢
           </span>
-          <span className="status-text">
-            Connection status: {connectionStatus === "connected" && "Connected"}
-            {connectionStatus === "connecting" && "Connecting..."}
-            {connectionStatus === "disconnected" && "Disconnected"}
-          </span>
+          <span className="status-text">Backend Ready</span>
         </div>
       </header>
 

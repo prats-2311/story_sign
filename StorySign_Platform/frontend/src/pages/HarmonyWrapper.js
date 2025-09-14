@@ -1,10 +1,7 @@
 import React, { useCallback, useState } from "react";
-import { useBackend } from "../contexts/BackendContext";
 import HarmonyPage from "./HarmonyPage";
 
 const HarmonyWrapper = () => {
-  const { connectionStatus, testBackendConnection } = useBackend();
-
   const [streamingConnectionStatus, setStreamingConnectionStatus] =
     useState("disconnected");
 
@@ -23,14 +20,13 @@ const HarmonyWrapper = () => {
     console.error("Harmony error:", error);
   }, []);
 
-  // Retry connection handler
+  // Retry connection handler - backend connects automatically
   const handleRetryConnection = useCallback(() => {
-    testBackendConnection();
-  }, [testBackendConnection]);
+    console.log("Backend connection is automatic - no manual retry needed");
+  }, []);
 
   return (
     <HarmonyPage
-      connectionStatus={connectionStatus}
       streamingConnectionStatus={streamingConnectionStatus}
       onConnectionChange={handleConnectionChange}
       onProcessedFrame={handleProcessedFrame}
