@@ -4,8 +4,8 @@ services:
     runtime: python
     region: oregon
     plan: starter
-    buildCommand: "cd StorySign_Platform/backend && pip install -r requirements_minimal.txt"
-    startCommand: "cd StorySign_Platform/backend && python main_api_production.py"
+    buildCommand: "cd StorySign_Platform/backend && pip install -r requirements.txt"
+    startCommand: "cd StorySign_Platform/backend && python main_api.py"
     healthCheckPath: "/health"
     envVars:
       # Database Configuration (TiDB Cloud)
