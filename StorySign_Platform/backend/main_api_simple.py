@@ -277,10 +277,10 @@ async def logout(request: Request):
         "message": "Logout successful (demo mode)"
     }
 
-# Story generation endpoints
+# Story generation endpoints (v1 versioned)
 @app.post("/api/v1/asl-world/story/generate")
-async def generate_story(request: Request):
-    """Simplified story generation endpoint"""
+async def generate_story_v1(request: Request):
+    """Simplified story generation endpoint (v1)"""
     try:
         body = await request.json()
         return {
@@ -308,8 +308,8 @@ async def generate_story(request: Request):
         }
 
 @app.post("/api/v1/asl-world/story/recognize_and_generate")
-async def recognize_and_generate_story(request: Request):
-    """Simplified object recognition and story generation"""
+async def recognize_and_generate_story_v1(request: Request):
+    """Simplified object recognition and story generation (v1)"""
     try:
         # In demo mode, return a sample story regardless of input
         return {
@@ -331,6 +331,47 @@ async def recognize_and_generate_story(request: Request):
             "message": "Objects recognized and story generated (demo mode)"
         }
     except Exception as e:
+        return {
+            "success": False,
+            "message": f"Recognition failed: {str(e)}",
+            "status": "error"
+        }
+
+# Story generation endpoints (non-versioned - for frontend compatibility)
+@app.post("/api/asl-world/story/generate")
+async def generate_story(request: Request):
+    """Simplified story generation endpoint (non-versioned)"""
+    return await generate_story_v1(request)
+
+@app.post("/api/asl-world/story/recognize_and_generate")
+async def recognize_and_generate_story(request: Request):
+    """Simplified object recognition and story generation (non-versioned)"""
+    try:
+        # In demo mode, return a sample story regardless of input
+        body = await request.json()
+        logger.info(f"Story generation request received with data: {len(str(body))} characters")
+        
+        return {
+            "success": True,
+            "recognized_objects": ["book", "table", "lamp", "chair"],
+            "story": {
+                "id": 2,
+                "title": "My Scanned Objects Story",
+                "content": "I used my camera to scan the objects around me. I can see a book, a table, a lamp, and a chair. These everyday objects help me practice ASL signs and learn new vocabulary.",
+                "difficulty": "beginner",
+                "sentences": [
+                    "I see a book on the table.",
+                    "The table is brown and sturdy.",
+                    "The lamp gives bright light.",
+                    "I sit on the comfortable chair."
+                ],
+                "vocabulary": ["book", "table", "lamp", "chair", "see", "brown", "light", "sit"],
+                "created_at": "2025-09-14T15:00:00Z"
+            },
+            "message": "Objects recognized and story generated from your scan (demo mode)"
+        }
+    except Exception as e:
+        logger.error(f"Story generation error: {e}")
         return {
             "success": False,
             "message": f"Recognition failed: {str(e)}",
