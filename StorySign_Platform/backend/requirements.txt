@@ -35,6 +35,7 @@ redis[hiredis]>=5.0.0
 # AI/ML dependencies
 groq>=0.4.0
 openai>=1.0.0
+ollama>=0.3.0
 
 # Monitoring and optimization dependencies
 psutil>=5.9.0
