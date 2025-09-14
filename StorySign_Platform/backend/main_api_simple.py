@@ -178,22 +178,164 @@ async def api_status():
         "timestamp": datetime.utcnow().isoformat()
     }
 
+# User endpoints
+@app.get("/api/v1/users/profile")
+async def get_user_profile(request: Request):
+    """Get user profile (demo mode)"""
+    return {
+        "success": True,
+        "user": {
+            "id": 1,
+            "email": "demo@example.com",
+            "username": "demo_user",
+            "full_name": "Demo User",
+            "role": "learner",
+            "created_at": "2025-09-14T10:00:00Z",
+            "progress": {
+                "stories_completed": 5,
+                "total_practice_time": 120,
+                "current_level": "beginner"
+            }
+        }
+    }
+
+# Practice session endpoints
+@app.post("/api/v1/practice/session")
+async def create_practice_session(request: Request):
+    """Create practice session (demo mode)"""
+    try:
+        body = await request.json()
+        return {
+            "success": True,
+            "session": {
+                "id": 1,
+                "story_id": body.get("story_id", 1),
+                "user_id": 1,
+                "status": "active",
+                "created_at": datetime.utcnow().isoformat()
+            },
+            "message": "Practice session created (demo mode)"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Session creation failed: {str(e)}"
+        }
+
 # Auth endpoints (simplified)
 @app.post("/api/v1/auth/login")
 async def login(request: Request):
     """Simplified login endpoint"""
-    return {
-        "message": "Login endpoint - implementation pending",
-        "status": "not_implemented"
-    }
+    try:
+        # For demo purposes, accept any login
+        body = await request.json()
+        return {
+            "success": True,
+            "message": "Login successful (demo mode)",
+            "token": "demo-jwt-token-12345",
+            "user": {
+                "id": 1,
+                "email": body.get("email", "demo@example.com"),
+                "username": body.get("username", "demo_user"),
+                "role": "learner"
+            }
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Login failed: {str(e)}",
+            "status": "error"
+        }
 
 @app.post("/api/v1/auth/register")
 async def register(request: Request):
     """Simplified register endpoint"""
+    try:
+        body = await request.json()
+        return {
+            "success": True,
+            "message": "Registration successful (demo mode)",
+            "user": {
+                "id": 1,
+                "email": body.get("email", "demo@example.com"),
+                "username": body.get("username", "demo_user"),
+                "role": "learner"
+            }
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Registration failed: {str(e)}",
+            "status": "error"
+        }
+
+@app.post("/api/v1/auth/logout")
+async def logout(request: Request):
+    """Simplified logout endpoint"""
     return {
-        "message": "Register endpoint - implementation pending", 
-        "status": "not_implemented"
+        "success": True,
+        "message": "Logout successful (demo mode)"
     }
+
+# Story generation endpoints
+@app.post("/api/v1/asl-world/story/generate")
+async def generate_story(request: Request):
+    """Simplified story generation endpoint"""
+    try:
+        body = await request.json()
+        return {
+            "success": True,
+            "story": {
+                "id": 1,
+                "title": "Demo Story",
+                "content": "This is a demo story generated from your scan. In a real implementation, this would use AI to create a personalized ASL learning story based on the objects you scanned.",
+                "difficulty": "beginner",
+                "sentences": [
+                    "I see a book on the table.",
+                    "The book is red and interesting.",
+                    "I want to read this book."
+                ],
+                "vocabulary": ["book", "table", "red", "read"],
+                "created_at": "2025-09-14T15:00:00Z"
+            },
+            "message": "Story generated successfully (demo mode)"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Story generation failed: {str(e)}",
+            "status": "error"
+        }
+
+@app.post("/api/v1/asl-world/story/recognize_and_generate")
+async def recognize_and_generate_story(request: Request):
+    """Simplified object recognition and story generation"""
+    try:
+        # In demo mode, return a sample story regardless of input
+        return {
+            "success": True,
+            "recognized_objects": ["book", "table", "lamp"],
+            "story": {
+                "id": 2,
+                "title": "Objects Around Me",
+                "content": "I can see several objects in this scene. There is a book, a table, and a lamp. These everyday objects can help us learn new signs in ASL.",
+                "difficulty": "beginner",
+                "sentences": [
+                    "I see a book.",
+                    "The table is brown.",
+                    "The lamp gives light."
+                ],
+                "vocabulary": ["book", "table", "lamp", "see", "brown", "light"],
+                "created_at": "2025-09-14T15:00:00Z"
+            },
+            "message": "Objects recognized and story generated (demo mode)"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Recognition failed: {str(e)}",
+            "status": "error"
+        }
 
 # Exception handlers
 @app.exception_handler(HTTPException)
