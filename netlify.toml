@@ -10,8 +10,25 @@
   GENERATE_SOURCEMAP = "false"
   ESLINT_NO_DEV_ERRORS = "true"
   DISABLE_ESLINT_PLUGIN = "true"
+  REACT_APP_API_URL = "https://story-sign.onrender.com"
+  REACT_APP_WS_URL = "wss://story-sign.onrender.com"
+  REACT_APP_ENVIRONMENT = "production"
+  REACT_APP_USE_PROXY = "true"
 
-# SPA routing fallback
+# API proxy to backend
+[[redirects]]
+  from = "/api/*"
+  to = "https://story-sign.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/health"
+  to = "https://story-sign.onrender.com/health"
+  status = 200
+  force = true
+
+# SPA routing fallback (must be last)
 [[redirects]]
   from = "/*"
   to = "/index.html"
