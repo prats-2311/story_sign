@@ -2,7 +2,7 @@
 [build]
   base = "StorySign_Platform/frontend"
   command = "npm run build"
-  publish = "StorySign_Platform/frontend/build"
+  publish = "build"
 
 [build.environment]
   NODE_VERSION = "18"
