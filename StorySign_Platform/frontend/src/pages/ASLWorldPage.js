@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useRef,
-  useCallback,
-  useReducer,
-  useEffect,
-} from "react";
+import React, { useRef, useCallback, useReducer, useEffect } from "react";
 import {
   StorySetup,
   StorySelection,
@@ -147,12 +141,9 @@ const ASLWorldPage = ({
   // Existing props for backward compatibility
   webcamActive,
   streamingActive,
-  onFrameCapture,
   videoStreamingRef,
   processedFrameData,
   streamingConnectionStatus,
-  optimizationSettings,
-  onOptimizationChange,
   onConnectionChange,
   onProcessedFrame,
   onError,
@@ -163,29 +154,20 @@ const ASLWorldPage = ({
   const hasStartedPracticeRef = useRef(false);
 
   // Add persistent webcam and WebSocket state at page level
-  const {
-    connectionState,
-    isConnected,
-    lastMessage,
-    error: wsError,
-    sendMessage,
-    addMessageListener,
-    removeMessageListener,
-  } = useWebSocket("ws://127.0.0.1:8000/ws/video", {
-    autoConnect: false, // We'll connect manually when needed
-    maxReconnectAttempts: 5,
-    frameThrottleMs: 50,
-  });
+  const { connectionState, isConnected, lastMessage, sendMessage } =
+    useWebSocket("ws://127.0.0.1:8000/ws/video", {
+      autoConnect: false, // We'll connect manually when needed
+      maxReconnectAttempts: 5,
+      frameThrottleMs: 50,
+    });
 
   const {
     stream: webcamStream,
     isActive: isWebcamActive,
-    status: webcamStatus,
     error: webcamError,
     startWebcam,
     stopWebcam,
     captureFrame,
-    attachToVideoElement,
   } = useWebcam();
 
   // Internal refs for video streaming client
@@ -781,11 +763,13 @@ const ASLWorldPage = ({
             isGeneratingStory={state.isGeneratingStory}
             generationError={state.storyGenerationError}
             onDismissError={handleDismissError}
-            // Add webcam props for object scanning
-            webcamRef={null} // StorySetup will use its own video ref
+            // Pass webcam props for object scanning
+            webcamRef={webcamStream} // Pass the actual webcam stream
             isWebcamActive={currentWebcamActive}
             captureFrame={captureFrame}
             webcamError={webcamError?.message}
+            // Pass connection status for display
+            connectionStatus={currentConnectionStatus}
           />
         );
 
@@ -795,6 +779,7 @@ const ASLWorldPage = ({
             storyData={state.storyData}
             onStorySelect={handleStorySelect}
             onBackToGeneration={handleBackToGeneration}
+            // StorySelection doesn't need webcam/WebSocket props for consistency
           />
         );
 
@@ -809,10 +794,11 @@ const ASLWorldPage = ({
               isProcessingFeedback={state.isProcessingFeedback}
               onStartPractice={handleStartPractice}
               onPracticeControl={handlePracticeControl}
-              // Add video props for streaming
+              // Pass processedFrame and sendControlMessage props for video streaming
               processedFrame={processedFrameData || lastMessage}
               sendControlMessage={sendMessage}
             >
+              {/* VideoStreamingClient continues to work as children of PracticeView */}
               <VideoStreamingClient
                 ref={currentVideoRef}
                 isActive={currentStreamingActive}
@@ -829,6 +815,7 @@ const ASLWorldPage = ({
                 totalSentences={state.selectedStory?.sentences?.length || 0}
                 onPracticeControl={handlePracticeControl}
                 isProcessingFeedback={state.isProcessingFeedback}
+                // FeedbackPanel doesn't need webcam/WebSocket props for consistency
               />
             )}
           </div>

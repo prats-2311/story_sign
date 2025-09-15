@@ -16,6 +16,8 @@ const StorySetup = ({
   isWebcamActive = false,
   captureFrame = null,
   webcamError = null,
+  // Connection status for display
+  connectionStatus = "disconnected",
 }) => {
   const [generationMode, setGenerationMode] = useState("scan");
   const [customPrompt, setCustomPrompt] = useState("");

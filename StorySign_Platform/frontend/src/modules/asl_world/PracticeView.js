@@ -14,6 +14,9 @@ const PracticeView = ({
   isProcessingFeedback = false,
   onStartPractice,
   onPracticeControl,
+  // New props for WebSocket video streaming
+  processedFrame = null,
+  sendControlMessage = null,
   children, // Video streaming component
 }) => {
   if (!selectedStory) {

@@ -8,7 +8,7 @@
   - Maintain existing props interface for backward compatibility
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 2. Update ASLWorldPage to pass webcam/WebSocket props to individual components
+- [x] 2. Update ASLWorldPage to pass webcam/WebSocket props to individual components
 
   - Modify renderCurrentView to pass webcam props to StorySetup component
   - Pass processedFrame and sendControlMessage props to PracticeView component
