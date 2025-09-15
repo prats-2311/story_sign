@@ -22,6 +22,10 @@ const ASLWorldModule = ({
   optimizationSettings,
   onOptimizationChange,
   children,
+  // New webcam-related props from parent
+  webcamStream = null,
+  isWebcamActive = false,
+  webcamError = null,
 }) => {
   const [mode, setMode] = useState("story_generation"); // 'story_generation', 'story_selection', or 'practice'
   const [showFeedback, setShowFeedback] = useState(false);
@@ -120,43 +124,12 @@ const ASLWorldModule = ({
     }
   }, [latestFeedback]);
 
-  // Initialize webcam access for frame capture
+  // Update video element when webcam stream changes
   React.useEffect(() => {
-    const initializeWebcam = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480 },
-        });
-
-        if (videoRef?.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (error) {
-        console.error("Error accessing webcam:", error);
-      }
-    };
-
-    const cleanupWebcam = () => {
-      if (videoRef?.current && videoRef.current.srcObject) {
-        const tracks = videoRef.current.srcObject.getTracks();
-        tracks.forEach(track => track.stop());
-        videoRef.current.srcObject = null;
-      }
-    };
-
-    // Only initialize when in story generation mode
-    if (mode === "story_generation") {
-      initializeWebcam();
-    } else {
-      // Explicitly cleanup when switching to practice mode
-      cleanupWebcam();
+    if (videoRef.current && webcamStream && isWebcamActive) {
+      videoRef.current.srcObject = webcamStream;
     }
-
-    // Cleanup function
-    return () => {
-      cleanupWebcam();
-    };
-  }, [mode]);
+  }, [webcamStream, isWebcamActive]);
 
   const renderStoryGenerationMode = () => (
     <div className="story-generation-mode">
@@ -190,13 +163,26 @@ const ASLWorldModule = ({
           </p>
 
           <div className="video-preview">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="preview-video"
-            />
+            {isWebcamActive ? (
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="preview-video"
+                onLoadedMetadata={() => {
+                  // Attach the parent's webcam stream to this video element
+                  if (videoRef.current && webcamStream) {
+                    videoRef.current.srcObject = webcamStream;
+                  }
+                }}
+              />
+            ) : (
+              <div className="webcam-inactive">
+                <p>Camera is inactive</p>
+                {webcamError && <p className="error">{webcamError}</p>}
+              </div>
+            )}
             <canvas ref={canvasRef} style={{ display: "none" }} />
           </div>
 

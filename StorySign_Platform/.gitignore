@@ -63,13 +63,24 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
+# Environment variables files (ALL .env files)
 .env
-.env.test
+.env.*
 .env.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
+.env.staging
+.env.staging.local
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+mobile/.env
+mobile/.env.*
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -185,8 +196,7 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
-.env
+# Python Virtual Environments
 .venv
 env/
 venv/
@@ -233,3 +243,34 @@ data/raw/
 data/processed/
 experiments/
 outputs/
+
+# Security and sensitive files
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials/
+config/secrets/
+.secrets
+.credentials
+
+# API keys and configuration
+api_keys.txt
+config.json
+secrets.json
+private_config.yaml
+
+# Database dumps and backups
+*.sql
+*.dump
+backup/
+backups/
+
+# Temporary and cache files
+.cache/
+.tmp/
+tmp/
+temp/
+*.tmp
+*.temp

@@ -1,4 +1,10 @@
-import React, { useState, useRef, useCallback, useReducer } from "react";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useReducer,
+  useEffect,
+} from "react";
 import {
   StorySetup,
   StorySelection,
@@ -6,6 +12,8 @@ import {
   FeedbackPanel,
 } from "../modules/asl_world";
 import VideoStreamingClient from "../components/video/VideoStreamingClient";
+import useWebSocket from "../hooks/useWebSocket";
+import useWebcam from "../hooks/useWebcam";
 import API_BASE_URL from "../config/api";
 import "./ASLWorldPage.css";
 
@@ -136,6 +144,7 @@ const initialState = {
 };
 
 const ASLWorldPage = ({
+  // Existing props for backward compatibility
   webcamActive,
   streamingActive,
   onFrameCapture,
@@ -151,8 +160,65 @@ const ASLWorldPage = ({
   toggleStreaming,
 }) => {
   const [state, dispatch] = useReducer(aslWorldReducer, initialState);
-  const [connectionStatus, setConnectionStatus] = useState("connected"); // Assume automatic connection
   const hasStartedPracticeRef = useRef(false);
+
+  // Add persistent webcam and WebSocket state at page level
+  const {
+    connectionState,
+    isConnected,
+    lastMessage,
+    error: wsError,
+    sendMessage,
+    addMessageListener,
+    removeMessageListener,
+  } = useWebSocket("ws://127.0.0.1:8000/ws/video", {
+    autoConnect: false, // We'll connect manually when needed
+    maxReconnectAttempts: 5,
+    frameThrottleMs: 50,
+  });
+
+  const {
+    stream: webcamStream,
+    isActive: isWebcamActive,
+    status: webcamStatus,
+    error: webcamError,
+    startWebcam,
+    stopWebcam,
+    captureFrame,
+    attachToVideoElement,
+  } = useWebcam();
+
+  // Internal refs for video streaming client
+  const internalVideoStreamingRef = useRef(null);
+
+  // Webcam lifecycle management
+  useEffect(() => {
+    // Initialize webcam when component mounts
+    const initializeWebcam = async () => {
+      try {
+        await startWebcam();
+      } catch (error) {
+        console.error("Failed to initialize webcam:", error);
+      }
+    };
+
+    initializeWebcam();
+
+    // Cleanup webcam on unmount
+    return () => {
+      stopWebcam();
+    };
+  }, [startWebcam, stopWebcam]);
+
+  // Helper functions to determine which state to use (props vs internal hooks)
+  const getWebcamActive = () =>
+    webcamActive !== undefined ? webcamActive : isWebcamActive;
+  const getStreamingActive = () =>
+    streamingActive !== undefined ? streamingActive : isConnected;
+  const getConnectionStatus = () =>
+    streamingConnectionStatus || connectionState;
+  const getVideoStreamingRef = () =>
+    videoStreamingRef || internalVideoStreamingRef;
 
   // Effect 1: When stories are generated, reset practice session flag
   React.useEffect(() => {
@@ -163,32 +229,44 @@ const ASLWorldPage = ({
 
   // Effect 2: When the streaming connection is established, start the session (only if user started practice)
   React.useEffect(() => {
+    const currentStreamingStatus = getConnectionStatus();
+    const currentVideoRef = getVideoStreamingRef();
+
     if (
       state.selectedStory &&
       state.practiceStarted &&
-      streamingConnectionStatus === "connected" &&
-      videoStreamingRef.current &&
+      currentStreamingStatus === "connected" &&
+      currentVideoRef.current &&
       !hasStartedPracticeRef.current
     ) {
       hasStartedPracticeRef.current = true;
       startPracticeSession(state.selectedStory);
     }
-  }, [state.selectedStory, state.practiceStarted, streamingConnectionStatus]);
+  }, [
+    state.selectedStory,
+    state.practiceStarted,
+    connectionState,
+    streamingConnectionStatus,
+  ]);
 
   // Effect 3: Auto-reconnect WebSocket after story generation if needed
   React.useEffect(() => {
+    const currentStreamingStatus = getConnectionStatus();
+    const currentWebcamActive = getWebcamActive();
+    const currentStreamingActive = getStreamingActive();
+
     if (
       state.storyData &&
       !state.isGeneratingStory &&
-      streamingConnectionStatus === "disconnected" &&
-      webcamActive
+      currentStreamingStatus === "disconnected" &&
+      currentWebcamActive
     ) {
       console.log(
         "Story generation completed but WebSocket disconnected, attempting reconnection..."
       );
 
       const reconnectTimer = setTimeout(() => {
-        if (toggleStreaming && !streamingActive) {
+        if (toggleStreaming && !currentStreamingActive) {
           console.log("Auto-reconnecting WebSocket after story generation");
           toggleStreaming();
         }
@@ -199,8 +277,11 @@ const ASLWorldPage = ({
   }, [
     state.storyData,
     state.isGeneratingStory,
+    connectionState,
     streamingConnectionStatus,
+    isWebcamActive,
     webcamActive,
+    isConnected,
     streamingActive,
     toggleStreaming,
   ]);
@@ -209,49 +290,78 @@ const ASLWorldPage = ({
   const handleStartPractice = useCallback(async () => {
     console.log("Starting practice session - activating webcam and streaming");
 
+    const currentWebcamActive = getWebcamActive();
+
     // Activate webcam if not already active
-    if (!webcamActive && toggleWebcam) {
-      console.log("Activating webcam for practice session");
-      toggleWebcam();
+    if (!currentWebcamActive) {
+      if (toggleWebcam) {
+        console.log("Activating webcam for practice session via props");
+        toggleWebcam();
+      } else if (!isWebcamActive) {
+        console.log("Activating webcam for practice session via hook");
+        await startWebcam();
+      }
     }
 
     // Set practice started flag - backend connection is automatic
     dispatch({ type: "START_PRACTICE" });
-  }, [webcamActive, toggleWebcam]);
+  }, [
+    webcamActive,
+    isWebcamActive,
+    toggleWebcam,
+    startWebcam,
+    getWebcamActive,
+  ]);
 
   // Effect to handle streaming activation after webcam is active - automatic backend connection
   React.useEffect(() => {
+    const currentWebcamActive = getWebcamActive();
+    const currentStreamingActive = getStreamingActive();
+
     if (
       state.practiceStarted &&
-      webcamActive &&
-      !streamingActive &&
-      toggleStreaming
+      currentWebcamActive &&
+      !currentStreamingActive
     ) {
       console.log(
         "Webcam is active, now activating streaming for practice session (backend connects automatically)"
       );
       const timer = setTimeout(() => {
-        toggleStreaming();
+        if (toggleStreaming) {
+          toggleStreaming();
+        }
       }, 1000);
 
       return () => clearTimeout(timer);
     }
-  }, [state.practiceStarted, webcamActive, streamingActive, toggleStreaming]);
+  }, [
+    state.practiceStarted,
+    webcamActive,
+    isWebcamActive,
+    streamingActive,
+    isConnected,
+    toggleStreaming,
+    getWebcamActive,
+    getStreamingActive,
+  ]);
 
   // Practice session management functions
   const startPracticeSession = async story => {
     console.log("Starting practice session with story:", story.title);
 
     try {
+      const currentVideoRef = getVideoStreamingRef();
+      const currentStreamingActive = getStreamingActive();
+
       // Send practice session start message to backend via WebSocket
-      if (videoStreamingRef.current && streamingActive) {
+      if (currentVideoRef.current && currentStreamingActive) {
         const sessionData = {
           story_sentences: story.sentences,
           session_id: `session_${Date.now()}`,
           story_title: story.title,
         };
 
-        const success = videoStreamingRef.current.sendPracticeControl(
+        const success = currentVideoRef.current.sendPracticeControl(
           "start_session",
           sessionData
         );
@@ -260,6 +370,25 @@ const ASLWorldPage = ({
           console.log("Practice session started successfully");
         } else {
           console.error("Failed to start practice session");
+        }
+      } else if (isConnected && sendMessage) {
+        // Use internal WebSocket hook if available
+        const sessionData = {
+          type: "start_session",
+          story_sentences: story.sentences,
+          session_id: `session_${Date.now()}`,
+          story_title: story.title,
+        };
+
+        const success = sendMessage(sessionData);
+        if (success) {
+          console.log(
+            "Practice session started successfully via internal WebSocket"
+          );
+        } else {
+          console.error(
+            "Failed to start practice session via internal WebSocket"
+          );
         }
       } else {
         console.warn("WebSocket not available for practice session start");
@@ -370,14 +499,32 @@ const ASLWorldPage = ({
         };
 
         // Send control message to backend via WebSocket
-        if (videoStreamingRef.current && streamingActive) {
-          const success = videoStreamingRef.current.sendPracticeControl(
+        const currentVideoRef = getVideoStreamingRef();
+        const currentStreamingActive = getStreamingActive();
+
+        if (currentVideoRef.current && currentStreamingActive) {
+          const success = currentVideoRef.current.sendPracticeControl(
             action,
             controlData
           );
 
           if (!success) {
             console.error("Failed to send practice control to backend");
+            return;
+          }
+        } else if (isConnected && sendMessage) {
+          // Use internal WebSocket hook if available
+          const controlMessage = {
+            type: "practice_control",
+            action,
+            data: controlData,
+          };
+
+          const success = sendMessage(controlMessage);
+          if (!success) {
+            console.error(
+              "Failed to send practice control via internal WebSocket"
+            );
             return;
           }
         }
@@ -439,6 +586,10 @@ const ASLWorldPage = ({
       state.selectedStory,
       state.latestFeedback,
       streamingActive,
+      isConnected,
+      sendMessage,
+      getVideoStreamingRef,
+      getStreamingActive,
     ]
   );
 
@@ -617,6 +768,11 @@ const ASLWorldPage = ({
   };
 
   const renderCurrentView = () => {
+    const currentWebcamActive = getWebcamActive();
+    const currentStreamingActive = getStreamingActive();
+    const currentConnectionStatus = getConnectionStatus();
+    const currentVideoRef = getVideoStreamingRef();
+
     switch (state.currentView) {
       case "story_generation":
         return (
@@ -625,6 +781,11 @@ const ASLWorldPage = ({
             isGeneratingStory={state.isGeneratingStory}
             generationError={state.storyGenerationError}
             onDismissError={handleDismissError}
+            // Add webcam props for object scanning
+            webcamRef={null} // StorySetup will use its own video ref
+            isWebcamActive={currentWebcamActive}
+            captureFrame={captureFrame}
+            webcamError={webcamError?.message}
           />
         );
 
@@ -648,10 +809,13 @@ const ASLWorldPage = ({
               isProcessingFeedback={state.isProcessingFeedback}
               onStartPractice={handleStartPractice}
               onPracticeControl={handlePracticeControl}
+              // Add video props for streaming
+              processedFrame={processedFrameData || lastMessage}
+              sendControlMessage={sendMessage}
             >
               <VideoStreamingClient
-                ref={videoStreamingRef}
-                isActive={streamingActive}
+                ref={currentVideoRef}
+                isActive={currentStreamingActive}
                 onConnectionChange={onConnectionChange}
                 onProcessedFrame={handleProcessedFrameWithASLLogic}
                 onError={onError}
@@ -688,11 +852,20 @@ const ASLWorldPage = ({
         <h1 id="main-content">ASL World</h1>
         <p>Interactive American Sign Language Learning</p>
         <div className="connection-status" aria-live="polite" role="status">
-          <span className="status-indicator connected" aria-hidden="true">
-            🟢
+          <span
+            className={`status-indicator ${
+              getConnectionStatus() === "connected"
+                ? "connected"
+                : "disconnected"
+            }`}
+            aria-hidden="true"
+          >
+            {getConnectionStatus() === "connected" ? "🟢" : "🔴"}
           </span>
           <span className="status-text">
-            Backend ready - Start practicing to connect automatically
+            {getConnectionStatus() === "connected"
+              ? "Backend connected - Ready for practice"
+              : "Backend ready - Start practicing to connect automatically"}
           </span>
         </div>
       </header>

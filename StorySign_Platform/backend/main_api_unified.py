@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 StorySign ASL Platform Backend - Unified API
-FastAPI application with real Groq Vision + Ollama integration
-Works both locally and in production with automatic environment detection
+Single file that works both locally and in production
+Automatically detects environment and adjusts behavior accordingly
 """
 
 import logging
@@ -17,13 +17,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 
-# Detect environment
+# Environment detection
 IS_PRODUCTION = os.getenv("ENVIRONMENT") == "production" or os.getenv("RENDER") is not None
 IS_LOCAL = not IS_PRODUCTION
 
-# Configure logging first
+# Configure logging
+log_level = logging.INFO if IS_PRODUCTION else logging.DEBUG
 logging.basicConfig(
-    level=logging.INFO,
+    level=log_level,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout)
@@ -31,12 +32,7 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-
-# Log environment detection
-if IS_PRODUCTION:
-    logger.info("🚀 Running in PRODUCTION mode (Render)")
-else:
-    logger.info("🔧 Running in LOCAL DEVELOPMENT mode")
+logger.info(f"🌍 Environment detected: {'PRODUCTION' if IS_PRODUCTION else 'LOCAL DEVELOPMENT'}")
 
 # Import configuration with error handling
 CONFIG_AVAILABLE = False
@@ -52,54 +48,45 @@ except Exception as e:
 # Import core API modules with error handling
 API_MODULES = {}
 
-# Core working modules
-try:
-    from api import asl_world
-    API_MODULES['asl_world'] = asl_world
-    logger.info("ASL World module loaded (includes Groq + Ollama)")
-except ImportError as e:
-    logger.error(f"ASL World module failed to load: {e}")
+# Core working modules - try to load each one safely
+modules_to_try = [
+    ('asl_world', 'ASL World module loaded (includes Groq + Ollama)'),
+    ('system', 'System module loaded'),
+    ('harmony', 'Harmony module loaded'),
+    ('reconnect', 'Reconnect module loaded'),
+    ('websocket', 'WebSocket module loaded'),
+    ('services_demo', 'Services demo module loaded')
+]
 
-try:
-    from api import system
-    API_MODULES['system'] = system
-    logger.info("System module loaded")
-except ImportError as e:
-    logger.warning(f"System module not available: {e}")
+for module_name, success_message in modules_to_try:
+    try:
+        module = __import__(f'api.{module_name}', fromlist=[module_name])
+        API_MODULES[module_name] = module
+        logger.info(success_message)
+    except ImportError as e:
+        if IS_LOCAL:
+            logger.warning(f"{module_name.title()} module not available: {e}")
+        else:
+            logger.error(f"{module_name.title()} module failed to load: {e}")
+    except Exception as e:
+        logger.error(f"Error loading {module_name} module: {e}")
 
-try:
-    from api import harmony
-    API_MODULES['harmony'] = harmony
-    logger.info("Harmony module loaded")
-except ImportError as e:
-    logger.warning(f"Harmony module not available: {e}")
-
-try:
-    from api import reconnect
-    API_MODULES['reconnect'] = reconnect
-    logger.info("Reconnect module loaded")
-except ImportError as e:
-    logger.warning(f"Reconnect module not available: {e}")
-
-try:
-    from api import websocket
-    API_MODULES['websocket'] = websocket
-    logger.info("WebSocket module loaded")
-except ImportError as e:
-    logger.warning(f"WebSocket module not available: {e}")
-
-# Authentication with fallback
+# Authentication with fallback - try database first, then simple
 AUTH_AVAILABLE = False
+auth_type = "none"
+
 try:
     from api import auth_db as auth
     API_MODULES['auth'] = auth
     AUTH_AVAILABLE = True
-    logger.info("Database authentication loaded")
+    auth_type = "database"
+    logger.info("Database authentication loaded (REAL DATA)")
 except ImportError:
     try:
         from api import auth_simple as auth
         API_MODULES['auth'] = auth
         AUTH_AVAILABLE = True
+        auth_type = "simple"
         logger.info("Simple authentication loaded")
     except ImportError as e:
         logger.warning(f"No authentication module available: {e}")
@@ -110,40 +97,44 @@ request_count = 0
 error_count = 0
 
 # Create FastAPI application
+app_title = f"StorySign ASL Platform API - {'Production' if IS_PRODUCTION else 'Local Development'}"
+app_description = f"{'Production' if IS_PRODUCTION else 'Local development'} API with real Groq Vision + Ollama integration"
+
 app = FastAPI(
-    title="StorySign ASL Platform API",
-    description="Production REST API for StorySign ASL learning platform with Groq Vision + Ollama integration",
+    title=app_title,
+    description=app_description,
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json"
 )
 
-# CORS middleware - environment-aware
-if IS_PRODUCTION:
-    # Production CORS - restrictive
-    cors_origins = [
-        "https://storysign-platform.netlify.app",
-        "https://www.storysign-platform.netlify.app"
-    ]
-    logger.info("🔒 Using production CORS settings")
+# CORS middleware - different settings for local vs production
+if IS_LOCAL:
+    # Local development - allow all origins
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    logger.info("CORS configured for local development (allow all origins)")
 else:
-    # Local development CORS - permissive
-    cors_origins = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8080",
-        "*"  # Allow all for local dev
-    ]
-    logger.info("🔓 Using local development CORS settings")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    # Production - specific origins only
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "https://storysign-platform.netlify.app",
+            "https://www.storysign-platform.netlify.app",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000"
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    logger.info("CORS configured for production (specific origins)")
 
 # Request tracking middleware
 @app.middleware("http")
@@ -186,32 +177,29 @@ for module_name, module in API_MODULES.items():
     try:
         if hasattr(module, 'router'):
             app.include_router(module.router)
-            logger.info(f"Included {module_name} router")
+            logger.info(f"✅ Included {module_name} router")
         else:
-            logger.warning(f"{module_name} module has no router attribute")
+            logger.warning(f"⚠️ {module_name} module has no router attribute")
     except Exception as e:
-        logger.error(f"Failed to include {module_name} router: {e}")
+        logger.error(f"❌ Failed to include {module_name} router: {e}")
 
 # Root endpoints
 @app.get("/")
 async def root():
     """Root endpoint with API information"""
-    environment_name = "Production (Render)" if IS_PRODUCTION else "Local Development"
-    
     return {
-        "message": f"StorySign ASL Platform API - {environment_name}",
+        "message": f"StorySign ASL Platform API - {'Production' if IS_PRODUCTION else 'Local Development'}",
         "version": "1.0.0",
         "status": "healthy",
-        "environment": environment_name,
+        "environment": "production" if IS_PRODUCTION else "local_development",
         "timestamp": datetime.utcnow().isoformat(),
         "uptime_seconds": time.time() - startup_time,
         "features": [
             "Groq Vision API Integration",
             "Ollama Story Generation", 
             "Real-time WebSocket",
-            "JWT Authentication" if AUTH_AVAILABLE else "No Authentication",
-            "TiDB Cloud Database" if CONFIG_AVAILABLE else "No Database",
-            "Real Data & Services" if AUTH_AVAILABLE else "Limited Services"
+            f"JWT Authentication ({auth_type})" if AUTH_AVAILABLE else "No Authentication",
+            "TiDB Cloud Database" if CONFIG_AVAILABLE else "No Database"
         ],
         "loaded_modules": list(API_MODULES.keys()),
         "documentation": {
@@ -229,7 +217,7 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Comprehensive health check endpoint for production deployment"""
+    """Comprehensive health check endpoint"""
     health_status = "healthy"
     services = {}
     
@@ -245,58 +233,69 @@ async def health_check():
                     services["groq_api"] = "configured"
                 else:
                     services["groq_api"] = "not_configured"
-                    health_status = "degraded"
+                    if IS_PRODUCTION:
+                        health_status = "degraded"
                 
                 # Check Ollama configuration  
                 if hasattr(config, 'ollama') and config.ollama.enabled:
                     services["ollama"] = "configured"
                 else:
                     services["ollama"] = "not_configured"
-                    health_status = "degraded"
+                    if IS_PRODUCTION:
+                        health_status = "degraded"
                     
             except Exception as e:
                 services["configuration"] = f"error: {str(e)[:50]}"
                 health_status = "degraded"
         else:
             services["configuration"] = "not_available"
-            health_status = "degraded"
+            if IS_PRODUCTION:
+                health_status = "degraded"
         
-        # Check vision service health
-        try:
-            from local_vision_service import get_vision_service
-            vision_service = await get_vision_service()
-            if hasattr(vision_service, 'check_health'):
-                vision_healthy = await vision_service.check_health()
-                services["vision_service"] = "healthy" if vision_healthy else "unhealthy"
-                if not vision_healthy:
+        # Check vision service health (only in production or if explicitly requested)
+        if IS_PRODUCTION or os.getenv("CHECK_SERVICES") == "true":
+            try:
+                from local_vision_service import get_vision_service
+                vision_service = await get_vision_service()
+                if hasattr(vision_service, 'check_health'):
+                    vision_healthy = await vision_service.check_health()
+                    services["vision_service"] = "healthy" if vision_healthy else "unhealthy"
+                    if not vision_healthy and IS_PRODUCTION:
+                        health_status = "degraded"
+                else:
+                    services["vision_service"] = "unknown"
+            except Exception as e:
+                services["vision_service"] = f"error: {str(e)[:50]}"
+                if IS_PRODUCTION:
                     health_status = "degraded"
-            else:
-                services["vision_service"] = "unknown"
-        except Exception as e:
-            services["vision_service"] = f"error: {str(e)[:50]}"
-            health_status = "degraded"
+        else:
+            services["vision_service"] = "skipped_in_local"
         
-        # Check story generation service
-        try:
-            from ollama_service import get_ollama_service
-            ollama_service = await get_ollama_service()
-            if hasattr(ollama_service, 'check_health'):
-                ollama_healthy = await ollama_service.check_health()
-                services["story_service"] = "healthy" if ollama_healthy else "unhealthy"
-                if not ollama_healthy:
+        # Check story generation service (only in production or if explicitly requested)
+        if IS_PRODUCTION or os.getenv("CHECK_SERVICES") == "true":
+            try:
+                from ollama_service import get_ollama_service
+                ollama_service = await get_ollama_service()
+                if hasattr(ollama_service, 'check_health'):
+                    ollama_healthy = await ollama_service.check_health()
+                    services["story_service"] = "healthy" if ollama_healthy else "unhealthy"
+                    if not ollama_healthy and IS_PRODUCTION:
+                        health_status = "degraded"
+                else:
+                    services["story_service"] = "unknown"
+            except Exception as e:
+                services["story_service"] = f"error: {str(e)[:50]}"
+                if IS_PRODUCTION:
                     health_status = "degraded"
-            else:
-                services["story_service"] = "unknown"
-        except Exception as e:
-            services["story_service"] = f"error: {str(e)[:50]}"
-            health_status = "degraded"
+        else:
+            services["story_service"] = "skipped_in_local"
         
         # Check loaded modules
         services["loaded_modules"] = list(API_MODULES.keys())
-        services["authentication"] = "available" if AUTH_AVAILABLE else "not_available"
+        services["authentication"] = f"available ({auth_type})" if AUTH_AVAILABLE else "not_available"
         
-        # Check environment variables
-        required_env_vars = ["GROQ_API_KEY", "JWT_SECRET"]
+        # Check environment variables (only critical ones in production)
+        required_env_vars = ["GROQ_API_KEY", "JWT_SECRET"] if IS_PRODUCTION else []
         missing_vars = []
         
         for var in required_env_vars:
@@ -324,9 +323,9 @@ async def health_check():
         "error_rate": round((error_count / max(1, request_count)) * 100, 2),
         "services": services,
         "deployment": {
-            "platform": "render" if os.getenv("RENDER") else "local",
+            "platform": "render" if IS_PRODUCTION else "local",
             "port": os.getenv("PORT", "8000"),
-            "workers": os.getenv("MAX_WORKERS", "4")
+            "workers": os.getenv("MAX_WORKERS", "1")
         }
     }
 
@@ -342,11 +341,7 @@ async def get_metrics():
             "error_rate_percent": (error_count / max(1, request_count)) * 100
         },
         "loaded_modules": list(API_MODULES.keys()),
-        "system": {
-            "memory_usage_mb": 0,  # TODO: Implement actual system metrics
-            "cpu_usage_percent": 0,
-            "active_connections": 0
-        }
+        "environment": "production" if IS_PRODUCTION else "local_development"
     }
 
 # Exception handlers
@@ -383,74 +378,70 @@ async def general_exception_handler(request: Request, exc: Exception):
 @app.on_event("startup")
 async def startup_event():
     """Application startup"""
-    env_name = "Production (Render)" if IS_PRODUCTION else "Local Development"
-    logger.info(f"StorySign API starting up in {env_name} mode...")
-    logger.info(f"Environment: {env_name}")
+    env_name = "Production" if IS_PRODUCTION else "Local Development"
+    logger.info(f"StorySign {env_name} API starting up...")
+    logger.info(f"Environment: {'production' if IS_PRODUCTION else 'local_development'}")
     logger.info(f"Port: {os.getenv('PORT', '8000')}")
     logger.info(f"Loaded modules: {list(API_MODULES.keys())}")
-    logger.info(f"Authentication: {'Available' if AUTH_AVAILABLE else 'Not Available'}")
-    logger.info(f"Configuration: {'Available' if CONFIG_AVAILABLE else 'Not Available'}")
+    logger.info(f"Authentication: {auth_type if AUTH_AVAILABLE else 'not_available'}")
     
-    # Initialize services
-    try:
-        # Test vision service
-        if 'asl_world' in API_MODULES:
-            try:
-                from local_vision_service import get_vision_service
-                vision_service = await get_vision_service()
-                vision_healthy = await vision_service.check_health()
-                logger.info(f"Vision service (Groq): {'healthy' if vision_healthy else 'unhealthy'}")
-            except Exception as e:
-                logger.warning(f"Vision service check failed: {e}")
+    # Initialize services (only in production or if explicitly requested)
+    if IS_PRODUCTION or os.getenv("CHECK_SERVICES") == "true":
+        try:
+            # Test vision service
+            if 'asl_world' in API_MODULES:
+                try:
+                    from local_vision_service import get_vision_service
+                    vision_service = await get_vision_service()
+                    vision_healthy = await vision_service.check_health()
+                    logger.info(f"Vision service (Groq): {'healthy' if vision_healthy else 'unhealthy'}")
+                except Exception as e:
+                    logger.warning(f"Vision service check failed: {e}")
+                
+                # Test story service
+                try:
+                    from ollama_service import get_ollama_service
+                    ollama_service = await get_ollama_service()
+                    ollama_healthy = await ollama_service.check_health()
+                    logger.info(f"Story service (Ollama): {'healthy' if ollama_healthy else 'unhealthy'}")
+                except Exception as e:
+                    logger.warning(f"Story service check failed: {e}")
             
-            # Test story service
-            try:
-                from ollama_service import get_ollama_service
-                ollama_service = await get_ollama_service()
-                ollama_healthy = await ollama_service.check_health()
-                logger.info(f"Story service (Ollama): {'healthy' if ollama_healthy else 'unhealthy'}")
-            except Exception as e:
-                logger.warning(f"Story service check failed: {e}")
-        
-    except Exception as e:
-        logger.warning(f"Service initialization warning: {e}")
+        except Exception as e:
+            logger.warning(f"Service initialization warning: {e}")
+    else:
+        logger.info("Service health checks skipped in local development")
     
-    logger.info(f"StorySign API started successfully in {env_name} mode")
+    logger.info(f"StorySign {env_name} API started successfully")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Application shutdown"""
     env_name = "Production" if IS_PRODUCTION else "Local Development"
-    logger.info(f"StorySign API ({env_name}) shutting down...")
-    logger.info(f"StorySign API ({env_name}) shut down complete")
+    logger.info(f"StorySign {env_name} API shutting down...")
+    logger.info(f"StorySign {env_name} API shut down complete")
 
 # Development server
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description="Run StorySign Unified API server")
-    
-    # Environment-aware defaults
-    default_host = "0.0.0.0" if IS_PRODUCTION else "127.0.0.1"
-    default_reload = False if IS_PRODUCTION else True
-    
-    parser.add_argument("--host", default=default_host, help="Host to bind to")
+    parser = argparse.ArgumentParser(description="Run StorySign API server")
+    parser.add_argument("--host", default="127.0.0.1" if IS_LOCAL else "0.0.0.0", help="Host to bind to")
     parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "8000")), help="Port to bind to")
-    parser.add_argument("--reload", action="store_true", default=default_reload, help="Enable auto-reload")
-    parser.add_argument("--log-level", default="info", help="Log level")
+    parser.add_argument("--reload", action="store_true", default=IS_LOCAL, help="Enable auto-reload")
+    parser.add_argument("--log-level", default="debug" if IS_LOCAL else "info", help="Log level")
     
     args = parser.parse_args()
     
     env_name = "Production" if IS_PRODUCTION else "Local Development"
-    logger.info(f"🚀 Starting StorySign API server ({env_name}) on {args.host}:{args.port}")
-    
-    if IS_LOCAL:
-        logger.info(f"📍 Local URL: http://{args.host}:{args.port}")
-        logger.info(f"📚 API Docs: http://{args.host}:{args.port}/docs")
-        logger.info(f"🔄 Auto-reload: {'Enabled' if args.reload else 'Disabled'}")
+    logger.info(f"🚀 Starting StorySign {env_name} API server")
+    logger.info(f"📍 URL: http://{args.host}:{args.port}")
+    logger.info(f"📚 Docs: http://{args.host}:{args.port}/docs")
+    logger.info(f"🔧 Loaded modules: {list(API_MODULES.keys())}")
+    logger.info(f"🔐 Authentication: {auth_type if AUTH_AVAILABLE else 'not_available'}")
     
     uvicorn.run(
-        "main_api_production:app",
+        "main_api_unified:app",
         host=args.host,
         port=args.port,
         reload=args.reload,

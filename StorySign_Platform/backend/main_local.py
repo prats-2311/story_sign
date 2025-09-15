@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-StorySign ASL Platform Backend - Unified API
-FastAPI application with real Groq Vision + Ollama integration
-Works both locally and in production with automatic environment detection
+StorySign ASL Platform Backend - Local Development Version
+IDENTICAL to production main_api_production.py but optimized for local development
+Uses REAL data and services, same as production
 """
 
 import logging
@@ -17,10 +17,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 
-# Detect environment
-IS_PRODUCTION = os.getenv("ENVIRONMENT") == "production" or os.getenv("RENDER") is not None
-IS_LOCAL = not IS_PRODUCTION
-
 # Configure logging first
 logging.basicConfig(
     level=logging.INFO,
@@ -32,13 +28,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# Log environment detection
-if IS_PRODUCTION:
-    logger.info("🚀 Running in PRODUCTION mode (Render)")
-else:
-    logger.info("🔧 Running in LOCAL DEVELOPMENT mode")
-
-# Import configuration with error handling
+# Import configuration with error handling (SAME AS PRODUCTION)
 CONFIG_AVAILABLE = False
 try:
     from config import get_config
@@ -49,7 +39,7 @@ except ImportError as e:
 except Exception as e:
     logger.error(f"Configuration error: {e}")
 
-# Import core API modules with error handling
+# Import core API modules with error handling (SAME AS PRODUCTION)
 API_MODULES = {}
 
 # Core working modules
@@ -88,13 +78,13 @@ try:
 except ImportError as e:
     logger.warning(f"WebSocket module not available: {e}")
 
-# Authentication with fallback
+# Authentication with fallback (SAME AS PRODUCTION)
 AUTH_AVAILABLE = False
 try:
     from api import auth_db as auth
     API_MODULES['auth'] = auth
     AUTH_AVAILABLE = True
-    logger.info("Database authentication loaded")
+    logger.info("Database authentication loaded (REAL DATA)")
 except ImportError:
     try:
         from api import auth_simple as auth
@@ -111,35 +101,23 @@ error_count = 0
 
 # Create FastAPI application
 app = FastAPI(
-    title="StorySign ASL Platform API",
-    description="Production REST API for StorySign ASL learning platform with Groq Vision + Ollama integration",
-    version="1.0.0",
+    title="StorySign ASL Platform API - Local Development",
+    description="Local development API with REAL data and services (same as production)",
+    version="1.0.0-local",
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json"
 )
 
-# CORS middleware - environment-aware
-if IS_PRODUCTION:
-    # Production CORS - restrictive
-    cors_origins = [
-        "https://storysign-platform.netlify.app",
-        "https://www.storysign-platform.netlify.app"
-    ]
-    logger.info("🔒 Using production CORS settings")
-else:
-    # Local development CORS - permissive
-    cors_origins = [
+# CORS middleware for local development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:8080",
-        "*"  # Allow all for local dev
-    ]
-    logger.info("🔓 Using local development CORS settings")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_origins,
+        "*"  # Allow all origins for local dev
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -181,7 +159,7 @@ async def track_requests(request: Request, call_next):
             }
         )
 
-# Include API routers with error handling
+# Include API routers with error handling (SAME AS PRODUCTION)
 for module_name, module in API_MODULES.items():
     try:
         if hasattr(module, 'router'):
@@ -193,16 +171,14 @@ for module_name, module in API_MODULES.items():
         logger.error(f"Failed to include {module_name} router: {e}")
 
 # Root endpoints
+# Root endpoints (SAME AS PRODUCTION)
 @app.get("/")
 async def root():
     """Root endpoint with API information"""
-    environment_name = "Production (Render)" if IS_PRODUCTION else "Local Development"
-    
     return {
-        "message": f"StorySign ASL Platform API - {environment_name}",
-        "version": "1.0.0",
+        "message": "StorySign ASL Platform API - Local Development (REAL DATA)",
+        "version": "1.0.0-local",
         "status": "healthy",
-        "environment": environment_name,
         "timestamp": datetime.utcnow().isoformat(),
         "uptime_seconds": time.time() - startup_time,
         "features": [
@@ -210,8 +186,7 @@ async def root():
             "Ollama Story Generation", 
             "Real-time WebSocket",
             "JWT Authentication" if AUTH_AVAILABLE else "No Authentication",
-            "TiDB Cloud Database" if CONFIG_AVAILABLE else "No Database",
-            "Real Data & Services" if AUTH_AVAILABLE else "Limited Services"
+            "TiDB Cloud Database" if CONFIG_AVAILABLE else "No Database"
         ],
         "loaded_modules": list(API_MODULES.keys()),
         "documentation": {
@@ -229,7 +204,7 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Comprehensive health check endpoint for production deployment"""
+    """Comprehensive health check endpoint for local development (SAME AS PRODUCTION)"""
     health_status = "healthy"
     services = {}
     
@@ -317,16 +292,16 @@ async def health_check():
         "status": health_status,
         "timestamp": datetime.utcnow().isoformat(),
         "uptime_seconds": time.time() - startup_time,
-        "version": "1.0.0",
-        "environment": "production" if IS_PRODUCTION else "local_development",
+        "version": "1.0.0-local",
+        "environment": "local_development",
         "request_count": request_count,
         "error_count": error_count,
         "error_rate": round((error_count / max(1, request_count)) * 100, 2),
         "services": services,
         "deployment": {
-            "platform": "render" if os.getenv("RENDER") else "local",
-            "port": os.getenv("PORT", "8000"),
-            "workers": os.getenv("MAX_WORKERS", "4")
+            "platform": "local",
+            "port": "8000",
+            "workers": "1"
         }
     }
 
@@ -341,12 +316,7 @@ async def get_metrics():
             "errors": error_count,
             "error_rate_percent": (error_count / max(1, request_count)) * 100
         },
-        "loaded_modules": list(API_MODULES.keys()),
-        "system": {
-            "memory_usage_mb": 0,  # TODO: Implement actual system metrics
-            "cpu_usage_percent": 0,
-            "active_connections": 0
-        }
+        "loaded_modules": list(API_MODULES.keys())
     }
 
 # Exception handlers
@@ -379,17 +349,14 @@ async def general_exception_handler(request: Request, exc: Exception):
         }
     )
 
-# Startup and shutdown events
+# Startup and shutdown events (SAME AS PRODUCTION)
 @app.on_event("startup")
 async def startup_event():
     """Application startup"""
-    env_name = "Production (Render)" if IS_PRODUCTION else "Local Development"
-    logger.info(f"StorySign API starting up in {env_name} mode...")
-    logger.info(f"Environment: {env_name}")
-    logger.info(f"Port: {os.getenv('PORT', '8000')}")
+    logger.info("StorySign Local Development API starting up...")
+    logger.info(f"Environment: local_development")
+    logger.info(f"Port: 8000")
     logger.info(f"Loaded modules: {list(API_MODULES.keys())}")
-    logger.info(f"Authentication: {'Available' if AUTH_AVAILABLE else 'Not Available'}")
-    logger.info(f"Configuration: {'Available' if CONFIG_AVAILABLE else 'Not Available'}")
     
     # Initialize services
     try:
@@ -415,42 +382,34 @@ async def startup_event():
     except Exception as e:
         logger.warning(f"Service initialization warning: {e}")
     
-    logger.info(f"StorySign API started successfully in {env_name} mode")
+    logger.info("StorySign Local Development API started successfully")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Application shutdown"""
-    env_name = "Production" if IS_PRODUCTION else "Local Development"
-    logger.info(f"StorySign API ({env_name}) shutting down...")
-    logger.info(f"StorySign API ({env_name}) shut down complete")
+    logger.info("StorySign Local Development API shutting down...")
+    logger.info("StorySign Local Development API shut down complete")
 
 # Development server
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description="Run StorySign Unified API server")
-    
-    # Environment-aware defaults
-    default_host = "0.0.0.0" if IS_PRODUCTION else "127.0.0.1"
-    default_reload = False if IS_PRODUCTION else True
-    
-    parser.add_argument("--host", default=default_host, help="Host to bind to")
-    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "8000")), help="Port to bind to")
-    parser.add_argument("--reload", action="store_true", default=default_reload, help="Enable auto-reload")
+    parser = argparse.ArgumentParser(description="Run StorySign Local Development API server")
+    parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
+    parser.add_argument("--port", type=int, default=8000, help="Port to bind to")
+    parser.add_argument("--reload", action="store_true", help="Enable auto-reload")
     parser.add_argument("--log-level", default="info", help="Log level")
     
     args = parser.parse_args()
     
-    env_name = "Production" if IS_PRODUCTION else "Local Development"
-    logger.info(f"🚀 Starting StorySign API server ({env_name}) on {args.host}:{args.port}")
-    
-    if IS_LOCAL:
-        logger.info(f"📍 Local URL: http://{args.host}:{args.port}")
-        logger.info(f"📚 API Docs: http://{args.host}:{args.port}/docs")
-        logger.info(f"🔄 Auto-reload: {'Enabled' if args.reload else 'Disabled'}")
+    logger.info(f"🚀 Starting StorySign Local Development API server (REAL DATA)")
+    logger.info(f"📍 URL: http://{args.host}:{args.port}")
+    logger.info(f"📚 Docs: http://{args.host}:{args.port}/docs")
+    logger.info(f"🔧 Loaded modules: {list(API_MODULES.keys())}")
+    logger.info(f"🔐 Authentication: {'REAL DATABASE' if AUTH_AVAILABLE else 'NOT AVAILABLE'}")
     
     uvicorn.run(
-        "main_api_production:app",
+        "main_local:app",
         host=args.host,
         port=args.port,
         reload=args.reload,

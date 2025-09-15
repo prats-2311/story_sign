@@ -11,6 +11,11 @@ const StorySetup = ({
   isGeneratingStory = false,
   generationError = "",
   onDismissError,
+  // New props from parent for webcam management
+  webcamRef = null,
+  isWebcamActive = false,
+  captureFrame = null,
+  webcamError = null,
 }) => {
   const [generationMode, setGenerationMode] = useState("scan");
   const [customPrompt, setCustomPrompt] = useState("");
@@ -28,67 +33,24 @@ const StorySetup = ({
     "Sun",
   ];
 
-  // Initialize webcam for object scanning
-  React.useEffect(() => {
-    const initializeWebcam = async () => {
-      if (generationMode !== "scan") return;
+  // Webcam is now managed by parent - no local initialization needed
 
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480 },
-        });
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (error) {
-        console.error("Error accessing webcam:", error);
-      }
-    };
-
-    const cleanupWebcam = () => {
-      if (videoRef.current?.srcObject) {
-        const tracks = videoRef.current.srcObject.getTracks();
-        tracks.forEach(track => track.stop());
-        videoRef.current.srcObject = null;
-      }
-    };
-
-    if (generationMode === "scan") {
-      initializeWebcam();
-    } else {
-      cleanupWebcam();
-    }
-
-    return cleanupWebcam;
-  }, [generationMode]);
-
-  // Handle object scanning
+  // Handle object scanning using parent's captureFrame function
   const handleScanObject = useCallback(async () => {
     try {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
-
-      if (!video || !canvas) {
-        console.error("Video or canvas element not available");
-        return;
-      }
-
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      const frameData = canvas.toDataURL("image/jpeg", 0.9);
-
-      if (onStoryGenerate) {
-        await onStoryGenerate({ frame_data: frameData });
+      if (captureFrame) {
+        // Use parent's captureFrame function
+        const frameData = await captureFrame();
+        if (frameData && onStoryGenerate) {
+          await onStoryGenerate({ frame_data: frameData });
+        }
+      } else {
+        console.error("captureFrame function not available from parent");
       }
     } catch (error) {
       console.error("Error capturing frame for story generation:", error);
     }
-  }, [onStoryGenerate]);
+  }, [captureFrame, onStoryGenerate]);
 
   // Handle simple word generation
   const handleSimpleWordGenerate = word => {
@@ -193,14 +155,27 @@ const StorySetup = ({
             </p>
 
             <div className="video-preview">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="preview-video"
-                aria-label="Camera preview for object scanning"
-              />
+              {isWebcamActive ? (
+                <video
+                  ref={webcamRef || videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="preview-video"
+                  aria-label="Camera preview for object scanning"
+                />
+              ) : (
+                <div className="webcam-inactive" role="status">
+                  <div className="inactive-message">
+                    <span className="camera-icon">📷</span>
+                    <p>Camera is inactive</p>
+                    {webcamError && (
+                      <p className="error-message">{webcamError}</p>
+                    )}
+                    <small>Camera access is required for object scanning</small>
+                  </div>
+                </div>
+              )}
               <canvas
                 ref={canvasRef}
                 style={{ display: "none" }}
