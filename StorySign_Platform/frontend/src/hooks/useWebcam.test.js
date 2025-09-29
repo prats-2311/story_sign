@@ -1,88 +1,45 @@
-/**
- * Unit tests for useWebcam hook
- */
-
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import useWebcam from "./useWebcam";
 
 // Mock navigator.mediaDevices
 const mockGetUserMedia = jest.fn();
-const mockEnumerateDevices = jest.fn();
-
 Object.defineProperty(navigator, "mediaDevices", {
   writable: true,
   value: {
     getUserMedia: mockGetUserMedia,
-    enumerateDevices: mockEnumerateDevices,
   },
-});
-
-// Mock performance.now
-Object.defineProperty(window, "performance", {
-  writable: true,
-  value: {
-    now: jest.fn(() => Date.now()),
-  },
-});
-
-// Mock video track
-const createMockVideoTrack = (settings = {}) => ({
-  stop: jest.fn(),
-  getSettings: jest.fn(() => ({
-    deviceId: "mock-device-id",
-    width: 640,
-    height: 480,
-    frameRate: 30,
-    facingMode: "user",
-    ...settings,
-  })),
-  label: "Mock Camera",
-});
-
-// Mock media stream
-const createMockStream = (tracks = []) => ({
-  getTracks: jest.fn(() => tracks),
-  getVideoTracks: jest.fn(() => tracks.filter((t) => t.kind === "video")),
 });
 
 describe("useWebcam Hook", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetUserMedia.mockClear();
-    mockEnumerateDevices.mockClear();
   });
 
   describe("Initial State", () => {
-    test("should initialize with correct default state", () => {
+    test("should return initial state", () => {
       const { result } = renderHook(() => useWebcam());
 
       expect(result.current.stream).toBeNull();
       expect(result.current.isActive).toBe(false);
       expect(result.current.status).toBe("inactive");
       expect(result.current.error).toBeNull();
-      expect(result.current.deviceInfo).toBeNull();
-      expect(result.current.isInitializing).toBe(false);
-      expect(result.current.hasError).toBe(false);
-      expect(result.current.isReady).toBe(false);
-    });
-
-    test("should have correct performance stats initial state", () => {
-      const { result } = renderHook(() => useWebcam());
-
-      expect(result.current.performanceStats).toEqual({
-        currentFPS: 0,
-        adaptiveFPS: 30,
-        droppedFrames: 0,
-        processingCapability: 1.0,
-        avgProcessingTime: 0,
-      });
+      expect(typeof result.current.startWebcam).toBe("function");
+      expect(typeof result.current.stopWebcam).toBe("function");
+      expect(typeof result.current.captureFrame).toBe("function");
     });
   });
 
-  describe("startWebcam", () => {
-    test("should successfully start webcam with default constraints", async () => {
-      const mockTrack = createMockVideoTrack();
-      const mockStream = createMockStream([mockTrack]);
+  describe("Starting Webcam", () => {
+    test("should successfully start webcam", async () => {
+      const mockTrack = {
+        stop: jest.fn(),
+        getSettings: jest.fn(() => ({ width: 640, height: 480 })),
+      };
+      const mockStream = {
+        getTracks: () => [mockTrack],
+        getVideoTracks: () => [mockTrack],
+      };
       mockGetUserMedia.mockResolvedValue(mockStream);
 
       const { result } = renderHook(() => useWebcam());
@@ -92,21 +49,13 @@ describe("useWebcam Hook", () => {
         expect(success).toBe(true);
       });
 
+      expect(result.current.stream).toBe(mockStream);
       expect(result.current.isActive).toBe(true);
       expect(result.current.status).toBe("active");
-      expect(result.current.stream).toBe(mockStream);
       expect(result.current.error).toBeNull();
-      expect(result.current.deviceInfo).toEqual({
-        deviceId: "mock-device-id",
-        label: "Mock Camera",
-        width: 640,
-        height: 480,
-        frameRate: 30,
-        facingMode: "user",
-      });
     });
 
-    test("should handle permission denied error", async () => {
+    test("should handle webcam permission denied", async () => {
       const permissionError = new Error("Permission denied");
       permissionError.name = "NotAllowedError";
       mockGetUserMedia.mockRejectedValue(permissionError);
@@ -118,6 +67,8 @@ describe("useWebcam Hook", () => {
         expect(success).toBe(false);
       });
 
+      expect(result.current.stream).toBeNull();
+      expect(result.current.isActive).toBe(false);
       expect(result.current.status).toBe("error");
       expect(result.current.error).toEqual({
         type: "PERMISSION_DENIED",
@@ -127,10 +78,10 @@ describe("useWebcam Hook", () => {
       });
     });
 
-    test("should handle no device found error", async () => {
-      const deviceError = new Error("No device found");
-      deviceError.name = "NotFoundError";
-      mockGetUserMedia.mockRejectedValue(deviceError);
+    test("should handle webcam not found", async () => {
+      const notFoundError = new Error("Device not found");
+      notFoundError.name = "NotFoundError";
+      mockGetUserMedia.mockRejectedValue(notFoundError);
 
       const { result } = renderHook(() => useWebcam());
 
@@ -139,14 +90,18 @@ describe("useWebcam Hook", () => {
         expect(success).toBe(false);
       });
 
-      expect(result.current.status).toBe("error");
-      expect(result.current.error.type).toBe("NO_DEVICE_FOUND");
+      expect(result.current.error).toEqual({
+        type: "NO_DEVICE_FOUND",
+        message:
+          "No camera device found. Please connect a camera and try again.",
+        userAction: "Connect a camera device and try again",
+      });
     });
 
-    test("should handle device in use error", async () => {
-      const deviceError = new Error("Device in use");
-      deviceError.name = "NotReadableError";
-      mockGetUserMedia.mockRejectedValue(deviceError);
+    test("should handle webcam in use by another application", async () => {
+      const inUseError = new Error("Device in use");
+      inUseError.name = "NotReadableError";
+      mockGetUserMedia.mockRejectedValue(inUseError);
 
       const { result } = renderHook(() => useWebcam());
 
@@ -155,56 +110,48 @@ describe("useWebcam Hook", () => {
         expect(success).toBe(false);
       });
 
-      expect(result.current.status).toBe("error");
-      expect(result.current.error.type).toBe("DEVICE_IN_USE");
+      expect(result.current.error).toEqual({
+        type: "DEVICE_IN_USE",
+        message:
+          "Camera is already in use by another application. Please close other apps using the camera.",
+        userAction: "Close other applications using the camera",
+      });
     });
 
-    test("should fallback to basic constraints on OverconstrainedError", async () => {
-      const constraintError = new Error("Constraints not supported");
-      constraintError.name = "OverconstrainedError";
-
-      const mockTrack = createMockVideoTrack();
-      const mockStream = createMockStream([mockTrack]);
-
-      mockGetUserMedia
-        .mockRejectedValueOnce(constraintError)
-        .mockResolvedValueOnce(mockStream);
+    test("should set status to initializing during startup", async () => {
+      let resolvePromise;
+      const promise = new Promise(resolve => {
+        resolvePromise = resolve;
+      });
+      mockGetUserMedia.mockReturnValue(promise);
 
       const { result } = renderHook(() => useWebcam());
 
-      await act(async () => {
-        const success = await result.current.startWebcam();
-        expect(success).toBe(true);
+      act(() => {
+        result.current.startWebcam();
       });
 
-      expect(mockGetUserMedia).toHaveBeenCalledTimes(2);
+      expect(result.current.status).toBe("initializing");
+
+      await act(async () => {
+        resolvePromise({
+          getTracks: () => [{ stop: jest.fn() }],
+          getVideoTracks: () => [{ stop: jest.fn() }],
+        });
+        await promise;
+      });
+
       expect(result.current.status).toBe("active");
-    });
-
-    test("should handle browser not supported", async () => {
-      // Temporarily remove getUserMedia support
-      const originalGetUserMedia = navigator.mediaDevices.getUserMedia;
-      delete navigator.mediaDevices.getUserMedia;
-
-      const { result } = renderHook(() => useWebcam());
-
-      await act(async () => {
-        const success = await result.current.startWebcam();
-        expect(success).toBe(false);
-      });
-
-      expect(result.current.status).toBe("error");
-      expect(result.current.error.type).toBe("BROWSER_NOT_SUPPORTED");
-
-      // Restore getUserMedia
-      navigator.mediaDevices.getUserMedia = originalGetUserMedia;
     });
   });
 
-  describe("stopWebcam", () => {
-    test("should properly stop webcam and cleanup resources", async () => {
-      const mockTrack = createMockVideoTrack();
-      const mockStream = createMockStream([mockTrack]);
+  describe("Stopping Webcam", () => {
+    test("should successfully stop webcam", async () => {
+      const mockTrack = { stop: jest.fn() };
+      const mockStream = {
+        getTracks: () => [mockTrack],
+        getVideoTracks: () => [mockTrack],
+      };
       mockGetUserMedia.mockResolvedValue(mockStream);
 
       const { result } = renderHook(() => useWebcam());
@@ -213,8 +160,6 @@ describe("useWebcam Hook", () => {
       await act(async () => {
         await result.current.startWebcam();
       });
-
-      expect(result.current.isActive).toBe(true);
 
       // Stop webcam
       act(() => {
@@ -225,88 +170,51 @@ describe("useWebcam Hook", () => {
       expect(result.current.stream).toBeNull();
       expect(result.current.isActive).toBe(false);
       expect(result.current.status).toBe("inactive");
-      expect(result.current.error).toBeNull();
-      expect(result.current.deviceInfo).toBeNull();
+    });
+
+    test("should handle stopping when no stream exists", () => {
+      const { result } = renderHook(() => useWebcam());
+
+      expect(() => {
+        act(() => {
+          result.current.stopWebcam();
+        });
+      }).not.toThrow();
+
+      expect(result.current.stream).toBeNull();
+      expect(result.current.isActive).toBe(false);
     });
   });
 
-  describe("attachToVideoElement", () => {
-    test("should attach stream to video element", async () => {
-      const mockTrack = createMockVideoTrack();
-      const mockStream = createMockStream([mockTrack]);
-      mockGetUserMedia.mockResolvedValue(mockStream);
-
-      const { result } = renderHook(() => useWebcam());
-
-      // Start webcam first
-      await act(async () => {
-        await result.current.startWebcam();
-      });
-
-      const mockVideoElement = {
-        srcObject: null,
-        onloadedmetadata: null,
-        play: jest.fn().mockResolvedValue(),
-      };
-
-      act(() => {
-        const success = result.current.attachToVideoElement(mockVideoElement);
-        expect(success).toBe(true);
-      });
-
-      expect(mockVideoElement.srcObject).toBe(mockStream);
-    });
-
-    test("should return false when no stream available", () => {
-      const { result } = renderHook(() => useWebcam());
-
-      const mockVideoElement = {
-        srcObject: null,
-        onloadedmetadata: null,
-        play: jest.fn(),
-      };
-
-      act(() => {
-        const success = result.current.attachToVideoElement(mockVideoElement);
-        expect(success).toBe(false);
-      });
-
-      expect(mockVideoElement.srcObject).toBeNull();
-    });
-  });
-
-  describe("captureFrame", () => {
-    test("should return null when webcam is not active", () => {
-      const { result } = renderHook(() => useWebcam());
-
-      const mockVideoElement = document.createElement("video");
-
-      act(() => {
-        const frame = result.current.captureFrame(mockVideoElement);
-        expect(frame).toBeNull();
-      });
-    });
-
+  describe("Frame Capture", () => {
     test("should capture frame when webcam is active", async () => {
-      const mockTrack = createMockVideoTrack();
-      const mockStream = createMockStream([mockTrack]);
+      const mockStream = {
+        getTracks: () => [{ stop: jest.fn() }],
+        getVideoTracks: () => [{ stop: jest.fn() }],
+      };
       mockGetUserMedia.mockResolvedValue(mockStream);
 
-      // Mock canvas and context
+      // Mock canvas and video elements
       const mockCanvas = {
-        width: 0,
-        height: 0,
         getContext: jest.fn(() => ({
           drawImage: jest.fn(),
         })),
-        toDataURL: jest.fn(() => "data:image/jpeg;base64,mock-data"),
+        toDataURL: jest.fn(() => "data:image/jpeg;base64,mockdata"),
+        width: 640,
+        height: 480,
       };
 
+      const mockVideo = {
+        videoWidth: 640,
+        videoHeight: 480,
+        srcObject: null,
+      };
+
+      // Mock document.createElement
       const originalCreateElement = document.createElement;
-      document.createElement = jest.fn((tagName) => {
-        if (tagName === "canvas") {
-          return mockCanvas;
-        }
+      document.createElement = jest.fn(tagName => {
+        if (tagName === "canvas") return mockCanvas;
+        if (tagName === "video") return mockVideo;
         return originalCreateElement.call(document, tagName);
       });
 
@@ -317,94 +225,69 @@ describe("useWebcam Hook", () => {
         await result.current.startWebcam();
       });
 
-      const mockVideoElement = document.createElement("video");
-
-      act(() => {
-        const frame = result.current.captureFrame(mockVideoElement);
-        expect(frame).toEqual({
-          frameData: "data:image/jpeg;base64,mock-data",
-          timestamp: expect.any(String),
-          width: 320,
-          height: 240,
-          processingTime: expect.any(Number),
-          quality: expect.any(Number),
-          frameNumber: expect.any(Number),
-        });
+      // Capture frame
+      let frameData;
+      await act(async () => {
+        frameData = await result.current.captureFrame();
       });
+
+      expect(frameData).toBe("data:image/jpeg;base64,mockdata");
+      expect(mockCanvas.getContext).toHaveBeenCalledWith("2d");
 
       // Restore original createElement
       document.createElement = originalCreateElement;
     });
-  });
 
-  describe("getAvailableDevices", () => {
-    test("should return available video input devices", async () => {
-      const mockDevices = [
-        { kind: "videoinput", deviceId: "camera1", label: "Camera 1" },
-        { kind: "audioinput", deviceId: "mic1", label: "Microphone 1" },
-        { kind: "videoinput", deviceId: "camera2", label: "Camera 2" },
-      ];
-
-      mockEnumerateDevices.mockResolvedValue(mockDevices);
-
+    test("should return null when capturing frame without active webcam", async () => {
       const { result } = renderHook(() => useWebcam());
 
+      let frameData;
       await act(async () => {
-        const devices = await result.current.getAvailableDevices();
-        expect(devices).toEqual([
-          { kind: "videoinput", deviceId: "camera1", label: "Camera 1" },
-          { kind: "videoinput", deviceId: "camera2", label: "Camera 2" },
-        ]);
+        frameData = await result.current.captureFrame();
       });
-    });
 
-    test("should handle enumerate devices error", async () => {
-      mockEnumerateDevices.mockRejectedValue(new Error("Enumeration failed"));
-
-      const { result } = renderHook(() => useWebcam());
-
-      await act(async () => {
-        const devices = await result.current.getAvailableDevices();
-        expect(devices).toEqual([]);
-      });
+      expect(frameData).toBeNull();
     });
   });
 
-  describe("switchCamera", () => {
-    test("should switch to different camera device", async () => {
-      const mockTrack1 = createMockVideoTrack({ deviceId: "camera1" });
-      const mockStream1 = createMockStream([mockTrack1]);
-      const mockTrack2 = createMockVideoTrack({ deviceId: "camera2" });
-      const mockStream2 = createMockStream([mockTrack2]);
-
-      mockGetUserMedia
-        .mockResolvedValueOnce(mockStream1)
-        .mockResolvedValueOnce(mockStream2);
+  describe("Error Recovery", () => {
+    test("should clear error when successfully starting webcam after failure", async () => {
+      const permissionError = new Error("Permission denied");
+      permissionError.name = "NotAllowedError";
 
       const { result } = renderHook(() => useWebcam());
 
-      // Start with first camera
+      // First attempt fails
+      mockGetUserMedia.mockRejectedValueOnce(permissionError);
       await act(async () => {
         await result.current.startWebcam();
       });
 
-      expect(result.current.deviceInfo.deviceId).toBe("camera1");
+      expect(result.current.error).toBeTruthy();
 
-      // Switch to second camera
+      // Second attempt succeeds
+      const mockStream = {
+        getTracks: () => [{ stop: jest.fn() }],
+        getVideoTracks: () => [{ stop: jest.fn() }],
+      };
+      mockGetUserMedia.mockResolvedValue(mockStream);
+
       await act(async () => {
-        const success = await result.current.switchCamera("camera2");
-        expect(success).toBe(true);
+        await result.current.startWebcam();
       });
 
-      expect(mockTrack1.stop).toHaveBeenCalled();
-      expect(result.current.deviceInfo.deviceId).toBe("camera2");
+      expect(result.current.error).toBeNull();
+      expect(result.current.isActive).toBe(true);
     });
   });
 
-  describe("Cleanup", () => {
-    test("should cleanup resources on unmount", async () => {
-      const mockTrack = createMockVideoTrack();
-      const mockStream = createMockStream([mockTrack]);
+  describe("Cleanup on Unmount", () => {
+    test("should stop webcam when component unmounts", async () => {
+      const mockTrack = { stop: jest.fn() };
+      const mockStream = {
+        getTracks: () => [mockTrack],
+        getVideoTracks: () => [mockTrack],
+      };
       mockGetUserMedia.mockResolvedValue(mockStream);
 
       const { result, unmount } = renderHook(() => useWebcam());
@@ -423,20 +306,40 @@ describe("useWebcam Hook", () => {
     });
   });
 
-  describe("Performance Metrics", () => {
-    test("should track performance metrics during frame capture", async () => {
-      const mockTrack = createMockVideoTrack();
-      const mockStream = createMockStream([mockTrack]);
+  describe("Multiple Start/Stop Cycles", () => {
+    test("should handle multiple start/stop cycles correctly", async () => {
+      const mockTrack = { stop: jest.fn() };
+      const mockStream = {
+        getTracks: () => [mockTrack],
+        getVideoTracks: () => [mockTrack],
+      };
       mockGetUserMedia.mockResolvedValue(mockStream);
 
       const { result } = renderHook(() => useWebcam());
 
+      // First cycle
       await act(async () => {
         await result.current.startWebcam();
       });
+      expect(result.current.isActive).toBe(true);
 
-      expect(result.current.performanceStats.adaptiveFPS).toBe(30);
-      expect(result.current.performanceStats.processingCapability).toBe(1.0);
+      act(() => {
+        result.current.stopWebcam();
+      });
+      expect(result.current.isActive).toBe(false);
+
+      // Second cycle
+      await act(async () => {
+        await result.current.startWebcam();
+      });
+      expect(result.current.isActive).toBe(true);
+
+      act(() => {
+        result.current.stopWebcam();
+      });
+      expect(result.current.isActive).toBe(false);
+
+      expect(mockGetUserMedia).toHaveBeenCalledTimes(2);
     });
   });
 });

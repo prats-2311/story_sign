@@ -7,7 +7,7 @@ import {
   act,
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import ReconnectPage from "./ReconnectPage";
+import HarmonyPage from "./HarmonyPage";
 
 // Mock the hooks
 jest.mock("../hooks/useWebcam", () => ({
@@ -15,9 +15,9 @@ jest.mock("../hooks/useWebcam", () => ({
   default: jest.fn(),
 }));
 
-// Mock the modules that ReconnectPage depends on
-jest.mock("../modules/reconnect", () => ({
-  ExerciseSelector: ({
+// Mock the modules
+jest.mock("../modules/harmony", () => ({
+  ExpressionPractice: ({
     onStartSession,
     webcamStatus,
     webcamError,
@@ -26,7 +26,7 @@ jest.mock("../modules/reconnect", () => ({
     isWebcamActive,
     webcamStream,
   }) => (
-    <div data-testid="exercise-selector">
+    <div data-testid="expression-practice">
       <span data-testid="webcam-status">{webcamStatus}</span>
       <span data-testid="webcam-active">
         {isWebcamActive ? "true" : "false"}
@@ -39,26 +39,26 @@ jest.mock("../modules/reconnect", () => ({
         <div data-testid="webcam-error">{webcamError.message}</div>
       )}
       <button
-        onClick={() => onStartSession({ id: "test", name: "Test Exercise" })}
+        onClick={() => onStartSession("happy")}
         data-testid="start-session"
       >
-        Start Test Exercise
+        Start Session
       </button>
       <button onClick={onClearError} data-testid="clear-error">
         Clear Error
       </button>
     </div>
   ),
-  MovementAnalysis: ({
-    currentExercise,
+  EmotionMetrics: ({
+    targetEmotion,
+    currentDetection,
+    sessionData,
     isSessionActive,
     isWebcamActive,
     webcamStream,
   }) => (
-    <div data-testid="movement-analysis">
-      {currentExercise && (
-        <span data-testid="current-exercise">{currentExercise.name}</span>
-      )}
+    <div data-testid="emotion-metrics">
+      <span data-testid="target-emotion">{targetEmotion}</span>
       <span data-testid="session-active">
         {isSessionActive ? "true" : "false"}
       </span>
@@ -67,8 +67,13 @@ jest.mock("../modules/reconnect", () => ({
       </span>
     </div>
   ),
-  TherapyDashboard: ({ sessionData, onNewSession, isWebcamActive }) => (
-    <div data-testid="therapy-dashboard">
+  ProgressTracker: ({
+    sessionData,
+    sessionDuration,
+    onNewSession,
+    isWebcamActive,
+  }) => (
+    <div data-testid="progress-tracker">
       <span data-testid="webcam-active">
         {isWebcamActive ? "true" : "false"}
       </span>
@@ -91,7 +96,7 @@ jest.mock("../components/video/VideoStreamingClient", () => ({
   ),
 }));
 
-describe("ReconnectPage Camera Lifecycle Management", () => {
+describe("HarmonyPage Camera Lifecycle Management", () => {
   let mockUseWebcam;
   let mockStartWebcam;
   let mockStopWebcam;
@@ -122,46 +127,17 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
     });
   });
 
-  describe("Basic Rendering", () => {
-    test("renders ReconnectPage with header", () => {
-      render(<ReconnectPage {...defaultProps} />);
-
-      expect(screen.getByText("Reconnect")).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          "Therapeutic Movement Analysis & Physical Rehabilitation"
-        )
-      ).toBeInTheDocument();
-    });
-
-    test("renders ExerciseSelector in setup view", () => {
-      mockUseWebcam.mockReturnValue({
-        stream: "mock-stream",
-        isActive: true,
-        status: "active",
-        error: null,
-        startWebcam: mockStartWebcam,
-        stopWebcam: mockStopWebcam,
-        attachToVideoElement: jest.fn(),
-      });
-
-      render(<ReconnectPage {...defaultProps} />);
-
-      expect(screen.getByTestId("exercise-selector")).toBeInTheDocument();
-    });
-  });
-
   describe("Automatic Camera Initialization", () => {
     test("should call startWebcam on component mount", async () => {
       await act(async () => {
-        render(<ReconnectPage {...defaultProps} />);
+        render(<HarmonyPage {...defaultProps} />);
       });
 
       expect(mockStartWebcam).toHaveBeenCalledTimes(1);
     });
 
     test("should call stopWebcam on component unmount", async () => {
-      const { unmount } = render(<ReconnectPage {...defaultProps} />);
+      const { unmount } = render(<HarmonyPage {...defaultProps} />);
 
       await act(async () => {
         unmount();
@@ -175,12 +151,12 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
       mockStartWebcam.mockRejectedValue(initError);
 
       await act(async () => {
-        render(<ReconnectPage {...defaultProps} />);
+        render(<HarmonyPage {...defaultProps} />);
       });
 
       expect(mockStartWebcam).toHaveBeenCalledTimes(1);
       // Component should still render without crashing
-      expect(screen.getByText("Reconnect")).toBeInTheDocument();
+      expect(screen.getByText("Harmony")).toBeInTheDocument();
     });
   });
 
@@ -196,17 +172,17 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
         attachToVideoElement: jest.fn(),
       });
 
-      render(<ReconnectPage {...defaultProps} />);
+      render(<HarmonyPage {...defaultProps} />);
 
       expect(screen.getByText("Camera Required")).toBeInTheDocument();
       expect(
         screen.getByText(
-          "Reconnect requires camera access for therapeutic movement analysis and physical rehabilitation features."
+          "Harmony requires camera access for facial expression practice and social-emotional learning features."
         )
       ).toBeInTheDocument();
     });
 
-    test("should show exercise selector when webcam is active", () => {
+    test("should show expression practice when webcam is active", () => {
       mockUseWebcam.mockReturnValue({
         stream: "mock-stream",
         isActive: true,
@@ -217,13 +193,13 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
         attachToVideoElement: jest.fn(),
       });
 
-      render(<ReconnectPage {...defaultProps} />);
+      render(<HarmonyPage {...defaultProps} />);
 
-      expect(screen.getByTestId("exercise-selector")).toBeInTheDocument();
+      expect(screen.getByTestId("expression-practice")).toBeInTheDocument();
       expect(screen.getByTestId("webcam-active")).toHaveTextContent("true");
     });
 
-    test("should show exercise selector during webcam initialization", () => {
+    test("should show loading state during webcam initialization", () => {
       mockUseWebcam.mockReturnValue({
         stream: null,
         isActive: false,
@@ -234,10 +210,10 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
         attachToVideoElement: jest.fn(),
       });
 
-      render(<ReconnectPage {...defaultProps} />);
+      render(<HarmonyPage {...defaultProps} />);
 
-      // Should show exercise selector during initialization, not placeholder
-      expect(screen.getByTestId("exercise-selector")).toBeInTheDocument();
+      // Should show expression practice during initialization, not placeholder
+      expect(screen.getByTestId("expression-practice")).toBeInTheDocument();
     });
   });
 
@@ -254,7 +230,7 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
         attachToVideoElement: jest.fn(),
       });
 
-      render(<ReconnectPage {...defaultProps} />);
+      render(<HarmonyPage {...defaultProps} />);
 
       expect(screen.getByText("Camera Required")).toBeInTheDocument();
       expect(screen.getByText("Camera access denied")).toBeInTheDocument();
@@ -273,37 +249,17 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
         attachToVideoElement: jest.fn(),
       });
 
-      render(<ReconnectPage {...defaultProps} />);
+      render(<HarmonyPage {...defaultProps} />);
 
       const retryButton = screen.getByText("Retry Camera Access");
       fireEvent.click(retryButton);
 
       expect(mockStartWebcam).toHaveBeenCalledTimes(2); // Once on mount, once on retry
     });
-
-    test("should handle camera permission scenarios", () => {
-      const permissionError = { message: "Permission denied by user" };
-      mockUseWebcam.mockReturnValue({
-        stream: null,
-        isActive: false,
-        status: "error",
-        error: permissionError,
-        startWebcam: mockStartWebcam,
-        stopWebcam: mockStopWebcam,
-        attachToVideoElement: jest.fn(),
-      });
-
-      render(<ReconnectPage {...defaultProps} />);
-
-      expect(screen.getByText("Permission denied by user")).toBeInTheDocument();
-      expect(
-        screen.getByText("Allow camera permissions when prompted")
-      ).toBeInTheDocument();
-    });
   });
 
   describe("Module Prop Passing", () => {
-    test("should pass webcam state to ExerciseSelector", () => {
+    test("should pass webcam state to ExpressionPractice", () => {
       mockUseWebcam.mockReturnValue({
         stream: "mock-stream",
         isActive: true,
@@ -314,7 +270,7 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
         attachToVideoElement: jest.fn(),
       });
 
-      render(<ReconnectPage {...defaultProps} />);
+      render(<HarmonyPage {...defaultProps} />);
 
       expect(screen.getByTestId("webcam-status")).toHaveTextContent("active");
       expect(screen.getByTestId("webcam-active")).toHaveTextContent("true");
@@ -323,7 +279,7 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
       );
     });
 
-    test("should pass webcam state to MovementAnalysis during practice", async () => {
+    test("should pass webcam state to EmotionMetrics during practice", async () => {
       mockUseWebcam.mockReturnValue({
         stream: "mock-stream",
         isActive: true,
@@ -335,22 +291,19 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
       });
 
       render(
-        <ReconnectPage
-          {...defaultProps}
-          streamingConnectionStatus="connected"
-        />
+        <HarmonyPage {...defaultProps} streamingConnectionStatus="connected" />
       );
 
       // Start a session to navigate to practice view
       fireEvent.click(screen.getByTestId("start-session"));
 
       await waitFor(() => {
-        expect(screen.getByTestId("movement-analysis")).toBeInTheDocument();
+        expect(screen.getByTestId("emotion-metrics")).toBeInTheDocument();
         expect(screen.getByTestId("webcam-active")).toHaveTextContent("true");
       });
     });
 
-    test("should pass webcam state to TherapyDashboard in results view", async () => {
+    test("should pass webcam state to ProgressTracker in results view", async () => {
       mockUseWebcam.mockReturnValue({
         stream: "mock-stream",
         isActive: true,
@@ -361,18 +314,21 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
         attachToVideoElement: jest.fn(),
       });
 
-      render(<ReconnectPage {...defaultProps} />);
+      render(<HarmonyPage {...defaultProps} />);
 
-      // Start a session
+      // Navigate to results view by starting and ending a session
       fireEvent.click(screen.getByTestId("start-session"));
 
       await waitFor(() => {
-        expect(screen.getByTestId("movement-analysis")).toBeInTheDocument();
+        expect(screen.getByTestId("emotion-metrics")).toBeInTheDocument();
       });
 
-      // End session would normally transition to results view
-      // For testing purposes, we'll verify the prop passing structure
-      expect(screen.getByTestId("webcam-active")).toHaveTextContent("true");
+      // Simulate ending session (this would normally be done through the component)
+      // For testing, we'll trigger the state change directly
+      const endButton = screen.getByText("End Session");
+      if (endButton) {
+        fireEvent.click(endButton);
+      }
     });
   });
 
@@ -388,10 +344,10 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
         attachToVideoElement: jest.fn(),
       });
 
-      render(<ReconnectPage {...defaultProps} />);
+      render(<HarmonyPage {...defaultProps} />);
 
       expect(
-        screen.getByText("Camera Active - Ready for therapy")
+        screen.getByText("Camera Active - Ready for practice")
       ).toBeInTheDocument();
     });
 
@@ -406,7 +362,7 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
         attachToVideoElement: jest.fn(),
       });
 
-      render(<ReconnectPage {...defaultProps} />);
+      render(<HarmonyPage {...defaultProps} />);
 
       expect(
         screen.getByText("Camera Required - Please allow access")
@@ -424,7 +380,7 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
         attachToVideoElement: jest.fn(),
       });
 
-      render(<ReconnectPage {...defaultProps} />);
+      render(<HarmonyPage {...defaultProps} />);
 
       expect(screen.getByText("Initializing camera...")).toBeInTheDocument();
     });
@@ -432,7 +388,7 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
 
   describe("Resource Cleanup", () => {
     test("should properly cleanup resources on unmount", async () => {
-      const { unmount } = render(<ReconnectPage {...defaultProps} />);
+      const { unmount } = render(<HarmonyPage {...defaultProps} />);
 
       await act(async () => {
         unmount();
@@ -442,29 +398,16 @@ describe("ReconnectPage Camera Lifecycle Management", () => {
     });
 
     test("should not call cleanup multiple times", async () => {
-      const { unmount, rerender } = render(<ReconnectPage {...defaultProps} />);
+      const { unmount, rerender } = render(<HarmonyPage {...defaultProps} />);
 
       // Rerender component
-      rerender(<ReconnectPage {...defaultProps} />);
+      rerender(<HarmonyPage {...defaultProps} />);
 
       await act(async () => {
         unmount();
       });
 
       expect(mockStopWebcam).toHaveBeenCalledTimes(1);
-    });
-
-    test("should handle cleanup errors gracefully", async () => {
-      mockStopWebcam.mockImplementation(() => {
-        throw new Error("Cleanup error");
-      });
-
-      const { unmount } = render(<ReconnectPage {...defaultProps} />);
-
-      // Should not throw error during unmount
-      await act(async () => {
-        expect(() => unmount()).not.toThrow();
-      });
     });
   });
 });

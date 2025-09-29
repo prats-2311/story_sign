@@ -3,8 +3,7 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
 }
 
 .harmony-page .page-header {
@@ -95,6 +94,155 @@
   box-shadow: none;
 }
 
+/* Camera Inactive Placeholder */
+.camera-inactive-placeholder {
+  text-align: center;
+  padding: 3rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.camera-inactive-placeholder .placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.camera-inactive-placeholder .camera-icon {
+  font-size: 4rem;
+  opacity: 0.7;
+}
+
+.camera-inactive-placeholder h3 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0;
+  color: #fff;
+}
+
+.camera-inactive-placeholder p {
+  font-size: 1.1rem;
+  opacity: 0.8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.camera-inactive-placeholder .error-details {
+  background: rgba(255, 71, 87, 0.1);
+  border: 1px solid rgba(255, 71, 87, 0.3);
+  border-radius: 8px;
+  padding: 1.5rem;
+  width: 100%;
+}
+
+.camera-inactive-placeholder .error-message {
+  color: #ff6b7a;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.camera-inactive-placeholder .error-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.camera-inactive-placeholder .retry-button,
+.camera-inactive-placeholder .clear-error-button {
+  background: #5a67d8;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.camera-inactive-placeholder .retry-button:hover,
+.camera-inactive-placeholder .clear-error-button:hover {
+  background: #4c51bf;
+  transform: translateY(-1px);
+}
+
+.camera-inactive-placeholder .clear-error-button {
+  background: #718096;
+}
+
+.camera-inactive-placeholder .clear-error-button:hover {
+  background: #4a5568;
+}
+
+.camera-inactive-placeholder .loading-camera {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.camera-inactive-placeholder .loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.camera-inactive-placeholder .help-text {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: left;
+  width: 100%;
+}
+
+.camera-inactive-placeholder .help-text h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: #fff;
+}
+
+.camera-inactive-placeholder .help-text ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.camera-inactive-placeholder .help-text li {
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  font-size: 0.95rem;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.camera-inactive-placeholder .help-text li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #5a67d8;
+  font-weight: bold;
+}
+
 /* Error View */
 .error-view {
   text-align: center;
@@ -143,6 +291,27 @@
     width: 100%;
     max-width: 300px;
   }
+
+  .camera-inactive-placeholder {
+    padding: 2rem;
+  }
+
+  .camera-inactive-placeholder .camera-icon {
+    font-size: 3rem;
+  }
+
+  .camera-inactive-placeholder h3 {
+    font-size: 1.5rem;
+  }
+
+  .camera-inactive-placeholder .error-actions {
+    flex-direction: column;
+  }
+
+  .camera-inactive-placeholder .retry-button,
+  .camera-inactive-placeholder .clear-error-button {
+    width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
@@ -168,6 +337,15 @@
   .end-session-button:hover:not(:disabled) {
     transform: none;
   }
+
+  .camera-inactive-placeholder .retry-button:hover,
+  .camera-inactive-placeholder .clear-error-button:hover {
+    transform: none;
+  }
+
+  .camera-inactive-placeholder .loading-spinner {
+    animation: none;
+  }
 }
 
 /* High contrast mode */
@@ -187,7 +365,24 @@
     border: 2px solid #fff;
   }
 
-  .end-session-button {
+  .camera-inactive-placeholder {
+    background: #333;
+    border: 2px solid #fff;
+  }
+
+  .camera-inactive-placeholder .error-details {
+    background: #222;
+    border: 2px solid #ff6b7a;
+  }
+
+  .camera-inactive-placeholder .help-text {
+    background: #222;
+    border: 1px solid #fff;
+  }
+
+  .end-session-button,
+  .camera-inactive-placeholder .retry-button,
+  .camera-inactive-placeholder .clear-error-button {
     border: 2px solid #fff;
   }
 }

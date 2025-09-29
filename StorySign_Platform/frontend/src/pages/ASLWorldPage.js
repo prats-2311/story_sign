@@ -173,6 +173,9 @@ const ASLWorldPage = ({
   // Internal refs for video streaming client
   const internalVideoStreamingRef = useRef(null);
 
+  // Video element ref for StorySetup component
+  const storySetupVideoRef = useRef(null);
+
   // Webcam lifecycle management
   useEffect(() => {
     // Initialize webcam when component mounts
@@ -192,6 +195,19 @@ const ASLWorldPage = ({
     };
   }, [startWebcam, stopWebcam]);
 
+  // Effect to attach webcam stream to video element for StorySetup
+  useEffect(() => {
+    if (webcamStream && storySetupVideoRef.current) {
+      storySetupVideoRef.current.srcObject = webcamStream;
+      const playPromise = storySetupVideoRef.current.play();
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(error => {
+          console.warn("Video autoplay failed:", error);
+        });
+      }
+    }
+  }, [webcamStream]);
+
   // Helper functions to determine which state to use (props vs internal hooks)
   const getWebcamActive = () =>
     webcamActive !== undefined ? webcamActive : isWebcamActive;
@@ -208,6 +224,94 @@ const ASLWorldPage = ({
       hasStartedPracticeRef.current = false;
     }
   }, [state.storyData]);
+
+  // Practice session management functions
+  const startPracticeSession = useCallback(
+    async story => {
+      console.log("Starting practice session with story:", story.title);
+
+      try {
+        const currentVideoRef = getVideoStreamingRef();
+        const currentStreamingActive = getStreamingActive();
+        const currentConnectionStatus = getConnectionStatus();
+
+        // Wait for WebSocket connection if needed
+        if (currentConnectionStatus !== "connected") {
+          console.log(
+            "Waiting for WebSocket connection before starting practice session..."
+          );
+
+          // Set a timeout to wait for connection
+          const maxWaitTime = 5000; // 5 seconds
+          const startTime = Date.now();
+
+          while (
+            getConnectionStatus() !== "connected" &&
+            Date.now() - startTime < maxWaitTime
+          ) {
+            await new Promise(resolve => setTimeout(resolve, 100)); // Wait 100ms
+          }
+
+          if (getConnectionStatus() !== "connected") {
+            console.error(
+              "WebSocket connection timeout - cannot start practice session"
+            );
+            return;
+          }
+        }
+
+        // Send practice session start message to backend via WebSocket
+        if (currentVideoRef.current && getStreamingActive()) {
+          const sessionData = {
+            story_sentences: story.sentences,
+            session_id: `session_${Date.now()}`,
+            story_title: story.title,
+          };
+
+          const success = currentVideoRef.current.sendPracticeControl(
+            "start_session",
+            sessionData
+          );
+
+          if (success) {
+            console.log("Practice session started successfully");
+          } else {
+            console.error("Failed to start practice session");
+          }
+        } else if (isConnected && sendMessage) {
+          // Use internal WebSocket hook if available
+          const sessionData = {
+            type: "start_session",
+            story_sentences: story.sentences,
+            session_id: `session_${Date.now()}`,
+            story_title: story.title,
+          };
+
+          const success = sendMessage(sessionData);
+          if (success) {
+            console.log(
+              "Practice session started successfully via internal WebSocket"
+            );
+          } else {
+            console.error(
+              "Failed to start practice session via internal WebSocket"
+            );
+          }
+        } else {
+          console.warn("WebSocket not available for practice session start");
+        }
+      } catch (error) {
+        console.error("Error starting practice session:", error);
+      }
+    },
+    [
+      getVideoStreamingRef,
+      getStreamingActive,
+      getConnectionStatus,
+      isConnected,
+      sendMessage,
+    ]
+  );
 
   // Effect 2: When the streaming connection is established, start the session (only if user started practice)
   React.useEffect(() => {
@@ -229,6 +333,9 @@ const ASLWorldPage = ({
     state.practiceStarted,
     connectionState,
     streamingConnectionStatus,
+    startPracticeSession,
+    getConnectionStatus,
+    getVideoStreamingRef,
   ]);
 
   // Effect 3: Auto-reconnect WebSocket after story generation if needed
@@ -270,49 +377,67 @@ const ASLWorldPage = ({
 
   // Handler for starting practice session - automatic backend connection
   const handleStartPractice = useCallback(async () => {
-    console.log("Starting practice session - activating webcam and streaming");
+    try {
+      console.log(
+        "Starting practice session - activating webcam and streaming"
+      );
 
-    const currentWebcamActive = getWebcamActive();
+      const currentWebcamActive = getWebcamActive();
+      const currentStreamingActive = getStreamingActive();
 
-    // Activate webcam if not already active
-    if (!currentWebcamActive) {
-      if (toggleWebcam) {
-        console.log("Activating webcam for practice session via props");
-        toggleWebcam();
-      } else if (!isWebcamActive) {
-        console.log("Activating webcam for practice session via hook");
-        await startWebcam();
+      // Activate webcam if not already active
+      if (!currentWebcamActive) {
+        if (toggleWebcam) {
+          console.log("Activating webcam for practice session via props");
+          toggleWebcam();
+        } else if (!isWebcamActive) {
+          console.log("Activating webcam for practice session via hook");
+          await startWebcam();
+        }
       }
-    }
 
-    // Set practice started flag - backend connection is automatic
-    dispatch({ type: "START_PRACTICE" });
+      // Activate streaming if not already active
+      if (!currentStreamingActive && toggleStreaming) {
+        console.log("Activating streaming for practice session");
+        toggleStreaming();
+      }
+
+      // Set practice started flag - backend connection will be established
+      dispatch({ type: "START_PRACTICE" });
+    } catch (error) {
+      console.error("Error in handleStartPractice:", error);
+      // Don't re-throw the error to prevent it from propagating up
+    }
   }, [
     webcamActive,
     isWebcamActive,
     toggleWebcam,
     startWebcam,
+    toggleStreaming,
     getWebcamActive,
+    getStreamingActive,
   ]);
 
   // Effect to handle streaming activation after webcam is active - automatic backend connection
   React.useEffect(() => {
     const currentWebcamActive = getWebcamActive();
     const currentStreamingActive = getStreamingActive();
+    const currentConnectionStatus = getConnectionStatus();
 
     if (
       state.practiceStarted &&
       currentWebcamActive &&
-      !currentStreamingActive
+      !currentStreamingActive &&
+      currentConnectionStatus === "disconnected"
     ) {
       console.log(
-        "Webcam is active, now activating streaming for practice session (backend connects automatically)"
+        "Practice started with active webcam, activating streaming for backend connection"
       );
       const timer = setTimeout(() => {
         if (toggleStreaming) {
           toggleStreaming();
         }
-      }, 1000);
+      }, 500); // Reduced delay for faster connection
 
       return () => clearTimeout(timer);
     }
@@ -322,63 +447,13 @@ const ASLWorldPage = ({
     isWebcamActive,
     streamingActive,
     isConnected,
+    connectionState,
+    streamingConnectionStatus,
     toggleStreaming,
     getWebcamActive,
     getStreamingActive,
+    getConnectionStatus,
   ]);
-
-  // Practice session management functions
-  const startPracticeSession = async story => {
-    console.log("Starting practice session with story:", story.title);
-
-    try {
-      const currentVideoRef = getVideoStreamingRef();
-      const currentStreamingActive = getStreamingActive();
-
-      // Send practice session start message to backend via WebSocket
-      if (currentVideoRef.current && currentStreamingActive) {
-        const sessionData = {
-          story_sentences: story.sentences,
-          session_id: `session_${Date.now()}`,
-          story_title: story.title,
-        };
-
-        const success = currentVideoRef.current.sendPracticeControl(
-          "start_session",
-          sessionData
-        );
-
-        if (success) {
-          console.log("Practice session started successfully");
-        } else {
-          console.error("Failed to start practice session");
-        }
-      } else if (isConnected && sendMessage) {
-        // Use internal WebSocket hook if available
-        const sessionData = {
-          type: "start_session",
-          story_sentences: story.sentences,
-          session_id: `session_${Date.now()}`,
-          story_title: story.title,
-        };
-
-        const success = sendMessage(sessionData);
-        if (success) {
-          console.log(
-            "Practice session started successfully via internal WebSocket"
-          );
-        } else {
-          console.error(
-            "Failed to start practice session via internal WebSocket"
-          );
-        }
-      } else {
-        console.warn("WebSocket not available for practice session start");
-      }
-    } catch (error) {
-      console.error("Error starting practice session:", error);
-    }
-  };
 
   // Story generation handler
   const handleStoryGenerate = useCallback(async payload => {
@@ -764,7 +839,8 @@ const ASLWorldPage = ({
             generationError={state.storyGenerationError}
             onDismissError={handleDismissError}
             // Pass webcam props for object scanning
-            webcamRef={webcamStream} // Pass the actual webcam stream
+            webcamRef={storySetupVideoRef} // Pass video element ref
+            webcamStream={webcamStream} // Pass the actual webcam stream
             isWebcamActive={currentWebcamActive}
             captureFrame={captureFrame}
             webcamError={webcamError?.message}

@@ -1,35 +1,25 @@
-const path = require("path");
-
 module.exports = {
   displayName: "Integration Tests",
-  rootDir: path.resolve(__dirname, "../../../"),
   testMatch: ["<rootDir>/src/tests/integration/**/*.test.js"],
-  setupFilesAfterEnv: [
-    "<rootDir>/src/setupTests.js",
-    "<rootDir>/src/tests/integration/setup.js",
-  ],
+  setupFilesAfterEnv: ["<rootDir>/src/setupTests.js"],
   testEnvironment: "jsdom",
+  moduleNameMapping: {
+    "^@/(.*)$": "<rootDir>/src/$1",
+  },
   collectCoverageFrom: [
-    "src/**/*.{js,jsx}",
+    "src/pages/**/*.{js,jsx}",
+    "src/hooks/**/*.{js,jsx}",
+    "src/components/**/*.{js,jsx}",
+    "!src/**/*.test.{js,jsx}",
     "!src/tests/**",
-    "!src/index.js",
-    "!src/reportWebVitals.js",
   ],
-  coverageDirectory: "coverage/integration",
-  coverageReporters: ["text", "lcov", "html"],
-  testTimeout: 30000,
-  verbose: true,
-  bail: false,
-  maxWorkers: 1, // Run tests serially for integration tests
-  transform: {
-    "^.+\\.(js|jsx)$": "babel-jest",
+  coverageThreshold: {
+    global: {
+      branches: 70,
+      functions: 70,
+      lines: 70,
+      statements: 70,
+    },
   },
-  transformIgnorePatterns: [
-    "node_modules/(?!(react-router|react-router-dom|react-error-boundary)/)",
-  ],
-  moduleNameMapper: {
-    "\\.(css|less|scss|sass)$": "identity-obj-proxy",
-    "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$":
-      "jest-transform-stub",
-  },
+  testTimeout: 10000,
 };

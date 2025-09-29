@@ -168,6 +168,11 @@ const VideoStreamingClient = forwardRef(
             console.debug(`Received ${message.type} from server`);
             break;
 
+          case "connection_established":
+            // WebSocket connection confirmation
+            console.log("WebSocket connection established:", message);
+            break;
+
           default:
             console.warn("Unknown message type:", message.type, message);
             // Still pass unknown messages to parent for potential handling

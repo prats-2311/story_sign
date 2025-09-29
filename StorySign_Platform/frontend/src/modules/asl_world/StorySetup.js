@@ -13,6 +13,7 @@ const StorySetup = ({
   onDismissError,
   // New props from parent for webcam management
   webcamRef = null,
+  webcamStream = null,
   isWebcamActive = false,
   captureFrame = null,
   webcamError = null,
@@ -23,6 +24,20 @@ const StorySetup = ({
   const [customPrompt, setCustomPrompt] = useState("");
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+
+  // Effect to attach webcam stream to video element
+  React.useEffect(() => {
+    const videoElement = webcamRef?.current || videoRef.current;
+    if (webcamStream && videoElement && isWebcamActive) {
+      videoElement.srcObject = webcamStream;
+      const playPromise = videoElement.play();
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(error => {
+          console.warn("Video autoplay failed:", error);
+        });
+      }
+    }
+  }, [webcamStream, isWebcamActive, webcamRef]);
 
   const simpleWords = [
     "Cat",
@@ -40,19 +55,20 @@ const StorySetup = ({
   // Handle object scanning using parent's captureFrame function
   const handleScanObject = useCallback(async () => {
     try {
-      if (captureFrame) {
-        // Use parent's captureFrame function
-        const frameData = await captureFrame();
+      const videoElement = webcamRef?.current || videoRef.current;
+      if (captureFrame && videoElement) {
+        // Use parent's captureFrame function with video element
+        const frameData = await captureFrame(videoElement);
         if (frameData && onStoryGenerate) {
-          await onStoryGenerate({ frame_data: frameData });
+          await onStoryGenerate({ frame_data: frameData.frameData });
         }
       } else {
-        console.error("captureFrame function not available from parent");
+        console.error("captureFrame function or video element not available");
       }
     } catch (error) {
       console.error("Error capturing frame for story generation:", error);
     }
-  }, [captureFrame, onStoryGenerate]);
+  }, [captureFrame, onStoryGenerate, webcamRef]);
 
   // Handle simple word generation
   const handleSimpleWordGenerate = word => {

@@ -1,4 +1,10 @@
-import React, { useState, useRef, useCallback, useReducer } from "react";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useReducer,
+  useEffect,
+} from "react";
 import {
   ExpressionPractice,
   EmotionMetrics,
@@ -18,6 +24,7 @@ const harmonyReducer = (state, action) => {
     case "START_SESSION":
       return {
         ...state,
+        currentView: "practice",
         isSessionActive: true,
         sessionStartTime: Date.now(),
         currentEmotion: action.payload.emotion,
@@ -128,6 +135,34 @@ const HarmonyPage = ({
     stopWebcam,
     attachToVideoElement,
   } = useWebcam();
+
+  // Automatic camera initialization on component mount
+  useEffect(() => {
+    const initializeWebcam = async () => {
+      try {
+        console.log("HarmonyPage: Initializing webcam on component mount");
+        await startWebcam();
+      } catch (error) {
+        console.error("HarmonyPage: Failed to initialize webcam:", error);
+        dispatch({
+          type: "SET_ERROR",
+          payload: {
+            type: "WEBCAM_INIT_ERROR",
+            message: "Failed to initialize camera on page load",
+            userAction: "Please allow camera access and refresh the page",
+          },
+        });
+      }
+    };
+
+    initializeWebcam();
+
+    // Cleanup webcam on component unmount
+    return () => {
+      console.log("HarmonyPage: Cleaning up webcam on component unmount");
+      stopWebcam();
+    };
+  }, [startWebcam, stopWebcam]);
 
   // Handle starting a new emotion practice session
   const handleStartSession = useCallback(
@@ -326,8 +361,67 @@ const HarmonyPage = ({
     dispatch({ type: "CLEAR_ERROR" });
   }, []);
 
+  // Camera inactive placeholder component
+  const CameraInactivePlaceholder = () => (
+    <div className="camera-inactive-placeholder" role="status">
+      <div className="placeholder-content">
+        <div className="camera-icon" aria-hidden="true">
+          📷
+        </div>
+        <h3>Camera Required</h3>
+        <p>
+          Harmony requires camera access for facial expression practice and
+          social-emotional learning features.
+        </p>
+        {webcamError ? (
+          <div className="error-details">
+            <p className="error-message">
+              <strong>Error:</strong>{" "}
+              {webcamError.message || "Camera access failed"}
+            </p>
+            <div className="error-actions">
+              <button
+                className="retry-button"
+                onClick={startWebcam}
+                aria-label="Retry camera access"
+              >
+                Retry Camera Access
+              </button>
+              <button
+                className="clear-error-button"
+                onClick={handleClearError}
+                aria-label="Clear error message"
+              >
+                Clear Error
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="loading-camera">
+            <div className="loading-spinner" aria-hidden="true"></div>
+            <p>Initializing camera...</p>
+          </div>
+        )}
+        <div className="help-text">
+          <h4>Troubleshooting:</h4>
+          <ul>
+            <li>Allow camera permissions when prompted</li>
+            <li>Check that no other applications are using your camera</li>
+            <li>Refresh the page if camera access was denied</li>
+            <li>Ensure your browser supports camera access</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+
   // Render current view based on state
   const renderCurrentView = () => {
+    // Show camera inactive placeholder if webcam is not active
+    if (!webcamActive && webcamStatus !== "initializing") {
+      return <CameraInactivePlaceholder />;
+    }
+
     switch (state.currentView) {
       case "setup":
         return (
@@ -337,6 +431,9 @@ const HarmonyPage = ({
             webcamError={webcamError}
             error={state.error}
             onClearError={handleClearError}
+            // Pass webcam state to module
+            isWebcamActive={webcamActive}
+            webcamStream={stream}
           />
         );
 
@@ -359,6 +456,9 @@ const HarmonyPage = ({
                 currentDetection={state.currentDetection}
                 sessionData={state.sessionData}
                 isSessionActive={state.isSessionActive}
+                // Pass webcam state to module
+                isWebcamActive={webcamActive}
+                webcamStream={stream}
               />
             </div>
 
@@ -384,6 +484,8 @@ const HarmonyPage = ({
                 : 0
             }
             onNewSession={handleNewSession}
+            // Pass webcam state to module for consistency
+            isWebcamActive={webcamActive}
           />
         );
 
@@ -405,10 +507,21 @@ const HarmonyPage = ({
         <h1 id="main-content">Harmony</h1>
         <p>Facial Expression Practice & Social-Emotional Learning</p>
         <div className="connection-status" aria-live="polite" role="status">
-          <span className="status-indicator connected" aria-hidden="true">
-            🟢
+          <span
+            className={`status-indicator ${
+              webcamActive ? "connected" : "disconnected"
+            }`}
+            aria-hidden="true"
+          >
+            {webcamActive ? "🟢" : "🔴"}
           </span>
-          <span className="status-text">Backend Ready</span>
+          <span className="status-text">
+            {webcamActive
+              ? "Camera Active - Ready for practice"
+              : webcamStatus === "initializing"
+              ? "Initializing camera..."
+              : "Camera Required - Please allow access"}
+          </span>
         </div>
       </header>
 

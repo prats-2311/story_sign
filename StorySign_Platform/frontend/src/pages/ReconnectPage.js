@@ -1,4 +1,10 @@
-import React, { useState, useRef, useCallback, useReducer } from "react";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useReducer,
+  useEffect,
+} from "react";
 import {
   ExerciseSelector,
   MovementAnalysis,
@@ -18,6 +24,7 @@ const reconnectReducer = (state, action) => {
     case "START_SESSION":
       return {
         ...state,
+        currentView: "practice",
         isSessionActive: true,
         sessionStartTime: Date.now(),
         currentExercise: action.payload.exercise,
@@ -135,6 +142,34 @@ const ReconnectPage = ({
     stopWebcam,
     attachToVideoElement,
   } = useWebcam();
+
+  // Automatic camera initialization on component mount
+  useEffect(() => {
+    const initializeWebcam = async () => {
+      try {
+        console.log("ReconnectPage: Initializing webcam on component mount");
+        await startWebcam();
+      } catch (error) {
+        console.error("ReconnectPage: Failed to initialize webcam:", error);
+        dispatch({
+          type: "SET_ERROR",
+          payload: {
+            type: "WEBCAM_INIT_ERROR",
+            message: "Failed to initialize camera on page load",
+            userAction: "Please allow camera access and refresh the page",
+          },
+        });
+      }
+    };
+
+    initializeWebcam();
+
+    // Cleanup webcam on component unmount
+    return () => {
+      console.log("ReconnectPage: Cleaning up webcam on component unmount");
+      stopWebcam();
+    };
+  }, [startWebcam, stopWebcam]);
 
   // Handle starting a new therapy session
   const handleStartSession = useCallback(
@@ -337,8 +372,68 @@ const ReconnectPage = ({
     dispatch({ type: "CLEAR_ERROR" });
   }, []);
 
+  // Camera inactive placeholder component
+  const CameraInactivePlaceholder = () => (
+    <div className="camera-inactive-placeholder" role="status">
+      <div className="placeholder-content">
+        <div className="camera-icon" aria-hidden="true">
+          📷
+        </div>
+        <h3>Camera Required</h3>
+        <p>
+          Reconnect requires camera access for therapeutic movement analysis and
+          physical rehabilitation features.
+        </p>
+        {webcamError ? (
+          <div className="error-details">
+            <p className="error-message">
+              <strong>Error:</strong>{" "}
+              {webcamError.message || "Camera access failed"}
+            </p>
+            <div className="error-actions">
+              <button
+                className="retry-button"
+                onClick={startWebcam}
+                aria-label="Retry camera access"
+              >
+                Retry Camera Access
+              </button>
+              <button
+                className="clear-error-button"
+                onClick={handleClearError}
+                aria-label="Clear error message"
+              >
+                Clear Error
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="loading-camera">
+            <div className="loading-spinner" aria-hidden="true"></div>
+            <p>Initializing camera...</p>
+          </div>
+        )}
+        <div className="help-text">
+          <h4>Troubleshooting:</h4>
+          <ul>
+            <li>Allow camera permissions when prompted</li>
+            <li>Check that no other applications are using your camera</li>
+            <li>Refresh the page if camera access was denied</li>
+            <li>Ensure your browser supports camera access</li>
+            <li>Make sure you have adequate lighting for movement tracking</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+
   // Render current view based on state
   const renderCurrentView = () => {
+    // Show camera inactive placeholder if webcam is not active
+    if (!webcamActive && webcamStatus !== "initializing") {
+      return <CameraInactivePlaceholder />;
+    }
+
     switch (state.currentView) {
       case "setup":
         return (
@@ -348,6 +443,9 @@ const ReconnectPage = ({
             webcamError={webcamError}
             error={state.error}
             onClearError={handleClearError}
+            // Pass webcam state to module
+            isWebcamActive={webcamActive}
+            webcamStream={stream}
           />
         );
 
@@ -370,6 +468,9 @@ const ReconnectPage = ({
                 currentAnalysis={state.currentAnalysis}
                 sessionData={state.sessionData}
                 isSessionActive={state.isSessionActive}
+                // Pass webcam state to module
+                isWebcamActive={webcamActive}
+                webcamStream={stream}
               />
             </div>
 
@@ -396,6 +497,8 @@ const ReconnectPage = ({
             }
             exerciseType={state.currentExercise}
             onNewSession={handleNewSession}
+            // Pass webcam state to module for consistency
+            isWebcamActive={webcamActive}
           />
         );
 
@@ -414,17 +517,30 @@ const ReconnectPage = ({
   return (
     <div className="reconnect-page">
       <header className="page-header">
-        <h1>Reconnect</h1>
+        <h1 id="main-content">Reconnect</h1>
         <p>Therapeutic Movement Analysis & Physical Rehabilitation</p>
-        <div className="connection-status" aria-live="polite">
-          <span className="status-indicator connected" aria-hidden="true">
-            🟢
+        <div className="connection-status" aria-live="polite" role="status">
+          <span
+            className={`status-indicator ${
+              webcamActive ? "connected" : "disconnected"
+            }`}
+            aria-hidden="true"
+          >
+            {webcamActive ? "🟢" : "🔴"}
           </span>
-          <span className="status-text">Backend Ready</span>
+          <span className="status-text">
+            {webcamActive
+              ? "Camera Active - Ready for therapy"
+              : webcamStatus === "initializing"
+              ? "Initializing camera..."
+              : "Camera Required - Please allow access"}
+          </span>
         </div>
       </header>
 
-      <main className="page-content">{renderCurrentView()}</main>
+      <main className="page-content" role="main" aria-labelledby="main-content">
+        {renderCurrentView()}
+      </main>
     </div>
   );
 };
